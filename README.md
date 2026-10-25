@@ -54,7 +54,7 @@ npm run dev
 - 실제 분석: `POST /upload/?title=...&perpose=...` (`perpose`는 서버 명세의 철자)
 - multipart 필드: `detail` ← 추가 설명, `prompt` ← 대본, `file` ← 실제 파일
 - 선택한 파일이 없으면 대본이 필요합니다. 선택 사항인 제목은 파일명 또는 기본 제목으로 보완합니다.
-- 응답: `score`, `feedback`, `strengths`, `improvements`. 응답 검증·서버 오류·연결 실패·180초 타임아웃·취소·재시도를 처리합니다.
+- 응답: `score`, `feedback`, `strengths`, `improvements`(`issue`·`deduction`·`solution` 객체 배열), 대본만 보냈을 때는 `revised_script`(수정된 대본)도 포함. 응답 검증·서버 오류·연결 실패·180초 타임아웃·취소·재시도를 처리합니다.
 - 예시 파일은 `POST /mock/upload/`를 사용하고 서버 샘플임을 표시합니다. 홈의 예시 둘러보기와 음성 화면은 기존 로컬 예시입니다. API 응답에는 슬라이드별 평가·시간·정보 검증이 없어 실제 서버 결과에는 점수와 종합 피드백·장점·개선사항만 표시합니다.
 - 개발: Vite 프록시 `/api/presentation/*`. 배포: 같은 경로의 Worker 프록시. 현재 서버는 사이트 Origin을 CORS에서 허용하지 않으므로 브라우저가 같은 출처의 프록시로 요청합니다.
 - 프록시는 두 업로드 경로만 전달하며 사이트 쿠키·Authorization 헤더를 분석 서버에 전달하지 않습니다.

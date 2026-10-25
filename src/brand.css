@@ -16,3 +16,6 @@
 }
 
 .api-feedback-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.api-solution { margin-top: 10px; padding: 12px 14px; background: var(--yellow-pale); border-radius: 12px; }
+.api-solution small { display: block; margin-bottom: 4px; color: var(--muted); font-weight: 700; }
+.revised-script { margin: 0; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: inherit; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
