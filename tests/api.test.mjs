@@ -1,11 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createFeedback, FeedbackApiError, normalizeFeedback } from '../src/jjabary/api.js'
+import { createFeedback, FeedbackApiError, normalizeFeedback, OVERLOADED_MESSAGE } from '../src/jjabary/api.js'
 import { proxyApi } from '../worker/proxy.js'
 import { readFile } from 'node:fs/promises'
 
 const form = { title: '발표 제목', purpose: '신입 교육', description: '추가 설명', script: '발표 대본', file: null }
-const feedback = { score: 84, feedback: '핵심 메시지가 명확합니다.', strengths: ['명확한 주제'], improvements: ['출처 추가'] }
+const feedback = { score: 84, feedback: '핵심 메시지가 명확합니다.', strengths: ['명확한 주제'], improvements: [{ issue: '출처 추가', deduction: 16, solution: '마지막 슬라이드에 인용한 자료의 출처를 정리하세요.' }] }
 
 test('API request uses documented query names, multipart fields and real file bytes', async t => {
   const file = new File(['actual-file-content'], 'slides.pdf', { type: 'application/pdf' })
@@ -58,6 +58,22 @@ test('validation, malformed responses, connection failures and cancellation are 
   assert.throws(() => normalizeFeedback({ ...feedback, score: null }), /응답 형식/)
   assert.throws(() => normalizeFeedback({ ...feedback, improvements: [null] }), /응답 형식/)
   assert.equal(normalizeFeedback({ ...feedback, score: 0 }).score, 0)
+  assert.throws(() => normalizeFeedback({ ...feedback, improvements: [{ issue: '문제', deduction: 5 }] }), /응답 형식/)
+  assert.throws(() => normalizeFeedback({ ...feedback, improvements: [{ issue: '문제', deduction: '5', solution: '해결' }] }), /응답 형식/)
+  assert.throws(() => normalizeFeedback({ ...feedback, revised_script: 123 }), /응답 형식/)
+})
+
+test('revised script is kept only when the server returns one', () => {
+  assert.equal('revised_script' in normalizeFeedback(feedback), false)
+  assert.equal(normalizeFeedback({ ...feedback, revised_script: '수정된 대본' }).revised_script, '수정된 대본')
+})
+
+test('legacy string improvements are converted to the structured shape', () => {
+  const result = normalizeFeedback({ ...feedback, improvements: ['1. [감점 6점] 근거가 부족함', '결론 보강'] })
+  assert.deepEqual(result.improvements, [
+    { issue: '근거가 부족함', deduction: 6, solution: '' },
+    { issue: '결론 보강', deduction: null, solution: '' },
+  ])
 })
 
 test('production proxy preserves multipart bytes and errors without forwarding site credentials', async t => {
@@ -101,4 +117,14 @@ test('built Worker serves the exact Vite HTML, stylesheet, script and transparen
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(`dist${url}`))
   }
   assert.equal((await worker.fetch(new Request('https://site.example/no-such-file'))).status, 404)
+})
+
+test('model overload errors show a retry-later message', async t => {
+  const body = "google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand.', 'status': 'UNAVAILABLE'}}"
+  for (const status of [500, 503]) {
+    t.mock.method(globalThis, 'fetch', async () => new Response(body, { status }))
+    await assert.rejects(createFeedback(form), error => error.message === OVERLOADED_MESSAGE && error.status === 503)
+  }
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ detail: 'boom' }, { status: 500 }))
+  await assert.rejects(createFeedback(form), error => error.message !== OVERLOADED_MESSAGE)
 })
