@@ -1,0 +1,99 @@
+/* Account */
+.modal {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--ink);
+  padding: 35px;
+  position: fixed;
+  max-width: calc(100vw - 30px);
+  max-height: calc(100dvh - 30px);
+  overflow: auto;
+  box-shadow: 0 20px 100px #00000015;
+}
+.modal::backdrop {
+  background: #3d3b254a;
+  backdrop-filter: blur(5px);
+}
+.modal-close {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+}
+.auth-modal {
+  width: 460px;
+  text-align: center;
+}
+.auth-modal > .logo {
+  font-size: 24px;
+}
+.auth-symbol {
+  display: flex;
+  width: 53px;
+  height: 53px;
+  background: var(--yellow);
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 30px auto 19px;
+  transform: rotate(-7deg);
+}
+.auth-modal h2 {
+  font-size: 23px;
+  letter-spacing: -0.8px;
+}
+.auth-modal > p {
+  font-size: 12px;
+  color: #8f8f7f;
+  margin: 12px 0 29px;
+}
+.auth-modal form {
+  text-align: left;
+}
+.auth-modal .field {
+  margin-bottom: 18px;
+}
+.auth-modal .button {
+  width: 100%;
+}
+.auth-message {
+  background: var(--yellow-pale);
+  border-radius: 7px;
+  padding: 13px;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 17px 0;
+  color: #82764c;
+}
+.auth-toggle {
+  font-size: 11px;
+  color: #9c9c86;
+  margin: 22px 0;
+}
+.auth-toggle button {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 9px;
+}
+.auth-divider {
+  position: relative;
+  border-top: 1px solid var(--line);
+  margin: 29px 0 24px;
+}
+.auth-divider span {
+  background: #fff;
+  padding: 0 12px;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: #a7a791;
+}
+.auth-footnote {
+  display: block;
+  color: #b0b09f;
+  font-size: 9px;
+  line-height: 1.8;
+  margin-top: 20px;
+}

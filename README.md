@@ -25,6 +25,7 @@ npm run dev
 발표자료 분석은 https://presentation-api-edwk.onrender.com 의 API에 연결되어 있습니다. 분석 시작 시 발표 제목·목적·추가 설명·대본·선택한 발표자료를 전송합니다. 점수·종합 피드백·장점·개선사항과 TXT 보고서는 서버 응답을 사용합니다. 서버 오류를 샘플 결과로 대체하지 않습니다. 음성 분석 및 계정 API는 제공되지 않아 해당 화면은 미리보기입니다. 비밀번호와 음성 파일은 전송하지 않습니다. 분석 결과는 메모리에만 유지하므로 새로고침하면 입력 및 결과가 초기화됩니다.
 
 디자인은 제공된 PDF 와이어프레임, Figma의 화면 구조·문구와 브라우저로 확인한 원본 화면, Gamma의 사이트 구성을 참고했습니다.
+
 ## 검증
 
 프로덕션 빌드와 변경 파일의 공백 오류 검사를 통과했습니다. Safari의 데스크톱 홈·입력·결과 흐름에 더해, Chrome 반응형 모드 390px 홈 및 320px 메뉴·입력 검증·예시 입력·파일 표시·분석 완료·결과 탭·슬라이드 탐색을 확인했습니다. Safari 반응형 모드 768px 홈 배치와 390px 음성 비교 화면의 구조도 확인했습니다. 실제 iOS/Android 기기의 가상 키보드·파일 선택창 검증은 별도입니다.
@@ -43,10 +44,27 @@ npm run dev
 
 ## 소스 구성
 
-- `src/App.jsx`: 라우팅, 앱 상태 및 화면 연결
-- `src/important/`: 주요 화면 (`Home`, `FeedbackForm`, `Analysis`, `Results`)
-- `src/jjabary/`: 로그인 모달 (`Auth`), 공통 UI (`components`), 예시 데이터 (`data`)
-- `src/main.jsx`: 앱 진입점. 스타일과 정적 에셋은 기존 위치를 유지합니다.
+- `src/App.jsx`: 앱 상태와 화면 연결. 홈 외 화면은 `React.lazy`로 필요할 때 불러옵니다.
+- `src/important/`: 주요 화면 (`Home`, `FeedbackForm`, `Analysis`, `Results`, `ApiResults`).
+- `src/jjabary/ui/`: 버튼·아이콘·로고·업로드·모달 등 공통 UI. `components.jsx`는 기존 import를 유지하는 재수출 파일입니다.
+- `src/jjabary/results/`: 예시 결과의 요약·슬라이드·논리 흐름·정보 확인·음성 비교 패널.
+- `src/jjabary/styles/`: 화면별 CSS. `src/App.css`의 import 순서는 기존 반응형 우선순위를 유지하므로 임의로 바꾸지 마세요.
+- `src/jjabary/AppHeader.jsx`, `AppFooter.jsx`: 공통 레이아웃.
+- `src/jjabary/useHashRoute.js`, `useMobileMenu.js`: 라우팅·제목·스크롤·모바일 메뉴 이벤트.
+- `src/jjabary/feedbackRequest.js`, `useFeedback.js`: 중복 제출 방지, 취소·타임아웃·재시도 및 요청 상태.
+- `src/jjabary/reports.js`, `useTransientMessage.js`: 보고서 생성·다운로드와 자동 해제 알림.
+- `src/jjabary/uploadConfig.js`: 허용 파일 형식·크기·대본 길이의 공통 기준.
+- `src/main.jsx`: 앱 진입점. 로고 파일은 `public/brand/`에 있습니다.
+
+## 코드 정리와 검증
+
+```sh
+npm run format       # JSX·JS·CSS·문서 포맷 정리
+npm run format:check # 파일을 수정하지 않고 포맷 확인
+npm run check        # 포맷 → 프로덕션 빌드 → 테스트
+```
+
+소스는 읽기 쉬운 여러 줄 형식으로 관리하고, 압축은 Vite가 `dist/`를 만들 때 처리합니다. `dist/`와 `node_modules/`는 커밋하지 않습니다. 분석 대기 중 중복 클릭은 같은 요청을 공유하고, 취소하거나 화면을 벗어난 뒤 늦게 도착한 응답은 무시합니다. 알림·분석 타이머·음성 미리듣기 URL은 사용이 끝나면 정리합니다. TXT 파일을 읽는 동안 제출을 막고, 이후 선택한 파일이나 직접 입력한 대본을 이전 읽기 결과가 덮어쓰지 않게 처리합니다.
 
 ## API 연결
 
@@ -66,4 +84,6 @@ API 연결 검증: 자동 테스트 7개를 통과했으며 Safari에서 예시 
 
 ## 저장소에서 실행
 
-Node.js 22.12 이상을 사용하세요. 저장소 루트에서 `npm ci`, `npm run dev`를 실행합니다. 검증은 `npm run build` 후 `npm test`입니다. `.openai/hosting.json`에는 팀 저장소에 종속되지 않도록 개인 Sites 프로젝트 ID를 포함하지 않았습니다.
+Node.js 22.12 이상을 사용하세요. 저장소 루트에서 `npm ci`, `npm run dev`를 실행합니다. 검증은 `npm run check`로 한 번에 실행할 수 있습니다. `.openai/hosting.json`에는 팀 저장소에 종속되지 않도록 개인 Sites 프로젝트 ID를 포함하지 않았습니다.
+
+리팩터링 검증: 현재 자동 테스트 18개가 통과했습니다. 요청 중복·취소·타임아웃·재시도, 보고서 내용, 파일 검증, 분할된 모든 청크의 Worker 전달을 자동 검사합니다. CSS는 분리 전후 규칙·속성 값·순서를 대조해 유지했습니다. 인앱 브라우저에서 결과 탭·슬라이드 탐색·필터·보고서 다운로드·로그인 모달과 320px 모바일 메뉴·입력 검증·음성 미리보기를 확인했습니다.
