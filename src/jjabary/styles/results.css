@@ -29,8 +29,8 @@
   margin-bottom: 24px;
 }
 .example-banner p {
-  font-size: 10px;
-  color: #8c8666;
+  font-size: 13px;
+  color: #686654;
   line-height: 1.7;
 }
 .example-banner b {
@@ -55,13 +55,13 @@
 }
 .result-meta small {
   display: block;
-  font-size: 9px;
-  color: #99998a;
+  font-size: 11px;
+  color: #73736a;
   margin-bottom: 9px;
 }
 .result-meta strong,
 .result-meta span {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
 }
 .result-meta span {
@@ -134,9 +134,9 @@
   margin: 21px 0 17px;
 }
 .summary-card > p {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
-  color: #84816c;
+  color: #625f50;
   max-width: 570px;
 }
 .summary-chips {
@@ -145,7 +145,7 @@
   margin-top: 20px;
 }
 .summary-chips span {
-  font-size: 9px;
+  font-size: 11px;
   background: white;
   border: 1px solid #ece6c8;
   border-radius: 5px;
@@ -153,7 +153,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #807a4e;
+  color: #625c3a;
 }
 .time-card {
   border: 1px solid var(--line);
@@ -176,8 +176,8 @@
   font-weight: 500;
 }
 .time-card > p {
-  font-size: 11px;
-  color: #9b9b8a;
+  font-size: 12px;
+  color: #717166;
   margin-top: 9px;
 }
 .time-bars {
@@ -210,8 +210,8 @@
   color: #a3a390;
 }
 .time-card > small {
-  font-size: 9px;
-  color: #a4a492;
+  font-size: 11px;
+  color: #717166;
   margin-top: 9px;
 }
 .subheading {
@@ -226,7 +226,10 @@
   letter-spacing: -0.6px;
   font-weight: 700;
 }
-.subheading > span,
+.subheading > span {
+  font-size: 12px;
+  color: #6d6d62;
+}
 .subheading .text-button {
   font-size: 10px;
   color: #8e8e7d;
@@ -354,11 +357,11 @@
   gap: 25px;
 }
 .result-bottom-cta span {
-  font-size: 10px;
-  color: #979786;
+  font-size: 12px;
+  color: #6d6d62;
 }
 .result-bottom-cta h3 {
-  font-size: 19px;
+  font-size: 21px;
   letter-spacing: -0.7px;
   margin-top: 9px;
 }

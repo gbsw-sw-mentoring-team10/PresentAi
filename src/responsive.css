@@ -168,7 +168,7 @@
   .hero-small {
     flex-wrap: wrap;
     gap: 8px 12px;
-    font-size: 10px;
+    font-size: 12px;
   }
   .showcase {
     height: 460px;
@@ -211,7 +211,7 @@
     padding: 10px;
   }
   .suggestion-mini > span {
-    font-size: 10px;
+    font-size: 11px;
   }
   .feedback-float > button {
     font-size: 12px;
@@ -224,7 +224,7 @@
     padding: 10px;
   }
   .time-float small {
-    font-size: 9px;
+    font-size: 10px;
   }
   .time-float b {
     font-size: 10px;
@@ -240,7 +240,7 @@
   }
   .format-strip b,
   .format-strip > .section-wrap > span {
-    font-size: 11px;
+    font-size: 12px;
   }
   .section-heading > p,
   .feature-card > p,

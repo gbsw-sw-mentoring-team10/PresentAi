@@ -11,7 +11,7 @@
   border: 1px solid #e9e9df;
   border-radius: 30px;
   padding: 8px 13px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.3px;
   margin-bottom: 25px;
@@ -59,7 +59,7 @@
 .hero-description {
   font-size: 16px;
   line-height: 1.9;
-  color: #787870;
+  color: #62625b;
   margin: 25px auto 26px;
 }
 .hero-actions {
@@ -86,8 +86,8 @@
   align-items: center;
   justify-content: center;
   gap: 20px;
-  font-size: 10px;
-  color: #8c8c82;
+  font-size: 12px;
+  color: #62625b;
   margin-top: 19px;
 }
 .hero-small span {
@@ -122,8 +122,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  font-size: 10px;
-  color: #797970;
+  font-size: 12px;
+  color: #62625b;
 }
 .preview-toolbar > span:first-child,
 .preview-bottom > span:first-child {
@@ -139,7 +139,7 @@
 }
 .preview-bottom {
   height: 39px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .showcase-main > .slide-art {
   border-radius: 0;
@@ -375,8 +375,8 @@
   gap: 30px;
 }
 .format-strip > .section-wrap > span {
-  font-size: 11px;
-  color: #8b8b80;
+  font-size: 13px;
+  color: #62625b;
 }
 .format-strip > .section-wrap > div {
   display: flex;
@@ -423,8 +423,8 @@
   background: #fff;
 }
 .material-card {
-  border-color: #e2cf26;
-  background: linear-gradient(135deg, #fffef7, #fff);
+  border-color: #e0d45f;
+  background: linear-gradient(145deg, #fffbea, #fff 74%);
 }
 .speech-card {
   background: #fff;
@@ -453,7 +453,7 @@
   margin: 27px 0 17px;
 }
 .feature-card > p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
   color: var(--muted);
 }
@@ -466,7 +466,7 @@
   gap: 10px;
 }
 .feature-card li {
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -553,7 +553,7 @@
   letter-spacing: -0.5px;
 }
 .how-grid p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
   color: var(--muted);
 }
@@ -591,7 +591,7 @@
   transform: rotate(45deg);
 }
 .faq-list details p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.9;
   color: var(--muted);
   padding: 18px 30px 3px 0;

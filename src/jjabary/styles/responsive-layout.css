@@ -261,7 +261,7 @@
     font-size: 31px;
   }
   .section-heading > p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .feature-grid {
     gap: 18px;
@@ -273,10 +273,10 @@
     font-size: 23px;
   }
   .feature-card > p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .feature-card li {
-    font-size: 10px;
+    font-size: 12px;
   }
   .feature-card > .button {
     font-size: 10px;
@@ -307,7 +307,7 @@
     line-height: 1.6;
   }
   .how-grid p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .how-grid article > div span {
     font-size: 35px;
@@ -328,7 +328,7 @@
     font-size: 12px;
   }
   .faq-list details p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .final-cta {
     padding: 37px;
@@ -364,7 +364,7 @@
     font-size: 28px;
   }
   .page-heading p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .example-fill {
     font-size: 10px;
@@ -1637,7 +1637,7 @@
   }
 }
 
-/* Readable application typography at every viewport. */
+/* Keep form copy readable without changing control behavior. */
 .field label {
   font-size: 13px;
 }
@@ -1661,16 +1661,17 @@
 }
 .side-note > p,
 .tip-example p {
-  font-size: 12px;
+  font-size: 13px;
 }
 .side-checks span {
-  font-size: 11px;
-}
-.example-banner p {
   font-size: 12px;
 }
+.example-banner p {
+  font-size: 13px;
+  color: #686654;
+}
 .result-meta small {
-  font-size: 11px;
+  font-size: 12px;
 }
 .result-meta strong,
 .result-meta span {
