@@ -1,12 +1,16 @@
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Form, UploadFile
 import time
 import random
+
+from services.speech_rate import get_speech_rate_score
 
 
 router = APIRouter()
 
-# 실제 /speech_upload/ 응답과 같은 형식: text, chunks, silence, speech_rate(분당 글자 수)
-# 각 샘플은 테스트 음성을 실제 파이프라인(whisper-small)에 통과시킨 결과이다
+# 실제 /pronunciation/ 응답과 같은 형식:
+# mode, recognized_text, reference_word_count, scores, segments, words, reference_source,
+# silence, speech_rate(분당 글자 수), speech_rate_score(325 기준 0~100점)
+# 각 샘플은 테스트 음성을 실제 파이프라인(whisper-small)에 통과시킨 결과(text, chunks, silence, speech_rate)를 바탕으로 한다
 SAMPLES = [
     # 중간에 4초 쉼이 있는 음성
     {
@@ -75,8 +79,61 @@ SAMPLES = [
 ]
 
 
+# 샘플의 chunks를 Azure 발음 평가 응답 형식(segments, words)으로 바꾼다
+def to_response(sample: dict, reference_source: str = "whisper") -> dict:
+    segments, words = [], []
+    for i, chunk in enumerate(sample["chunks"]):
+        start, end = chunk["timestamp"]
+        text = chunk["text"].strip()
+        base = 96 - (i * 3) % 9  # 구간마다 조금씩 다른 점수
+        segments.append({
+            "start": start,
+            "end": end,
+            "text": text,
+            "accuracy": float(base),
+            "fluency": float(base + 1),
+            "completeness": 100.0,
+            "pronunciation": float(base),
+        })
+        tokens = text.split()
+        step = (end - start) / max(len(tokens), 1)
+        for j, token in enumerate(tokens):
+            weak = (i + j) % 11 == 10  # 일부 단어는 발음이 부정확한 것으로 표시
+            words.append({
+                "word": token,
+                "start": round(start + step * j, 2),
+                "end": round(start + step * (j + 1), 2),
+                "accuracy": 62.0 if weak else float(base + (j % 4)),
+                "error_type": "Mispronunciation" if weak else "None",
+            })
+
+    total = sum(s["end"] - s["start"] for s in segments)
+
+    def weighted(key: str):
+        return round(sum(s[key] * (s["end"] - s["start"]) for s in segments) / total, 1)
+
+    return {
+        "mode": "script",
+        "recognized_text": " ".join(s["text"] for s in segments),
+        "reference_word_count": len(sample["text"].split()),
+        "scores": {
+            "accuracy": weighted("accuracy"),
+            "fluency": weighted("fluency"),
+            "completeness": weighted("completeness"),
+            "pronunciation": weighted("pronunciation"),
+        },
+        "segments": segments,
+        "words": words,
+        "reference_source": reference_source,
+        "silence": sample["silence"],
+        "speech_rate": sample["speech_rate"],
+        "speech_rate_score": get_speech_rate_score(sample["speech_rate"]),
+    }
+
+
 @router.post("/")
-def create_speech_feedback(file: UploadFile = File(...)):
-    print("음성 파일을 처리합니다")
+def create_pronunciation_feedback(reference_text: str | None = Form(None), file: UploadFile = File(...)):
+    print("발음 평가를 처리합니다")
     time.sleep(3)
-    return random.choice(SAMPLES)
+    reference_source = "user" if (reference_text or "").strip() else "whisper"
+    return to_response(random.choice(SAMPLES), reference_source)

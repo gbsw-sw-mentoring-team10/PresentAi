@@ -65,13 +65,16 @@ def build_result(segments: list[dict], reference_text: str) -> dict:
             return None
         return round(sum(s[key] * (s["end"] - s["start"]) for s in seg_list) / total, 1)
 
+    scripted = bool(reference_text.strip())  # 기준 문장이 없으면 완성도는 의미가 없다
+
     return {
+        "mode": "script" if scripted else "free",
         "recognized_text": " ".join(s["text"] for s in seg_list),
-        "reference_word_count": len(reference_text.split()),
+        "reference_word_count": len(reference_text.split()) if scripted else None,
         "scores": {
             "accuracy": weighted("accuracy"),
             "fluency": weighted("fluency"),
-            "completeness": weighted("completeness"),
+            "completeness": weighted("completeness") if scripted else None,
             "pronunciation": weighted("pronunciation"),
         },
         "segments": seg_list,
@@ -97,7 +100,7 @@ def assess_pronunciation(audio_path: str, reference_text: str, language: str = "
             reference_text=reference_text,
             grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
             granularity=speechsdk.PronunciationAssessmentGranularity.Word,
-            enable_miscue=True,  # 빠뜨리거나 더한 단어도 표시
+            enable_miscue=bool(reference_text),  # 빠뜨리거나 더한 단어도 표시 (기준 문장이 있을 때만)
         )
         recognizer = speechsdk.SpeechRecognizer(
             speech_config=speech_config,
