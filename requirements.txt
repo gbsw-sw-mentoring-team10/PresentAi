@@ -3,6 +3,7 @@ uvicorn
 google-genai
 python-dotenv
 python-multipart
-transformers
-torch
 azure-cognitiveservices-speech
+faster-whisper
+av<17
+numpy
