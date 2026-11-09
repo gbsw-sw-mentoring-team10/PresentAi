@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 import time
 import random
 
-from routers.mock_API.mock_speech import SAMPLES
+from routers.mock_api.mock_speech import SAMPLES
 
 
 router = APIRouter()

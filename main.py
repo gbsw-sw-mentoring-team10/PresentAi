@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import CORS_ORIGINS
-from routers import auth, pronunciation, speech, upload
-from routers.mock_API import mock_pronunciation, mock_speech, mock_upload
+from routers import auth, feedback, pronunciation, speech, upload
+from routers.mock_api import mock_pronunciation, mock_speech, mock_upload
 
 app = FastAPI()
 
@@ -35,6 +35,7 @@ def get_root():
 
 app.include_router(auth.router, prefix="/auth")
 app.include_router(upload.router, prefix="/upload")
+app.include_router(feedback.router, prefix="/feedback")
 app.include_router(mock_upload.router, prefix="/mock/upload")
 app.include_router(speech.router, prefix="/speech")
 app.include_router(pronunciation.router, prefix="/pronunciation")

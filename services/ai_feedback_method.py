@@ -1,8 +1,9 @@
+import json
 import os
 from pathlib import Path
 
-from google import genai
 from dotenv import load_dotenv
+from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 
@@ -13,6 +14,24 @@ if not api_key:
     raise RuntimeError("프로젝트 루트 .env에 GEMINI_API_KEY를 설정해 주세요.")
 
 client = genai.Client(api_key=api_key)
+
+
+def get_model_name():
+    return os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.8-flash"
+
+
+def get_feedback_response(response):
+    # 구조화된 파싱이 실패해도 모델이 생성한 텍스트는 프론트에 전달한다.
+    if response.parsed is not None:
+        return response.parsed
+    text = response.text
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
 
 class improvement(BaseModel):
     issue: str = Field(description="개선이 필요한 문제점")
@@ -71,7 +90,7 @@ def generate_material_feedback(input_file, mime_type: str, title: str, perpose: 
         prompt = f"발표 제목과 목적, 추가 설명등을 참고해서 피드백에 반영해, 발표 제목: {title}, 발표 목적: {perpose}, 추가 설명: {detail}"
 
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL"),
+        model=get_model_name(),
         contents=[prompt, uploaded_file],
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
@@ -80,7 +99,7 @@ def generate_material_feedback(input_file, mime_type: str, title: str, perpose: 
         ),
     )
 
-    return response.parsed
+    return get_feedback_response(response)
 
 
 # 대본 피드백 함수
@@ -127,7 +146,7 @@ def generate_script_feedback(prompt: str, title: str, perpose: str, detail: str 
             TPD = f"발표 제목과 목적, 추가 설명등을 참고해서 피드백에 반영해, 발표 제목: {title}, 발표 목적: {perpose}, 추가 설명: {detail}, 발표 대본: "
     
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL"),
+        model=get_model_name(),
         contents=[TPD, prompt],
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
@@ -136,7 +155,7 @@ def generate_script_feedback(prompt: str, title: str, perpose: str, detail: str 
         ),
     )
 
-    return response.parsed
+    return get_feedback_response(response)
 
 
 # 대본 / 자료 종합 피드백 함수
@@ -163,7 +182,7 @@ def overall_result(prompt: str, input_file, mime_type: str, title: str, perpose:
 
     uploaded_file = client.files.upload(file=input_file, config=types.UploadFileConfig(mime_type=mime_type))
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL"),
+        model=get_model_name(),
         contents=[TPD, prompt, uploaded_file],
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
@@ -172,4 +191,4 @@ def overall_result(prompt: str, input_file, mime_type: str, title: str, perpose:
         ),
     )
 
-    return response.parsed
+    return get_feedback_response(response)

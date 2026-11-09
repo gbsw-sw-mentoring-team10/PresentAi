@@ -70,7 +70,9 @@ def authenticate_user(connection: Connection, email: str, password: str) -> Publ
     return PublicUser(user_id=user["user_id"], email=user["email"], role=user["role"])
 
 
-def find_session_user(connection: Connection, token: str | None) -> PublicUser | None:
+def find_session_user(
+    connection: Connection, token: str | None, *, for_update: bool = False
+) -> PublicUser | None:
     # 만료되지 않은 세션의 사용자를 찾는다. 유효하지 않으면 None을 반환한다.
     if not is_valid_session_token(token):
         return None
@@ -82,7 +84,8 @@ def find_session_user(connection: Connection, token: str | None) -> PublicUser |
             FROM auth_sessions AS s
             JOIN users AS u ON u.user_id = s.user_id
             WHERE s.token_hash = %s AND s.expires_at > UTC_TIMESTAMP(6)
-            """,
+            """
+            + (" FOR UPDATE" if for_update else ""),
             (hash_session_token(token),),
         )
         user = cursor.fetchone()

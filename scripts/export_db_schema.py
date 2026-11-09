@@ -59,10 +59,10 @@ def export_schema(connection: Connection) -> str:
 
     header = (
         "-- PresentAI: 현재 MySQL 테이블 구조\n"
-        "-- Backend 폴더에서 python -m scripts.export_db_schema 명령으로 갱신합니다.\n"
+        "-- backend 폴더에서 python -m scripts.export_db_schema 명령으로 갱신합니다.\n"
         "-- 데이터, DB 접속 정보, 계정 비밀번호는 포함하지 않습니다.\n"
         "-- 새 빈 DB를 선택한 뒤 전체를 실행합니다. 기존 DB 변경용 파일이 아닙니다.\n"
-        "-- 기존 DB의 구조 변경 내역은 DB/migrations/에서 관리합니다.\n\n"
+        "-- 기존 DB의 구조 변경 내역은 db/migrations/에서 관리합니다.\n\n"
         "SET NAMES utf8mb4;\n\n"
     )
     return header + "\n\n".join(definitions) + "\n"

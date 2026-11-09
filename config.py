@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_DIR = BASE_DIR.parent / "DB"
+DB_DIR = BASE_DIR.parent / "db"
 load_dotenv(BASE_DIR / ".env")
 
 DB_SSL_CA = os.getenv("DB_SSL_CA") or None
