@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-google-genai
-python-dotenv
-python-multipart
-azure-cognitiveservices-speech
-faster-whisper
-av<17
-numpy

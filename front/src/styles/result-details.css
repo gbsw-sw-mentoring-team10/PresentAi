@@ -1,0 +1,26 @@
+/* 결과 화면 가독성 개선 */
+.api-feedback-text {
+  color: #3d3d33 !important;
+  font-size: 15px !important;
+  line-height: 1.8 !important;
+}
+.priority-label {
+  font-size: 11px !important;
+  color: #6f6d58 !important;
+  font-weight: 600;
+}
+.priority-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.penalty-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  background: #fff6b8;
+  border-radius: 5px;
+  padding: 2px 8px;
+  line-height: 1.5;
+}

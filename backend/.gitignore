@@ -1,0 +1,44 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+admin-credentials.local.txt
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependency Directories & Package Locks
+node_modules/
+vendor/
+
+# Build & Output Directories
+dist/
+build/
+out/
+bin/
+
+# Logs & Temporary Files
+*.log
+*.tmp
+*.temp
+
+recordings/
+__pycache__/
+*.wav
+*.exe
+_*.py
+*.pyc
+
+.claude/
+.pytest_cache/
+profiles/*.json
+*.pptx
+*.xlsx

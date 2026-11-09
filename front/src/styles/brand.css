@@ -1,0 +1,79 @@
+/* Logo assets only. The established screen design remains in App.css and responsive.css. */
+.brand-logo {
+  display: inline-flex;
+  width: 186px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 0;
+  background: transparent;
+}
+.brand-logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.brand-logo .brand-compact {
+  display: none;
+}
+.brand-logo.is-compact {
+  width: 92px;
+}
+.brand-logo.is-compact .brand-full {
+  display: none;
+}
+.brand-logo.is-compact .brand-compact {
+  display: block;
+}
+.auth-modal > .brand-logo {
+  margin: 10px 0 24px;
+}
+.site-footer .brand-logo {
+  width: 166px;
+}
+@media (max-width: 800px) {
+  .brand-logo {
+    width: 166px;
+  }
+}
+@media (max-width: 600px) {
+  .brand-logo.is-responsive {
+    width: 92px;
+  }
+  .brand-logo.is-responsive .brand-full {
+    display: none;
+  }
+  .brand-logo.is-responsive .brand-compact {
+    display: block;
+  }
+  .auth-modal > .brand-logo {
+    margin-top: 20px;
+  }
+}
+
+.api-feedback-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.api-solution {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--yellow-pale);
+  border-radius: 12px;
+}
+.api-solution small {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.revised-script {
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

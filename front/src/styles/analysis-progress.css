@@ -1,0 +1,56 @@
+.progress-track {
+  position: relative;
+}
+.progress-track i {
+  transition: width 0.4s ease-out;
+}
+.progress-track.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  transform: translateX(-100%);
+  animation: track-sweep 1.4s ease-in-out infinite;
+}
+.analysis-page > p {
+  min-height: 1.6em;
+}
+.fade-text {
+  animation: fade-in 0.5s ease;
+}
+.analysis-steps li.running small::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes track-sweep {
+  to {
+    transform: translateX(320%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes dots {
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75%,
+  100% {
+    content: '...';
+  }
+}

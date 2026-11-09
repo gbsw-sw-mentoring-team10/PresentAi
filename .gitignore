@@ -1,43 +1,35 @@
-# Operating System Files
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Environment Variables & Secrets
+# Local environment and credentials
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.sample
+*.local
+admin-credentials.local.txt
+*.pem
+*.key
+*.p12
+*.jks
 
-# IDE & Editor Files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Dependency Directories & Package Locks
+# Dependencies, virtual environments, and generated output
 node_modules/
-vendor/
-
-# Build & Output Directories
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
 dist/
 build/
-out/
-bin/
+coverage/
+*.egg-info/
 
-# Logs & Temporary Files
+# Editor, system, and temporary files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
 *.log
 *.tmp
 *.temp
-
-recordings/
-__pycache__/
-*.wav
-*.exe
-_*.py
-*.pyc
-
-.claude/
-.pytest_cache/
-profiles/*.json
-*.pptx
-*.xlsx
