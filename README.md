@@ -44,16 +44,19 @@ npm run dev
 
 ## 소스 구성
 
-- `src/App.jsx`: 앱 상태와 화면 연결. 홈 외 화면은 `React.lazy`로 필요할 때 불러옵니다.
-- `src/important/`: 주요 화면 (`Home`, `FeedbackForm`, `Analysis`, `Results`, `ApiResults`).
-- `src/jjabary/ui/`: 버튼·아이콘·로고·업로드·모달 등 공통 UI. `components.jsx`는 기존 import를 유지하는 재수출 파일입니다.
-- `src/jjabary/results/`: 예시 결과의 요약·슬라이드·논리 흐름·정보 확인·음성 비교 패널.
-- `src/jjabary/styles/`: 화면별 CSS. `src/App.css`의 import 순서는 기존 반응형 우선순위를 유지하므로 임의로 바꾸지 마세요.
-- `src/jjabary/AppHeader.jsx`, `AppFooter.jsx`: 공통 레이아웃.
-- `src/jjabary/useHashRoute.js`, `useMobileMenu.js`: 라우팅·제목·스크롤·모바일 메뉴 이벤트.
-- `src/jjabary/feedbackRequest.js`, `useFeedback.js`: 중복 제출 방지, 취소·타임아웃·재시도 및 요청 상태.
-- `src/jjabary/reports.js`, `useTransientMessage.js`: 보고서 생성·다운로드와 자동 해제 알림.
-- `src/jjabary/uploadConfig.js`: 허용 파일 형식·크기·대본 길이의 공통 기준.
+기능을 찾기 쉽게 화면, 기능별 컴포넌트, 공통 UI를 나눴습니다. [프런트엔드 코드 읽는 법](docs/frontend-guide.md)에 읽는 순서, 각 파일의 역할, GitHub 벤치마킹 근거를 정리했습니다.
+
+- `src/App.jsx`: 앱 상태와 화면 연결. 홈 외 화면은 필요할 때 불러옵니다.
+- `src/pages/`: 홈, 입력, 분석, 실제 결과, 예시 결과의 화면 조립.
+- `src/features/home/`: 소개, 예시, 기능, 이용 방법, FAQ 등 홈 섹션.
+- `src/features/feedback/`: 발표 정보·자료·대본·음성 입력과 검증, API 요청.
+- `src/features/analysis/`: 진행 표시, 자료 없음, 오류와 재시도.
+- `src/features/results/`: 점수, 장점, 수정 제안, 탭, 보고서.
+- `src/features/slides/`: 썸네일 목록, 원본 미리보기, 피드백 카드, 확대창, PDF 로딩.
+- `src/features/auth/`: 로그인·회원가입 미리보기.
+- `src/components/layout/`, `src/components/ui/`: 헤더·푸터와 공통 버튼·아이콘·로고·모달.
+- `src/hooks/`, `src/data/`: 화면 이동·알림 훅과 체험용 데이터.
+- `src/styles/`: 화면별 CSS. `app.css`의 import 순서는 기존 반응형 우선순위를 유지합니다.
 - `src/main.jsx`: 앱 진입점. 로고 파일은 `public/brand/`에 있습니다.
 
 ## 코드 정리와 검증
@@ -77,13 +80,59 @@ npm run check        # 포맷 → 프로덕션 빌드 → 테스트
 - 개발: Vite 프록시 `/api/presentation/*`. 배포: 같은 경로의 Worker 프록시. 현재 서버는 사이트 Origin을 CORS에서 허용하지 않으므로 브라우저가 같은 출처의 프록시로 요청합니다.
 - 프록시는 두 업로드 경로만 전달하며 사이트 쿠키·Authorization 헤더를 분석 서버에 전달하지 않습니다.
 - `npm run build`: Vite 빌드 후 기존 정적 파일을 포함한 Worker를 생성합니다. 기존 디자인·정적 파일은 보존됩니다.
-- `npm test`: multipart 직렬화, 오류 처리, 취소, 프록시 전달 및 정적 파일 바이트 일치 검증.
+- `npm test`: 함수/API 테스트와 UI 상호작용 테스트를 모두 실행합니다. `npm run test:unit` / `npm run test:ui`로 나누어 실행할 수 있습니다.
 - 서버 점검 당시 `/mock/upload/`는 200, `/upload/`의 합성 대본 및 PDF 첨부 요청은 모두 500이었습니다. 실제 분석 성공에는 백엔드 오류 해결이 필요합니다.
 
 API 연결 검증: 자동 테스트 7개를 통과했으며 Safari에서 예시 입력 → 서버 샘플 요청 → 완료 → 서버 응답 결과 표시와 실제 요청의 500 오류 화면을 확인했습니다. API와 직접 연결하는 미리보기는 `npm run dev`를 사용하세요. `vite preview`는 정적 미리보기라 API 프록시가 제공되지 않습니다.
 
 ## 저장소에서 실행
 
-Node.js 22.12 이상을 사용하세요. 저장소 루트에서 `npm ci`, `npm run dev`를 실행합니다. 검증은 `npm run check`로 한 번에 실행할 수 있습니다. `.openai/hosting.json`에는 팀 저장소에 종속되지 않도록 개인 Sites 프로젝트 ID를 포함하지 않았습니다.
+Node.js 22.13 이상을 사용하세요. 저장소 루트에서 `npm ci`, `npm run dev`를 실행합니다. 검증은 `npm run check`로 한 번에 실행할 수 있습니다. `.openai/hosting.json`에는 팀 저장소에 종속되지 않도록 개인 Sites 프로젝트 ID를 포함하지 않았습니다.
 
-리팩터링 검증: 현재 자동 테스트 18개가 통과했습니다. 요청 중복·취소·타임아웃·재시도, 보고서 내용, 파일 검증, 분할된 모든 청크의 Worker 전달을 자동 검사합니다. CSS는 분리 전후 규칙·속성 값·순서를 대조해 유지했습니다. 인앱 브라우저에서 결과 탭·슬라이드 탐색·필터·보고서 다운로드·로그인 모달과 320px 모바일 메뉴·입력 검증·음성 미리보기를 확인했습니다.
+리팩터링 검증: 함수/API 테스트 23개와 UI 테스트 11개를 실행합니다. 요청 중복·취소·타임아웃·재시도, 보고서 내용, 파일 검증, 분할된 모든 청크의 Worker 전달을 자동 검사합니다. CSS는 분리 전후 규칙·속성 값·순서를 대조해 유지했습니다. 인앱 브라우저에서 결과 탭·슬라이드 탐색·필터·보고서 다운로드·로그인 모달과 320px 모바일 메뉴·입력 검증·음성 미리보기를 확인했습니다.
+
+## 슬라이드별 피드백 작업 화면
+
+기존 흰색·검정·노란색 디자인을 이어받아 슬라이드 목록, 원본 미리보기, 문제별 피드백을 나란히 배치했습니다. 1023px 이하에서는 두 열로, 760px 이하에서는 가로 썸네일과 한 열 화면으로 전환됩니다. 모바일에는 이전·다음 이동을 하단에 고정합니다.
+
+- 전체 / 수정 필요 / 미확인 피드백 필터와 필터 순서를 유지하는 이전·다음 이동
+- 중요도별 문제 카드, 대상 내용, 이유, 수정 제안, 기존·추천 문장 비교 및 복사
+- 전체 요약에서 해당 슬라이드의 특정 피드백으로 이동, 확인 표시 공유
+- 평가 상태와 확인 상태를 분리하며, 체크는 현재 결과가 열려 있는 동안 유지
+- 원본 확대·축소, Escape 닫기, 키보드 썸네일 탐색
+- PDF.js를 필요할 때 불러와 업로드한 PDF를 브라우저 안에서 렌더링. 썸네일은 보이는 범위부터 렌더링하며 문서 종료 시 Worker를 정리
+- PDF 미리보기의 CMap·폰트·WASM은 `predev` / `prebuild`에서 복사. `public/pdfjs/`는 생성물이므로 Git에서 제외
+- 정적 PDF 미리보기는 백그라운드 탭에서도 완료될 수 있도록 인쇄용 렌더링을 사용하며, PDF의 인쇄용 레이어 설정을 따름
+- PPT/PPTX/HTML의 원본 렌더링은 서버가 제공하는 `image_url`을 사용. 이미지가 없으면 미리보기 없음 안내를 표시하며 임의 이미지를 원본으로 대신하지 않음
+
+실제 분석 화면도 같은 슬라이드 패널을 사용합니다. 기존 전체 피드백 응답은 그대로 지원하고, 아래 선택 필드 `slides`가 있으면 페이지별 분석을 연결합니다. PDF 페이지 수는 업로드한 원본에서 읽습니다. 개별 평가가 없는 페이지는 `평가 없음`으로 표시하며, 전체 피드백을 임의로 페이지에 나누지 않습니다. 기존 백엔드에 이 확장 필드가 없으면 백엔드 구현이 별도로 필요합니다.
+
+```json
+{
+  "slides": [
+    {
+      "page": 3,
+      "title": "시장 기회",
+      "summary": "시장 규모와 서비스 방향을 설명합니다.",
+      "strengths": ["시장 변화와 서비스 방향이 연결되어 있습니다."],
+      "image_url": "https://example.com/slide-3.png",
+      "issues": [
+        {
+          "title": "시장 수치의 출처가 빠져 있어요",
+          "priority": "high",
+          "category": "정보 근거",
+          "target": "시장 규모 수치",
+          "reason": "기준 연도를 알 수 없어요.",
+          "suggestion": "각주에 출처와 기준 연도를 추가하세요.",
+          "original": "기존 문장 (선택)",
+          "replacement": "추천 문장 (선택)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+`page`는 1부터 시작하는 명시적인 페이지 번호입니다. `priority`는 `high`, `medium`, `low` 중 하나입니다. `issues: []`는 평가 완료 후 수정 제안 없음이며, 필드 생략은 평가 없음입니다. 중복·잘못된 페이지 번호와 잘못된 이미지 URL은 제외합니다. 위 예시는 기존 `score`, `feedback`, `strengths`, `improvements` 필드에 더하는 응답 확장입니다.
+
+화면 구성은 `src/features/slides/SlideWorkspace.jsx`, 공통 선택·필터 상태는 `src/features/slides/useSlideReview.js`, 실제 결과 연결은 `src/pages/FeedbackResultsPage.jsx`, 데이터 계약은 `src/features/slides/slideFeedback.js`, 스타일은 `src/styles/slide-workspace.css`에 있습니다. 자동 테스트는 총 34개이며 필터 순서, 페이지 대응, 없는 평가 구분, 요약 연결 및 보고서 내용에 더해 입력 방식 전환, 업로드 오류 복구, 키보드 탐색, 서버 오류 후 UI 재시도를 포함합니다. Safari에서 데스크톱·390px·320px 화면, 문장 복사·확대, 실제 3페이지 PDF 렌더링을 확인했습니다. 실서비스 서버 응답은 이번 작업 중 시간 초과로 검증하지 못했으며, API 화면 검증에는 로컬 합성 응답과 합성 PDF를 사용했습니다.

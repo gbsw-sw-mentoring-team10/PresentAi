@@ -1,21 +1,22 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import Home from './important/Home.jsx'
-import AppHeader from './jjabary/AppHeader.jsx'
-import AppFooter from './jjabary/AppFooter.jsx'
-import PageBoundary from './jjabary/PageBoundary.jsx'
-import { Button } from './jjabary/components.jsx'
-import { example } from './jjabary/data.js'
-import useFeedback from './jjabary/useFeedback.js'
-import useHashRoute from './jjabary/useHashRoute.js'
-import './App.css'
-import './responsive.css'
-import './brand.css'
+import HomePage from './pages/HomePage.jsx'
+import AppHeader from './components/layout/AppHeader.jsx'
+import AppFooter from './components/layout/AppFooter.jsx'
+import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
+import Button from './components/ui/Button.jsx'
+import { example } from './data/examplePresentation.js'
+import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
+import useHashRoute from './hooks/useHashRoute.js'
+import './styles/app.css'
+import './styles/responsive.css'
+import './styles/brand.css'
+import './styles/slide-workspace.css'
 
-const FeedbackForm = lazy(() => import('./important/FeedbackForm.jsx'))
-const Analysis = lazy(() => import('./important/Analysis.jsx'))
-const Results = lazy(() => import('./important/Results.jsx'))
-const ApiResults = lazy(() => import('./important/ApiResults.jsx'))
-const Auth = lazy(() => import('./jjabary/Auth.jsx'))
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage.jsx'))
+const AnalysisPage = lazy(() => import('./pages/AnalysisPage.jsx'))
+const ExampleResultsPage = lazy(() => import('./pages/ExampleResultsPage.jsx'))
+const FeedbackResultsPage = lazy(() => import('./pages/FeedbackResultsPage.jsx'))
+const AuthModal = lazy(() => import('./features/auth/AuthModal.jsx'))
 
 const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: null, audio: null }
 
@@ -25,7 +26,7 @@ export default function App() {
   const [mode, setMode] = useState('material')
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
-  const { request, run: runFeedback, cancel: cancelFeedback } = useFeedback()
+  const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
 
   useEffect(() => {
     if (route !== '/analysis') cancelFeedback()
@@ -57,11 +58,11 @@ export default function App() {
   function renderPage() {
     switch (route) {
       case '/':
-        return <Home navigate={navigate} startExample={startExample} />
+        return <HomePage navigate={navigate} startExample={startExample} />
       case '/materials':
       case '/speech':
         return (
-          <FeedbackForm
+          <FeedbackPage
             key={route}
             mode={route === '/speech' ? 'speech' : 'material'}
             form={form}
@@ -72,7 +73,7 @@ export default function App() {
         )
       case '/analysis':
         return (
-          <Analysis
+          <AnalysisPage
             form={form}
             mode={mode}
             navigate={navigate}
@@ -83,14 +84,14 @@ export default function App() {
       case '/results':
         if (resultKind === 'api' && request.status === 'success') {
           return (
-            <ApiResults
+            <FeedbackResultsPage
               key={request.submission.title + request.result.feedback}
               request={request}
               navigate={navigate}
             />
           )
         }
-        if (resultKind === 'example') return <Results navigate={navigate} />
+        if (resultKind === 'example') return <ExampleResultsPage navigate={navigate} />
         return (
           <div className="state-page">
             <h1>아직 분석 결과가 없어요.</h1>
@@ -99,7 +100,7 @@ export default function App() {
           </div>
         )
       case '/speech-results':
-        return <Results navigate={navigate} speech />
+        return <ExampleResultsPage navigate={navigate} speech />
       default:
         return (
           <div className="state-page">
@@ -132,7 +133,7 @@ export default function App() {
         onLogin={() => setAuth(true)}
       />
       <main id="main-content" tabIndex={-1}>
-        <PageBoundary key={route}>
+        <PageErrorBoundary key={route}>
           <Suspense
             fallback={
               <div className="state-page" role="status">
@@ -142,15 +143,15 @@ export default function App() {
           >
             {renderPage()}
           </Suspense>
-        </PageBoundary>
+        </PageErrorBoundary>
       </main>
       <AppFooter navigate={navigate} scrollSection={scrollSection} />
       {auth && (
-        <PageBoundary key="auth">
+        <PageErrorBoundary key="auth">
           <Suspense fallback={null}>
-            <Auth onClose={closeAuth} />
+            <AuthModal onClose={closeAuth} />
           </Suspense>
-        </PageBoundary>
+        </PageErrorBoundary>
       )}
     </>
   )

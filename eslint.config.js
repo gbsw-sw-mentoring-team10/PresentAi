@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // PDF.js copies these vendor files during predev/prebuild; they are not app source.
+  globalIgnores(['dist', 'public/pdfjs']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

@@ -1,0 +1,96 @@
+import { useState } from 'react'
+import Button from '../../components/ui/Button.jsx'
+import Icon from '../../components/ui/Icon.jsx'
+import Logo from '../../components/ui/Logo.jsx'
+import Modal from '../../components/ui/Modal.jsx'
+
+export default function AuthModal({ onClose }) {
+  const [signup, setSignup] = useState(false)
+  const [message, setMessage] = useState('')
+  function submit(e) {
+    e.preventDefault()
+    const data = new FormData(e.currentTarget)
+    if (signup && data.get('password') !== data.get('confirm')) {
+      setMessage('비밀번호가 서로 달라요. 다시 확인해 주세요.')
+      return
+    }
+    setMessage('계정 기능은 준비 중이에요. 지금은 로그인 없이 모든 예시 화면을 둘러볼 수 있어요.')
+  }
+  return (
+    <Modal onClose={onClose} title={signup ? '회원가입' : '로그인'} className="auth-modal">
+      <Logo />
+      <span className="auth-symbol">
+        <Icon name="sparkle" size={26} />
+      </span>
+      <h2>{signup ? '당신의 다음 발표를 함께.' : '다시 만나 반가워요.'}</h2>
+      <p>{signup ? '더 좋은 발표를 향한 작은 시작.' : '다음 발표를 준비할 시간이에요.'}</p>
+      <form onSubmit={submit}>
+        <div className="field">
+          <label htmlFor="account-id">아이디</label>
+          <input
+            name="id"
+            id="account-id"
+            autoComplete="username"
+            required
+            placeholder="아이디를 입력해 주세요"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="password">비밀번호</label>
+          <input
+            name="password"
+            id="password"
+            type="password"
+            minLength={8}
+            required
+            autoComplete={signup ? 'new-password' : 'current-password'}
+            placeholder="8자 이상 입력해 주세요"
+          />
+        </div>
+        {signup && (
+          <div className="field">
+            <label htmlFor="confirm">비밀번호 확인</label>
+            <input
+              name="confirm"
+              id="confirm"
+              type="password"
+              required
+              autoComplete="new-password"
+              placeholder="비밀번호를 한 번 더 입력해 주세요"
+            />
+          </div>
+        )}
+        {message && (
+          <div className="auth-message" role="status">
+            {message}
+          </div>
+        )}
+        <Button variant="yellow" type="submit" icon={null}>
+          {signup ? '회원가입' : '로그인'}
+        </Button>
+      </form>
+      <div className="auth-toggle">
+        {signup ? '이미 계정이 있나요?' : '처음 오셨나요?'}
+        <button
+          onClick={() => {
+            setSignup((v) => !v)
+            setMessage('')
+          }}
+        >
+          {signup ? '로그인' : '회원가입'}
+        </button>
+      </div>
+      <div className="auth-divider">
+        <span>또는</span>
+      </div>
+      <Button variant="outline" onClick={onClose}>
+        로그인 없이 둘러보기
+      </Button>
+      <small className="auth-footnote">
+        계정 연결 전의 체험 화면입니다.
+        <br />
+        입력한 계정 정보는 저장하거나 전송하지 않아요.
+      </small>
+    </Modal>
+  )
+}

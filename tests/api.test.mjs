@@ -5,7 +5,7 @@ import {
   FeedbackApiError,
   normalizeFeedback,
   OVERLOADED_MESSAGE,
-} from '../src/jjabary/api.js'
+} from '../src/features/feedback/feedbackApi.js'
 import { proxyApi } from '../worker/proxy.js'
 import { readFile, readdir } from 'node:fs/promises'
 

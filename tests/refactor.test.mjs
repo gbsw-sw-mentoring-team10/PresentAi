@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createFeedbackRequest } from '../src/jjabary/feedbackRequest.js'
-import { buildApiReport, buildExampleReport } from '../src/jjabary/reports.js'
-import { MAX_UPLOAD_BYTES, validateUpload } from '../src/jjabary/uploadConfig.js'
+import { createFeedbackRequest } from '../src/features/feedback/feedbackRequest.js'
+import { buildApiReport, buildExampleReport } from '../src/features/results/feedbackReport.js'
+import { MAX_UPLOAD_BYTES, validateUpload } from '../src/features/feedback/uploadRules.js'
 import { createWorker } from '../worker/index.js'
 
 const form = { title: '', purpose: '교육', description: '', script: '합성 대본', file: null }
