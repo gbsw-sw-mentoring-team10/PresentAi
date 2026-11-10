@@ -1,0 +1,5 @@
+ALTER TABLE slides_feedback_result
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER title,
+    ADD COLUMN error_message TEXT NULL AFTER status,
+    ADD COLUMN updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
