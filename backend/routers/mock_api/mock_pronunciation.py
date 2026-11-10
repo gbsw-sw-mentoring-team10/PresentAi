@@ -1,7 +1,8 @@
-from fastapi import APIRouter, File, Form, UploadFile
-import time
 import random
 
+from fastapi import APIRouter, File, Form, UploadFile
+
+from routers.mock_api.common import simulate_latency
 from routers.mock_api.mock_speech import SAMPLES
 
 
@@ -67,6 +68,5 @@ def find_sample(reference_text: str) -> dict:
 
 @router.post("/")
 def create_pronunciation_feedback(reference_text: str = Form(...), file: UploadFile = File(...)):
-    print("발음 평가를 처리합니다")
-    time.sleep(3)
+    simulate_latency(3, "발음 평가를 처리합니다")
     return to_response(find_sample(reference_text))

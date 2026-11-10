@@ -1,3 +1,4 @@
+import io
 import logging
 from collections.abc import Iterator
 from typing import Annotated
@@ -5,6 +6,7 @@ from typing import Annotated
 import pymysql
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -28,7 +30,11 @@ from services.ai_feedback_method import (
     generate_script_feedback,
     overall_result,
 )
-from services.feedback_store import save_feedback
+from services.feedback_store import (
+    complete_feedback,
+    create_pending_feedback,
+    set_feedback_status,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -68,12 +74,105 @@ def get_feedback_user(request: Request, db: FeedbackDatabase) -> PublicUser | No
     return user
 
 
+def run_analysis(
+    prompt: str | None,
+    input_file,
+    mime_type: str | None,
+    title: str,
+    perpose: str,
+    detail: str | None,
+):
+    if prompt is not None and input_file is not None:
+        return overall_result(
+            prompt=prompt,
+            input_file=input_file,
+            mime_type=mime_type,
+            title=title,
+            perpose=perpose,
+            detail=detail,
+        )
+    if prompt is not None:
+        return generate_script_feedback(prompt, title, perpose, detail)
+    if input_file is not None:
+        return generate_material_feedback(
+            input_file=input_file,
+            mime_type=mime_type,
+            title=title,
+            perpose=perpose,
+            detail=detail,
+        )
+    raise HTTPException(
+        status_code=400, detail="대본이나 파일 중 하나 이상을 입력해야 합니다."
+    )
+
+
+def model_error_response(exc: Exception) -> tuple[int, str]:
+    # 모델 오류를 (HTTP 상태, 사용자용 메시지)로 바꾼다. 동기/비동기 경로가 공유한다.
+    if isinstance(exc, genai_errors.ClientError):
+        logger.warning("모델 요청 거절: HTTP %s", exc.code)
+        if exc.code == 429:
+            return 503, "모델 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."
+        return 502, "분석 모델을 사용할 수 없습니다. 서버의 모델 설정을 확인해 주세요."
+    if exc.code == 503:
+        return 503, "모델 사용량이 많습니다. 잠시 후 다시 시도해 주세요."
+    return 502, "AI 서버 오류가 발생했습니다."
+
+
+def run_feedback_job(
+    result_id: int,
+    prompt: str | None,
+    file_bytes: bytes | None,
+    mime_type: str | None,
+    title: str,
+    perpose: str,
+    detail: str | None,
+) -> None:
+    # 응답이 나간 뒤 실행되므로 요청용 DB 연결 대신 단계마다 새 연결을 쓴다.
+    # 긴 AI 호출 동안에는 DB 연결을 잡고 있지 않는다.
+    failure: str | None = None
+    payload = None
+    try:
+        with database.get_connection() as db:
+            set_feedback_status(db, result_id, "processing")
+        input_file = io.BytesIO(file_bytes) if file_bytes is not None else None
+        try:
+            result = run_analysis(
+                prompt, input_file, mime_type, title, perpose, detail
+            )
+            if result is None:
+                failure = "피드백 결과 반환 실패"
+            else:
+                payload = FeedbackPayload.model_validate(
+                    result.model_dump() if isinstance(result, BaseModel) else result
+                )
+        except (genai_errors.ClientError, genai_errors.ServerError) as exc:
+            failure = model_error_response(exc)[1]
+        except ValidationError:
+            failure = "응답 형식이 달라 결과를 저장하지 못했습니다."
+        except Exception:
+            logger.exception("피드백 분석 실패")
+            failure = "분석 중 오류가 발생했습니다."
+        with database.get_connection() as db:
+            if payload is not None:
+                try:
+                    complete_feedback(db, result_id, payload)
+                    return
+                except pymysql.MySQLError as exc:
+                    logger.warning("피드백 저장 실패: %s", type(exc).__name__)
+                    failure = STORAGE_UNAVAILABLE
+            set_feedback_status(db, result_id, "failed", failure)
+    except pymysql.MySQLError as exc:
+        # 상태를 기록하지 못한 작업은 updated_at 기준 정리 대상이 된다.
+        logger.error("피드백 작업 상태 갱신 실패: %s", type(exc).__name__)
+
+
 @router.post("/", dependencies=[Depends(require_trusted_origin)])
 def create_feedback(
     title: str,
     perpose: str,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: FeedbackDatabase,
     current_user: Annotated[PublicUser | None, Depends(get_feedback_user)],
     detail: Annotated[str | None, Form()] = None,
@@ -81,50 +180,46 @@ def create_feedback(
     file: Annotated[UploadFile | None, File()] = None,
 ):
     response.headers["Cache-Control"] = "no-store"
-    try:
-        if prompt is not None and file is not None:
-            result = overall_result(
-                prompt=prompt,
-                input_file=file.file,
-                mime_type=file.content_type,
-                title=title,
-                perpose=perpose,
-                detail=detail,
-            )
-        elif prompt is not None:
-            result = generate_script_feedback(prompt, title, perpose, detail)
-        elif file is not None:
-            result = generate_material_feedback(
-                input_file=file.file,
-                mime_type=file.content_type,
-                title=title,
-                perpose=perpose,
-                detail=detail,
-            )
+    if prompt is None and file is None:
+        raise HTTPException(
+            status_code=400, detail="대본이나 파일 중 하나 이상을 입력해야 합니다."
+        )
+
+    if current_user is not None and db is not None:
+        # 회원: 요청 한 건을 pending으로 기록하고 분석은 background에서 처리한다.
+        try:
+            result_id = create_pending_feedback(db, current_user.user_id, title)
+        except pymysql.MySQLError as exc:
+            logger.warning("피드백 요청 기록 실패: %s", type(exc).__name__)
+            request.state.feedback_storage_error = STORAGE_UNAVAILABLE
         else:
-            raise HTTPException(
-                status_code=400, detail="대본이나 파일 중 하나 이상을 입력해야 합니다."
+            # 응답 후에는 업로드 스트림이 닫히므로 지금 바이트로 읽어 둔다.
+            file_bytes = file.file.read() if file is not None else None
+            background_tasks.add_task(
+                run_feedback_job,
+                result_id,
+                prompt,
+                file_bytes,
+                file.content_type if file is not None else None,
+                title,
+                perpose,
+                detail,
             )
-    except genai_errors.ClientError as exc:
-        logger.warning("모델 요청 거절: HTTP %s", exc.code)
-        if exc.code == 429:
-            raise HTTPException(
-                status_code=503,
-                detail="모델 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
-            ) from exc
-        raise HTTPException(
-            status_code=502,
-            detail="분석 모델을 사용할 수 없습니다. 서버의 모델 설정을 확인해 주세요.",
-        ) from exc
-    except genai_errors.ServerError as exc:
-        if exc.code == 503:
-            raise HTTPException(
-                status_code=503,
-                detail="모델 사용량이 많습니다. 잠시 후 다시 시도해 주세요.",
-            ) from exc
-        raise HTTPException(
-            status_code=502, detail="AI 서버 오류가 발생했습니다."
-        ) from exc
+            return {"result_id": result_id, "status": "pending"}
+
+    # 비회원(또는 DB 사용 불가): 기존처럼 동기로 분석하고 저장하지 않는다.
+    try:
+        result = run_analysis(
+            prompt,
+            file.file if file is not None else None,
+            file.content_type if file is not None else None,
+            title,
+            perpose,
+            detail,
+        )
+    except (genai_errors.ClientError, genai_errors.ServerError) as exc:
+        status_code, message = model_error_response(exc)
+        raise HTTPException(status_code=status_code, detail=message) from exc
 
     if result is None:
         raise HTTPException(status_code=502, detail="피드백 결과 반환 실패")
@@ -137,36 +232,6 @@ def create_feedback(
     storage_error = getattr(request.state, "feedback_storage_error", None)
     if storage_error:
         storage.update(storage_status="failed", storage_message=storage_error)
-    if current_user is not None and db is not None:
-        try:
-            validated = FeedbackPayload.model_validate(payload)
-            result_id = save_feedback(
-                db,
-                request.cookies[config.AUTH_COOKIE_NAME],
-                current_user.user_id,
-                title,
-                validated,
-            )
-            storage.update(
-                saved_result_id=result_id,
-                storage_status="saved",
-                storage_message="분석 결과를 내 계정에 저장했어요.",
-            )
-        except ValidationError:
-            storage.update(
-                storage_status="failed",
-                storage_message="응답 형식이 달라 DB에 저장하지 못했습니다. 모델 응답 원문을 확인해 주세요.",
-            )
-        except HTTPException as exc:
-            if exc.status_code != 401:
-                raise
-            storage.update(
-                storage_status="failed",
-                storage_message="분석 중 로그인이 만료되어 저장하지 못했습니다. 결과는 아래에서 확인할 수 있습니다.",
-            )
-        except pymysql.MySQLError as exc:
-            logger.warning("피드백 저장 실패: %s", type(exc).__name__)
-            storage.update(storage_status="failed", storage_message=STORAGE_UNAVAILABLE)
     encoded = jsonable_encoder(payload)
     response_body = encoded if isinstance(encoded, dict) else {"raw_result": encoded}
     return {**response_body, **storage}

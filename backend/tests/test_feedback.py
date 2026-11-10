@@ -10,6 +10,7 @@ import config
 import database
 from main import app
 from routers import auth, upload
+from routers.mock_api import common as mock_common
 from services.auth_security import AuthRateLimiter
 
 RESULT = {
@@ -135,11 +136,13 @@ def test_authenticated_analysis_saves_under_session_owner(client, connection, mo
         "/upload/?title=테스트&perpose=교육&user_id=999999", **kwargs
     )
     assert response.status_code == 200, response.text
-    result_id = response.json()["saved_result_id"]
+    assert response.json()["status"] == "pending"
+    result_id = response.json()["result_id"]
     assert isinstance(result_id, int)
     saved = client.get(f"/feedback/{result_id}")
     assert saved.status_code == 200
     data = saved.json()
+    assert data["status"] == "completed"
     for key in (
         "score",
         "feedback",
@@ -169,7 +172,7 @@ def test_material_only_result_without_script_fields_is_saved(client, monkeypatch
         files={"file": ("synthetic.pdf", b"synthetic", "application/pdf")},
     )
     assert response.status_code == 200
-    stored = client.get(f"/feedback/{response.json()['saved_result_id']}").json()
+    stored = client.get(f"/feedback/{response.json()['result_id']}").json()
     assert stored["revised_script"] == ""
     assert stored["slides"][0]["script_connection"] == ""
 
@@ -179,13 +182,13 @@ def test_multiple_presentations_can_each_save_slide_one(client, connection):
     first = analyze(client)
     second = analyze(client)
     assert first.status_code == second.status_code == 200
-    assert first.json()["saved_result_id"] != second.json()["saved_result_id"]
+    assert first.json()["result_id"] != second.json()["result_id"]
     assert count(connection, "slide_feedback") == 2
 
 
 def test_other_user_and_guest_cannot_read_saved_result(client):
     login(client)
-    result_id = analyze(client).json()["saved_result_id"]
+    result_id = analyze(client).json()["result_id"]
     assert client.post("/auth/logout").status_code == 200
     assert client.get(f"/feedback/{result_id}").status_code == 401
     login(client, "other-feedback-test@example.com")
@@ -217,24 +220,72 @@ def test_invalid_session_is_rejected_before_ai(
     assert count(connection, "slides_feedback_result") == 0
 
 
-def test_session_revoked_during_analysis_is_not_saved(client, connection, monkeypatch):
-    login(client)
+def status_of(connection, result_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT status, error_message FROM slides_feedback_result "
+            "WHERE slides_result_id=%s",
+            (result_id,),
+        )
+        return cursor.fetchone()
 
-    def expire(*args):
+
+def test_job_runs_in_background_after_pending_is_returned(
+    client, connection, monkeypatch
+):
+    login(client)
+    seen = {}
+
+    def inspect(*args):
         with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM auth_sessions")
-        connection.commit()
+            cursor.execute("SELECT status FROM slides_feedback_result")
+            seen["status"] = cursor.fetchone()["status"]
         return RESULT
 
-    monkeypatch.setattr(upload, "generate_script_feedback", expire)
+    monkeypatch.setattr(upload, "generate_script_feedback", inspect)
+    response = analyze(client)
+    assert response.json()["status"] == "pending"
+    assert seen["status"] == "processing"
+    assert status_of(connection, response.json()["result_id"])["status"] == "completed"
+
+
+def test_pending_and_processing_return_status_only(client, connection):
+    login(client)
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT user_id FROM users")
+        user_id = cursor.fetchone()["user_id"]
+        cursor.execute(
+            "INSERT INTO slides_feedback_result (user_id, title, status) "
+            "VALUES (%s, 'pending job', 'pending')",
+            (user_id,),
+        )
+        result_id = cursor.lastrowid
+    connection.commit()
+    assert client.get(f"/feedback/{result_id}").json() == {
+        "saved_result_id": result_id,
+        "status": "pending",
+    }
+
+
+def test_model_error_marks_job_failed(client, connection, monkeypatch):
+    from google.genai import errors
+
+    login(client)
+
+    def rate_limited(*args):
+        raise errors.ClientError(429, {"error": {"message": "private detail"}})
+
+    monkeypatch.setattr(upload, "generate_script_feedback", rate_limited)
     response = analyze(client)
     assert response.status_code == 200
-    assert response.json()["storage_status"] == "failed"
-    assert response.json()["feedback"] == RESULT["feedback"]
-    assert count(connection, "slides_feedback_result") == 0
+    body = client.get(f"/feedback/{response.json()['result_id']}").json()
+    assert body["status"] == "failed"
+    assert "사용량" in body["error_message"]
+    assert "private detail" not in str(body)
+    assert count(connection, "entire_result") == 0
 
 
-def test_partial_save_rolls_back_on_database_error(client, connection):
+def test_partial_save_rolls_back_and_marks_job_failed(client, connection):
     login(client)
     with connection.cursor() as cursor:
         cursor.execute(
@@ -243,12 +294,10 @@ def test_partial_save_rolls_back_on_database_error(client, connection):
     try:
         response = analyze(client)
         assert response.status_code == 200
-        assert response.json()["storage_status"] == "failed"
-        assert response.json()["feedback"] == RESULT["feedback"]
-        assert response.json()["saved_result_id"] is None
-        assert count(connection, "slides_feedback_result") == 0
+        job = status_of(connection, response.json()["result_id"])
+        assert job["status"] == "failed"
         assert count(connection, "entire_result") == 0
-        assert "unavailable_issue" not in response.text
+        assert "unavailable_issue" not in str(job)
     finally:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -257,9 +306,10 @@ def test_partial_save_rolls_back_on_database_error(client, connection):
         connection.commit()
 
 
-def test_mock_analysis_does_not_save(client, connection):
+def test_mock_analysis_does_not_save(client, connection, monkeypatch):
     login(client)
-    response = client.post("/mock/upload/?title=예시&perpose=체험")
+    monkeypatch.setattr(mock_common.time, "sleep", lambda seconds: None)
+    response = client.post("/mock/upload/?title=예시&perpose=체험", data={"prompt": "대본"})
     assert response.status_code == 200
     assert count(connection, "slides_feedback_result") == 0
 
@@ -289,17 +339,15 @@ def test_database_connection_failure_still_returns_model_output(monkeypatch):
     assert "private connection details" not in response.text
 
 
-def test_unexpected_model_format_is_returned_without_saving(
-    client, connection, monkeypatch
-):
+def test_unexpected_model_format_marks_job_failed(client, connection, monkeypatch):
     login(client)
     raw = {"unexpected_feedback": ["the model output is retained"]}
     monkeypatch.setattr(upload, "generate_script_feedback", lambda *args: raw)
     response = analyze(client)
     assert response.status_code == 200
-    assert response.json()["unexpected_feedback"] == raw["unexpected_feedback"]
-    assert response.json()["storage_status"] == "failed"
-    assert count(connection, "slides_feedback_result") == 0
+    job = status_of(connection, response.json()["result_id"])
+    assert job["status"] == "failed"
+    assert count(connection, "entire_result") == 0
 
 
 def test_unparsed_model_text_is_returned_as_raw_output(monkeypatch):
