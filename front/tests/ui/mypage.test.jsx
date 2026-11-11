@@ -9,8 +9,12 @@ const user = { user_id: 7, email: 'synthetic-mypage@example.com' }
 const savedRecords = feedbackHistory.map((item) => ({ ...item, type: 'material' }))
 
 function renderPage(props = {}, respond) {
-  const fetch = vi.fn(async (input) => {
+  const fetch = vi.fn(async (input, init) => {
     const url = new URL(input, 'http://localhost')
+    if (init?.method === 'PATCH' || init?.method === 'DELETE') {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      return Response.json({ ...user, message: 'ok' })
+    }
     if (url.pathname.endsWith('/auth/me'))
       return Response.json({ ...user, created_at: '2026-03-02T00:00:00Z' })
     if (url.pathname.endsWith('/feedback'))

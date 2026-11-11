@@ -360,21 +360,29 @@
 }
 .history-delete {
   position: absolute;
+  right: 18px;
   top: 12px;
-  right: 16px;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #a33a2a;
-  background: #fff;
-  border: 1px solid #e3c4bd;
-  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: #b5b5a8;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
   cursor: pointer;
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
-.history-delete:hover:not(:disabled) {
+.history-delete:hover:not(:disabled),
+.history-delete:focus-visible {
+  color: #a33a2a;
   background: #fbeeeb;
 }
 .history-delete:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
 }
 .history-delete-error {

@@ -152,9 +152,10 @@ test.each([false, true])(
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['발표자료 피드백', '발표 피드백', '이용 방법'])
-    expect(within(header).queryByRole('button', { name: '마이페이지' })).toBeNull()
-    expect(within(header).queryByRole('button', { name: '로그인', exact: true })).toBeNull()
-    expect(within(header).queryByRole('button', { name: '로그아웃' })).toBeNull()
+    // 홈 헤더에도 로그인 상태에 맞는 계정 버튼이 보입니다.
+    expect(!!within(header).queryByRole('button', { name: '마이페이지' })).toBe(loggedIn)
+    expect(!!within(header).queryByRole('button', { name: '로그아웃' })).toBe(loggedIn)
+    expect(!!within(header).queryByRole('button', { name: '로그인', exact: true })).toBe(!loggedIn)
     expect(screen.queryByRole('button', { name: '예시 결과 둘러보기' })).toBeNull()
     expect(screen.queryByRole('button', { name: '전체 피드백 보기' })).toBeNull()
     const guide = screen.getByRole('region', { name: '이용 방법' })
@@ -189,8 +190,8 @@ test('the example form is cleared after visiting history and coming back', async
 
 test('deleting the account clears the user locally even if logout fails', async () => {
   const fetch = stubServer({ loggedIn: true })
-  fetch.mockImplementation(async (url) =>
-    url.endsWith('/auth/me')
+  fetch.mockImplementation(async (url, init) =>
+    url.endsWith('/auth/me') || init?.method === 'DELETE'
       ? Response.json(account)
       : Response.json({ detail: '잠시 후 다시 시도해 주세요.' }, { status: 503 }),
   )
@@ -201,7 +202,7 @@ test('deleting the account clears the user locally even if logout fails', async 
   await user.click(within(dialog).getByRole('button', { name: '계정 탈퇴하기' }))
 
   await waitFor(() => expect(window.location.hash).toBe('#/'))
-  expect(screen.queryByRole('button', { name: '로그인', exact: true })).toBeNull()
+  expect(screen.getByRole('button', { name: '로그인', exact: true })).toBeTruthy()
   expect(screen.queryByRole('alert')).toBeNull()
   await goTo('/mypage')
   expect(await screen.findByRole('heading', { level: 1, name: NOTICE })).toBeTruthy()

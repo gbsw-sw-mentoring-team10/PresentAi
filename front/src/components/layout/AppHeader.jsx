@@ -128,31 +128,27 @@ export default function AppHeader({
           <span ref={indicatorRef} className="nav-indicator" aria-hidden="true" />
         </nav>
         <div className="nav-actions">
-          {!isHome && (
-            <>
-              {user && (
-                <button
-                  className={`login-button mypage-button${activeMyPage ? ' active' : ''}`}
-                  aria-current={activeMyPage ? 'page' : undefined}
-                  onClick={() => handleMember('/mypage')}
-                >
-                  마이페이지
-                </button>
-              )}
-              <button
-                className="login-button"
-                disabled={authBusy}
-                title={user?.email}
-                onClick={() => {
-                  close()
-                  if (user) onLogout()
-                  else onLogin()
-                }}
-              >
-                {authBusy ? '계정 확인 중' : user ? '로그아웃' : '로그인'}
-              </button>
-            </>
+          {user && (
+            <button
+              className={`login-button mypage-button${activeMyPage ? ' active' : ''}`}
+              aria-current={activeMyPage ? 'page' : undefined}
+              onClick={() => handleMember('/mypage')}
+            >
+              마이페이지
+            </button>
           )}
+          <button
+            className="login-button"
+            disabled={authBusy}
+            title={user?.email}
+            onClick={() => {
+              close()
+              if (user) onLogout()
+              else onLogin()
+            }}
+          >
+            {authBusy ? '계정 확인 중' : user ? '로그아웃' : '로그인'}
+          </button>
           <Button onClick={() => handleNavigate('/materials')}>시작하기</Button>
           <button
             ref={buttonRef}

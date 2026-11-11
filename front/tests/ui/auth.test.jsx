@@ -61,7 +61,7 @@ test('login, real analysis storage confirmation and logout work together', async
   expect(await screen.findByText('분석 결과를 내 계정에 저장했어요.')).toBeTruthy()
   await user.click(screen.getByRole('button', { name: '로그아웃' }))
   await waitFor(() => expect(window.location.hash).toBe('#/'))
-  expect(screen.queryByRole('button', { name: '로그인', exact: true })).toBeNull()
+  expect(screen.getByRole('button', { name: '로그인', exact: true })).toBeTruthy()
   expect(loggedIn).toBe(false)
 })
 

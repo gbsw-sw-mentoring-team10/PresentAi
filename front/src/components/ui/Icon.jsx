@@ -9,6 +9,7 @@ const paths = {
   slides: 'M4 3h16v14H4V3Zm8 14v4m-4 0h8M8 8h8M8 12h5',
   mic: 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0V5Zm-4 6v1a7 7 0 0 0 14 0v-1m-7 8v3m-4 0h8',
   check: 'm5 12 4 4L19 6',
+  trash: 'M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6',
   close: 'm6 6 12 12M6 18 18 6',
   upload: 'M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6',
   file: 'M14 2H5v20h14V7l-5-5Zm0 0v6h5M8 12h8M8 16h6',

@@ -11,7 +11,6 @@ import {
   shouldResetForm,
 } from './features/feedback/exampleForm.js'
 import useAuth from './features/auth/useAuth.js'
-import { resetSampleAccount } from './features/account/accountApi.js'
 import { LoginRequiredModal, LoginRequiredPage } from './features/auth/LoginRequired.jsx'
 import useHashRoute, { historyRouteId } from './hooks/useHashRoute.js'
 import './styles/app.css'
@@ -101,7 +100,6 @@ export default function App() {
   }
 
   function resetSession() {
-    resetSampleAccount()
     cancelFeedback()
     setResultKind(null)
     setForm(EMPTY_FORM)

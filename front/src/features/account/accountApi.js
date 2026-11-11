@@ -1,10 +1,8 @@
-import { sampleAccount } from '../../data/sampleAccount.js'
 import { API_BASE_URL } from '../feedback/feedbackApi.js'
 import { accountRequest } from '../auth/authApi.js'
 
 // 계정 조회는 실제 로그인 세션을 사용합니다.
-// 이메일·비밀번호 변경·탈퇴 API는 아직 없어 기존 샘플 동작을 유지합니다.
-const SIMULATED_DELAY = 500
+// 이메일·비밀번호 변경과 탈퇴도 백엔드 /auth API를 호출합니다.
 
 function buildAccountRequest(path, method = 'GET', body) {
   return {
@@ -45,87 +43,43 @@ export async function getAccountProfile({ signal } = {}) {
   return normalizeAccountProfile(data)
 }
 
-export function changeEmail({ email, password }, { signal } = {}) {
-  const request = buildAccountRequest('email', 'PATCH', { new_email: email, password })
-  return send(
-    request,
-    () => {
-      simulated = { ...simulated, email, email_updated_at: today() }
-      return normalizeAccountProfile(simulated)
-    },
+export async function changeEmail({ email, password }, { signal } = {}) {
+  const data = await send(
+    buildAccountRequest('email', 'PATCH', { new_email: email, password }),
     signal,
   )
+  return { ...normalizeAccountProfile(data), emailUpdatedAt: today() }
 }
 
-export function changePassword({ currentPassword, newPassword }, { signal } = {}) {
-  const request = buildAccountRequest('password', 'PATCH', {
-    current_password: currentPassword,
-    new_password: newPassword,
-  })
-  return send(
-    request,
-    () => {
-      simulated = { ...simulated, password_updated_at: today() }
-      return normalizeAccountProfile(simulated)
-    },
+export async function changePassword({ currentPassword, newPassword }, { signal } = {}) {
+  await send(
+    buildAccountRequest('password', 'PATCH', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
     signal,
   )
+  return { passwordUpdatedAt: today() }
 }
 
-export function deleteAccount({ signal } = {}) {
-  const request = buildAccountRequest('account', 'DELETE')
-  return send(
-    request,
-    () => {
-      resetSampleAccount()
-      return { deleted: true }
-    },
-    signal,
-  )
+export async function deleteAccount({ signal } = {}) {
+  await send(buildAccountRequest('account', 'DELETE'), signal)
+  return { deleted: true }
 }
 
-async function send(request, simulate, signal) {
-  // TODO: 백엔드 엔드포인트가 생기면 아래 두 줄을 지우고 이 한 줄로 바꿔 주세요.
-  // return readAccountResponse(await fetch(request.url, { ...request.init, signal: withTimeout(signal) }))
-  await wait(SIMULATED_DELAY, withTimeout(signal))
-  return simulate()
+async function send(request, signal) {
+  let response
+  try {
+    response = await fetch(request.url, { ...request.init, signal: withTimeout(signal) })
+  } catch (error) {
+    if (signal?.aborted) throw error
+    throw new Error('서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', { cause: error })
+  }
+  return readAccountResponse(response)
 }
 
 function withTimeout(signal) {
   return signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000)
-}
-
-function wait(ms, signal) {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) return reject(signal.reason)
-    const timer = setTimeout(resolve, ms)
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer)
-        reject(signal.reason)
-      },
-      { once: true },
-    )
-  })
-}
-
-// 샘플 서버 상태입니다. email은 바꾸기 전까지 비워 두어 로그인한 이메일이 그대로 보이게 해요.
-function initialAccount(owner = null) {
-  return {
-    owner,
-    email: null,
-    created_at: sampleAccount.createdAt,
-    email_updated_at: sampleAccount.emailUpdatedAt,
-    password_updated_at: sampleAccount.passwordUpdatedAt,
-  }
-}
-
-let simulated = initialAccount()
-
-// 로그아웃·탈퇴 때 바꾼 이메일이나 수정일이 다음 로그인으로 넘어가지 않게 비웁니다.
-export function resetSampleAccount() {
-  simulated = initialAccount()
 }
 
 function today() {

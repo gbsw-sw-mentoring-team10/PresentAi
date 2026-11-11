@@ -48,9 +48,10 @@ export default function HistoryListItem({ item, onOpen, onDelete, deleting }) {
         className="history-delete"
         disabled={deleting}
         aria-label={`${item.title} 기록 삭제`}
+        title="삭제"
         onClick={() => onDelete(item)}
       >
-        {deleting ? '삭제 중…' : '삭제'}
+        <Icon name="trash" size={16} />
       </button>
     </li>
   )
