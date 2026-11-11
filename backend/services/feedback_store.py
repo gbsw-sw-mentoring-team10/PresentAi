@@ -1,10 +1,19 @@
 import json
+from datetime import timezone
 
 from fastapi import HTTPException
 from pymysql.connections import Connection
 
 from schemas.feedback import FeedbackPayload
 from services.auth_service import find_session_user
+
+
+def saved_feedback_status(result_id: int) -> dict:
+    return {
+        "saved_result_id": result_id,
+        "storage_status": "saved",
+        "storage_message": "분석 결과를 내 계정에 저장했어요.",
+    }
 
 
 def save_feedback(
@@ -78,12 +87,48 @@ def save_feedback(
         raise
 
 
+def _with_utc_timestamp(row: dict) -> dict:
+    # MySQL 연결의 time_zone은 UTC이며, PyMySQL은 timezone 없는 datetime을 반환한다.
+    if row["created_at"].tzinfo is None:
+        row["created_at"] = row["created_at"].replace(tzinfo=timezone.utc)
+    return row
+
+
+def list_feedback(
+    connection: Connection, user_id: int, *, page: int, page_size: int
+) -> dict:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM slides_feedback_result AS r
+            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
+            WHERE r.user_id = %s
+            """,
+            (user_id,),
+        )
+        total = cursor.fetchone()["total"]
+        cursor.execute(
+            """
+            SELECT r.slides_result_id AS saved_result_id, r.title, r.created_at,
+                   e.score
+            FROM slides_feedback_result AS r
+            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
+            WHERE r.user_id = %s
+            ORDER BY r.created_at DESC, r.slides_result_id DESC
+            LIMIT %s OFFSET %s
+            """,
+            (user_id, page_size, (page - 1) * page_size),
+        )
+        items = [_with_utc_timestamp(row) for row in cursor.fetchall()]
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
 def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT r.slides_result_id, r.title, r.created_at,
-                   e.score, e.feedback, e.strengths, e.revised_script
+            SELECT e.score, e.feedback, e.strengths, e.revised_script
             FROM slides_feedback_result AS r
             JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
             WHERE r.slides_result_id = %s AND r.user_id = %s
@@ -93,7 +138,9 @@ def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
         result = cursor.fetchone()
         if result is None:
             raise HTTPException(
-                status_code=404, detail="저장된 결과를 찾을 수 없습니다."
+                status_code=404,
+                detail="저장된 결과를 찾을 수 없습니다.",
+                headers={"Cache-Control": "no-store"},
             )
         result["strengths"] = json.loads(result["strengths"])
         cursor.execute(
@@ -116,5 +163,4 @@ def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
             slide["good_points"] = json.loads(slide["good_points"] or "[]")
             slide["issues"] = json.loads(slide["issues"] or "[]")
         result["slides"] = slides
-        result["saved_result_id"] = result.pop("slides_result_id")
-        return result
+        return {**result, **saved_feedback_status(result_id)}

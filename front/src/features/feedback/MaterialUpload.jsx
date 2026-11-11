@@ -12,7 +12,8 @@ export default function MaterialUpload({ file, error, onFile, onError }) {
       <FileUpload file={file} onFile={onFile} error={error} setError={onError} />
       <p className="privacy-note">
         <Icon name="shield" size={13} />
-        분석 시작 시 선택한 발표자료가 분석 서버로 전송됩니다.
+        분석 시작 시 선택한 발표자료가 분석 서버로 전송됩니다. 로그인한 사용자의 원본은 계정에
+        저장됩니다.
       </p>
     </section>
   )

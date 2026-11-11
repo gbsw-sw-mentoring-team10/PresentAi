@@ -2,8 +2,24 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
 import App from '../../src/App.jsx'
+import { StorageNotice } from '../../src/features/results/ModelResponse.jsx'
 
 const account = { user_id: 7, email: 'synthetic-auth@example.com', role: 'user' }
+
+test('original file storage failure remains visible beside a saved analysis', () => {
+  render(
+    <StorageNotice
+      result={{
+        saved_result_id: 42,
+        storage_status: 'saved',
+        file_storage_status: 'failed',
+        file_storage_message: '분석 결과는 저장했지만 원본 파일을 저장하지 못했습니다.',
+      }}
+    />,
+  )
+  expect(screen.getByRole('status').textContent).toContain('분석 결과를 내 계정에 저장했어요.')
+  expect(screen.getByRole('status').textContent).toContain('원본 파일을 저장하지 못했습니다.')
+})
 
 test('login, real analysis storage confirmation and logout work together', async () => {
   let loggedIn = false

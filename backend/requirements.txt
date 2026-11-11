@@ -10,3 +10,4 @@ numpy
 PyMySQL[rsa]>=1.1,<2
 pwdlib[argon2]>=0.3,<1
 email-validator>=2,<3
+boto3[crt]>=1.41,<2

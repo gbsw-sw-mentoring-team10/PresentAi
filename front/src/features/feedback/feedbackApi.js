@@ -146,5 +146,11 @@ export async function createFeedback(form, { signal, mock = false } = {}) {
     result.saved_result_id = data.saved_result_id
   if (typeof data?.storage_status === 'string') result.storage_status = data.storage_status
   if (typeof data?.storage_message === 'string') result.storage_message = data.storage_message
+  if (Number.isInteger(data?.saved_file_id) && data.saved_file_id > 0)
+    result.saved_file_id = data.saved_file_id
+  if (typeof data?.file_storage_status === 'string')
+    result.file_storage_status = data.file_storage_status
+  if (typeof data?.file_storage_message === 'string')
+    result.file_storage_message = data.file_storage_message
   return result
 }

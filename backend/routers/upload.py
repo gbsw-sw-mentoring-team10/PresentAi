@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from typing import Annotated
 
 import pymysql
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import (
     APIRouter,
     Depends,
@@ -28,7 +29,8 @@ from services.ai_feedback_method import (
     generate_script_feedback,
     overall_result,
 )
-from services.feedback_store import save_feedback
+from services.feedback_store import save_feedback, saved_feedback_status
+from services.file_storage import StorageNotConfigured, inspect_material, save_material
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -81,6 +83,8 @@ def create_feedback(
     file: Annotated[UploadFile | None, File()] = None,
 ):
     response.headers["Cache-Control"] = "no-store"
+    if file is not None:
+        inspect_material(file)
     try:
         if prompt is not None and file is not None:
             result = overall_result(
@@ -133,6 +137,8 @@ def create_feedback(
         "saved_result_id": None,
         "storage_status": "guest",
         "storage_message": "비회원 분석 결과는 저장하지 않습니다.",
+        "saved_file_id": None,
+        "file_storage_status": "not_requested" if file is None else "guest",
     }
     storage_error = getattr(request.state, "feedback_storage_error", None)
     if storage_error:
@@ -147,11 +153,7 @@ def create_feedback(
                 title,
                 validated,
             )
-            storage.update(
-                saved_result_id=result_id,
-                storage_status="saved",
-                storage_message="분석 결과를 내 계정에 저장했어요.",
-            )
+            storage.update(saved_feedback_status(result_id))
         except ValidationError:
             storage.update(
                 storage_status="failed",
@@ -167,6 +169,29 @@ def create_feedback(
         except pymysql.MySQLError as exc:
             logger.warning("피드백 저장 실패: %s", type(exc).__name__)
             storage.update(storage_status="failed", storage_message=STORAGE_UNAVAILABLE)
+        if file is not None:
+            storage["file_storage_status"] = "skipped"
+            if storage["storage_status"] == "saved":
+                try:
+                    storage["saved_file_id"] = save_material(
+                        db,
+                        request.cookies[config.AUTH_COOKIE_NAME],
+                        current_user.user_id,
+                        file,
+                    )
+                    storage["file_storage_status"] = "saved"
+                except (
+                    StorageNotConfigured,
+                    BotoCoreError,
+                    ClientError,
+                    pymysql.MySQLError,
+                    HTTPException,
+                ) as exc:
+                    logger.warning("발표자료 원본 저장 실패: %s", type(exc).__name__)
+                    storage.update(
+                        file_storage_status="failed",
+                        file_storage_message="분석 결과는 저장했지만 원본 파일을 저장하지 못했습니다.",
+                    )
     encoded = jsonable_encoder(payload)
     response_body = encoded if isinstance(encoded, dict) else {"raw_result": encoded}
     return {**response_body, **storage}

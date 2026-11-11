@@ -6,6 +6,8 @@ const ROUTES = new Map([
   ['/api/presentation/auth/login', ['/auth/login', 'POST']],
   ['/api/presentation/auth/logout', ['/auth/logout', 'POST']],
   ['/api/presentation/auth/me', ['/auth/me', 'GET']],
+  ['/api/presentation/feedback', ['/feedback', 'GET']],
+  ['/api/presentation/feedback/', ['/feedback/', 'GET']],
 ])
 
 export function getSessionCookie(value = '') {
@@ -23,7 +25,9 @@ export async function proxyApi(request, upstreamOrigin = UPSTREAM) {
     ROUTES.get(url.pathname) ||
     (/^\/api\/presentation\/feedback\/\d+$/.test(url.pathname)
       ? [url.pathname.replace('/api/presentation', ''), 'GET']
-      : null)
+      : /^\/api\/presentation\/files\/\d+\/download$/.test(url.pathname)
+        ? [url.pathname.replace('/api/presentation', ''), 'GET']
+        : null)
   if (!route) return Response.json({ detail: 'API 경로를 찾을 수 없습니다.' }, { status: 404 })
   const [path, method] = route
   if (request.method !== method)
@@ -41,6 +45,12 @@ export async function proxyApi(request, upstreamOrigin = UPSTREAM) {
     const value = url.searchParams.get(key)
     if (value !== null && path === '/upload/') target.searchParams.set(key, value)
     if (value !== null && path === '/mock/upload/') target.searchParams.set(key, value)
+  }
+  if (path === '/feedback' || path === '/feedback/') {
+    for (const key of ['page', 'page_size']) {
+      const value = url.searchParams.get(key)
+      if (value !== null) target.searchParams.set(key, value)
+    }
   }
   // 서비스 세션만 전달한다. 다른 사이트 쿠키와 Authorization은 전달하지 않는다.
   const headers = new Headers({ Accept: 'application/json' })
