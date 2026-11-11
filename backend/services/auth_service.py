@@ -148,3 +148,78 @@ def invalid_credentials() -> HTTPException:
         status_code=401,
         detail="이메일 또는 비밀번호가 올바르지 않습니다.",
     )
+
+
+def _verified_user_row(connection: Connection, user_id: int, password: str) -> dict:
+    # 현재 비밀번호가 맞는 사용자 행을 잠가서 돌려준다. 틀리면 401.
+    if not 1 <= len(password) <= MAX_PASSWORD_LENGTH:
+        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT user_id, email, password_hash, role FROM users WHERE user_id = %s FOR UPDATE",
+            (user_id,),
+        )
+        row = cursor.fetchone()
+    if row is None or not verify_password(password, row["password_hash"]):
+        connection.rollback()
+        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
+    return row
+
+
+def change_email(
+    connection: Connection, user_id: int, new_email: str, password: str
+) -> PublicUser:
+    row = _verified_user_row(connection, user_id, password)
+    if row["email"] == new_email:
+        connection.rollback()
+        raise HTTPException(status_code=422, detail="현재 이메일과 다른 이메일을 입력해 주세요.")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE users SET email = %s WHERE user_id = %s", (new_email, user_id)
+            )
+        connection.commit()
+    except pymysql.IntegrityError as exc:
+        connection.rollback()
+        if exc.args[0] == MYSQL_DUPLICATE_ENTRY:
+            raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.") from exc
+        raise
+    return PublicUser(user_id=user_id, email=new_email, role=row["role"])
+
+
+def change_password(
+    connection: Connection,
+    user_id: int,
+    current_password: str,
+    new_password: str,
+    keep_token: str | None,
+) -> None:
+    # 비밀번호를 바꾸고, 현재 브라우저를 뺀 다른 로그인 세션은 모두 끊는다.
+    if not MIN_PASSWORD_LENGTH <= len(new_password) <= MAX_PASSWORD_LENGTH:
+        raise HTTPException(status_code=422, detail="비밀번호는 8~128자로 입력해 주세요.")
+    _verified_user_row(connection, user_id, current_password)
+    if new_password == current_password:
+        connection.rollback()
+        raise HTTPException(
+            status_code=422, detail="현재 비밀번호와 다른 비밀번호를 입력해 주세요."
+        )
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "UPDATE users SET password_hash = %s WHERE user_id = %s",
+            (password_hasher.hash(new_password), user_id),
+        )
+        if is_valid_session_token(keep_token):
+            cursor.execute(
+                "DELETE FROM auth_sessions WHERE user_id = %s AND token_hash <> %s",
+                (user_id, hash_session_token(keep_token)),
+            )
+        else:
+            cursor.execute("DELETE FROM auth_sessions WHERE user_id = %s", (user_id,))
+    connection.commit()
+
+
+def delete_user(connection: Connection, user_id: int) -> None:
+    # 연결된 세션·피드백·파일 기록은 DB의 ON DELETE CASCADE로 함께 지워진다.
+    with connection.cursor() as cursor:
+        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+    connection.commit()

@@ -331,3 +331,50 @@ def test_existing_credentials_file_is_preserved(tmp_path):
     with pytest.raises(FileExistsError):
         save_initial_credentials(path, CREDENTIALS["email"], "another-password")
     assert path.read_text() == original
+
+
+def test_change_email_requires_password_and_rejects_duplicates(client):
+    register_and_login(client)
+    other = {"email": "other-test@example.com", "password": CREDENTIALS["password"]}
+    assert client.post("/auth/register", json=other).status_code == 201
+
+    wrong = client.patch("/auth/email", json={"new_email": "new@example.com", "password": "wrong-password"})
+    assert wrong.status_code == 401
+    taken = client.patch("/auth/email", json={"new_email": other["email"], "password": CREDENTIALS["password"]})
+    assert taken.status_code == 409
+    changed = client.patch("/auth/email", json={"new_email": " New@Example.com ", "password": CREDENTIALS["password"]})
+    assert changed.status_code == 200
+    assert changed.json()["email"] == "new@example.com"
+    assert client.get("/auth/me").json()["email"] == "new@example.com"
+
+
+def test_change_password_keeps_current_session_and_drops_others(client):
+    register_and_login(client)
+    other_session = TestClient(
+        app, base_url="https://testserver", headers={"Origin": config.CORS_ORIGINS[0]}
+    )
+    assert other_session.post("/auth/login", json=CREDENTIALS).status_code == 200
+
+    new_password = "Another-Pass-456!"
+    bad = client.patch("/auth/password", json={"current_password": "wrong-password", "new_password": new_password})
+    assert bad.status_code == 401
+    short = client.patch("/auth/password", json={"current_password": CREDENTIALS["password"], "new_password": "short"})
+    assert short.status_code == 422
+    ok = client.patch("/auth/password", json={"current_password": CREDENTIALS["password"], "new_password": new_password})
+    assert ok.status_code == 200
+
+    assert client.get("/auth/me").status_code == 200
+    assert other_session.get("/auth/me").status_code == 401
+    fresh = {**CREDENTIALS, "password": new_password}
+    assert client.post("/auth/login", json=CREDENTIALS).status_code == 401
+    assert client.post("/auth/login", json=fresh).status_code == 200
+
+
+def test_delete_account_removes_user_and_session(client, db):
+    register_and_login(client)
+    response = client.delete("/auth/account")
+    assert response.status_code == 200
+    assert client.get("/auth/me").status_code == 401
+    with db.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) AS n FROM users WHERE email = %s", (CREDENTIALS["email"],))
+        assert cursor.fetchone()["n"] == 0

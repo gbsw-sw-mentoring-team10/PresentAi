@@ -5,8 +5,8 @@ from pymysql.connections import Connection
 
 import config
 from database import get_db
-from schemas.auth import Credentials, PublicUser
-from services import auth_service
+from schemas.auth import Credentials, EmailChange, PasswordChange, PublicUser
+from services import auth_service, file_storage
 from services.auth_security import AuthRateLimiter
 
 
@@ -141,3 +141,58 @@ def logout(request: Request, response: Response, db: DatabaseConnection):
     clear_session_cookie(response)
 
     return {"message": "로그아웃되었습니다."}
+
+
+@router.patch(
+    "/email",
+    response_model=PublicUser,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def change_email(
+    payload: EmailChange,
+    request: Request,
+    db: DatabaseConnection,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+):
+    check_attempt_limit(request, "account-change")
+    return auth_service.change_email(
+        db,
+        current_user.user_id,
+        str(payload.new_email),
+        payload.password.get_secret_value(),
+    )
+
+
+@router.patch(
+    "/password",
+    response_model=PublicUser,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def change_password(
+    payload: PasswordChange,
+    request: Request,
+    db: DatabaseConnection,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+):
+    check_attempt_limit(request, "account-change")
+    auth_service.change_password(
+        db,
+        current_user.user_id,
+        payload.current_password.get_secret_value(),
+        payload.new_password.get_secret_value(),
+        keep_token=request.cookies.get(config.AUTH_COOKIE_NAME),
+    )
+    return current_user
+
+
+@router.delete("/account", dependencies=[Depends(require_trusted_origin)])
+def delete_account(
+    response: Response,
+    db: DatabaseConnection,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+):
+    keys = file_storage.user_s3_keys(db, current_user.user_id)
+    auth_service.delete_user(db, current_user.user_id)
+    file_storage.delete_s3_keys(keys)
+    clear_session_cookie(response)
+    return {"message": "계정이 삭제되었습니다."}

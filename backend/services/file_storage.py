@@ -224,3 +224,28 @@ def delete_feedback(connection: Connection, user_id: int, result_id: int) -> Non
             get_s3_client().delete_object(Bucket=config.S3_BUCKET_NAME, Key=key)
         except (StorageNotConfigured, BotoCoreError, ClientError) as exc:
             logger.error("삭제된 기록의 S3 파일 정리 필요: %s, key=%s", type(exc).__name__, key)
+
+
+def user_s3_keys(connection: Connection, user_id: int) -> list[str]:
+    """계정 삭제 전에 내 원본 파일의 S3 키를 모은다."""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT s3_key FROM input_files WHERE user_id = %s", (user_id,))
+        rows = cursor.fetchall()
+    prefix = f"presentai/users/{user_id}/"
+    return [row["s3_key"] for row in rows if row["s3_key"].startswith(prefix)]
+
+
+def delete_s3_keys(keys: list[str]) -> None:
+    """S3 원본을 지운다. 실패해도 계정 삭제는 막지 않고 로그만 남긴다."""
+    if not keys:
+        return
+    try:
+        client = get_s3_client()
+    except (StorageNotConfigured, BotoCoreError, ClientError) as exc:
+        logger.error("계정 삭제 후 S3 정리 필요: %s, 파일 %d개", type(exc).__name__, len(keys))
+        return
+    for key in keys:
+        try:
+            client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=key)
+        except (BotoCoreError, ClientError) as exc:
+            logger.error("계정 삭제 후 S3 정리 필요: %s, key=%s", type(exc).__name__, key)
