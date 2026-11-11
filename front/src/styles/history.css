@@ -385,8 +385,71 @@
   opacity: 0.5;
   cursor: default;
 }
-.history-delete-error {
-  margin: 0 0 12px;
+.history-delete-modal {
+  width: 420px;
+  text-align: center;
+}
+.history-delete-symbol {
+  display: flex;
+  width: 53px;
+  height: 53px;
+  background: #fbe3da;
+  color: #a33c24;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto 19px;
+  transform: rotate(-7deg);
+}
+.history-delete-modal h2 {
+  font-size: 21px;
+  letter-spacing: -0.8px;
+  word-break: keep-all;
+}
+.history-delete-modal > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8f8f7f;
+  margin: 12px 0 26px;
+  word-break: keep-all;
+}
+.history-delete-modal > p strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.history-delete-message {
+  margin: -10px 0 18px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff7f4;
   color: #a33a2a;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.history-delete-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.history-delete-actions .button {
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .history-delete-modal {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+  .history-delete-modal h2 {
+    font-size: 19px;
+  }
+  .history-delete-actions {
+    grid-template-columns: 1fr;
+  }
+  .history-delete-actions .button {
+    font-size: 14px;
+  }
+  /* 주요 버튼을 위에 둡니다. */
+  .history-delete-actions .button-outline {
+    order: 1;
+  }
 }

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
+import DeleteHistoryModal from '../features/history/DeleteHistoryModal.jsx'
 import HistoryListItem from '../features/history/HistoryListItem.jsx'
 import HistoryLoadState from '../features/history/HistoryLoadState.jsx'
 import { deleteSavedFeedback, loadFeedbackHistory } from '../features/history/historyApi.js'
@@ -18,27 +19,42 @@ export default function HistoryPage({ navigate, user, onLogin }) {
   const [removed, setRemoved] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [deleteError, setDeleteError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const items = (request.data || []).filter((item) => !removed.includes(item.id))
   const [filter, setFilter] = useState('all')
   const visible = filter === 'all' ? items : items.filter((item) => item.type === filter)
   const count = (id) => (id === 'all' ? items.length : items.filter((i) => i.type === id).length)
 
-  async function handleDelete(item) {
-    if (
-      !window.confirm(
-        `"${item.title}" 기록과 저장된 원본 파일을 삭제할까요?\n삭제하면 되돌릴 수 없어요.`,
-      )
-    )
-      return
+  const deleting = useRef(false)
+  const closeDelete = useCallback(() => {
+    // 삭제 요청 중에는 팝업을 닫지 않아 결과를 놓치지 않게 합니다.
+    if (deleting.current) return
+    setDeleteTarget(null)
+    setDeleteError('')
+  }, [])
+
+  function openDelete(item) {
+    setDeleteError('')
+    setDeleteTarget(item)
+  }
+
+  async function confirmDelete() {
+    const item = deleteTarget
+    if (!item || deleting.current) return
+    deleting.current = true
     setDeletingId(item.id)
     setDeleteError('')
     try {
       await deleteSavedFeedback(item.id)
       setRemoved((ids) => [...ids, item.id])
+      setDeleteTarget(null)
     } catch (error) {
-      if (error.status === 404) setRemoved((ids) => [...ids, item.id])
-      else setDeleteError(error.message)
+      if (error.status === 404) {
+        setRemoved((ids) => [...ids, item.id])
+        setDeleteTarget(null)
+      } else setDeleteError(error.message)
     } finally {
+      deleting.current = false
       setDeletingId(null)
     }
   }
@@ -77,11 +93,6 @@ export default function HistoryPage({ navigate, user, onLogin }) {
               </p>
             </div>
           )}
-          {deleteError && (
-            <p className="history-delete-error" role="alert">
-              {deleteError}
-            </p>
-          )}
           {visible.length > 0 ? (
             <ol className="history-list" aria-label="피드백 기록">
               {visible.map((item) => (
@@ -89,7 +100,7 @@ export default function HistoryPage({ navigate, user, onLogin }) {
                   key={item.id}
                   item={item}
                   onOpen={(id) => navigate(`/history/${id}`)}
-                  onDelete={handleDelete}
+                  onDelete={openDelete}
                   deleting={deletingId === item.id}
                 />
               ))}
@@ -117,6 +128,15 @@ export default function HistoryPage({ navigate, user, onLogin }) {
             </div>
           )}
         </>
+      )}
+      {deleteTarget && (
+        <DeleteHistoryModal
+          item={deleteTarget}
+          deleting={deletingId === deleteTarget.id}
+          error={deleteError}
+          onClose={closeDelete}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
   )

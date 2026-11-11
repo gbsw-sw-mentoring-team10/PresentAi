@@ -41,6 +41,10 @@
   .site-header nav {
     position: relative;
   }
+}
+
+/* 홈 탭을 가운데 두는 배치는 양옆 여백이 충분한 넓은 화면에서만 씁니다. */
+@media (min-width: 1101px) {
   .site-header-home .nav-wrap {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -53,8 +57,10 @@
 
   .site-header-home .nav-wrap > nav {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: clamp(328px, 28vw, 376px);
+    /* 숨긴 모바일 전용 탭은 칸을 차지하지 않도록 보이는 탭 수만큼 열을 만듭니다. */
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    width: clamp(400px, 37vw, 500px);
     gap: 8px;
     margin: 0;
   }
@@ -83,7 +89,8 @@
 
 @media (max-width: 960px) {
   /* 탭이 늘어난 만큼 좁은 데스크톱에서는 시작하기 버튼을 숨깁니다. 발표자료 피드백 탭과 같은 곳으로 이동해요. */
-  .nav-actions .button {
+  .nav-actions .button,
+  .site-header-home .nav-actions .button {
     display: none;
   }
 }

@@ -105,17 +105,15 @@ export default function AppHeader({
           >
             이용 방법
           </button>
-          {!isHome && (
-            <button
-              {...bind('history')}
-              className={activeHistory ? 'active' : ''}
-              aria-current={activeHistory ? 'page' : undefined}
-              onClick={() => handleMember('/history')}
-            >
-              내 피드백
-            </button>
-          )}
-          {!isHome && user && (
+          <button
+            {...bind('history')}
+            className={activeHistory ? 'active' : ''}
+            aria-current={activeHistory ? 'page' : undefined}
+            onClick={() => handleMember('/history')}
+          >
+            내 피드백
+          </button>
+          {user && (
             <button
               {...bind('mypage')}
               className={`nav-mobile-only${activeMyPage ? ' active' : ''}`}
