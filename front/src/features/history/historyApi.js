@@ -93,3 +93,30 @@ export async function loadSavedFeedback(id, { signal } = {}) {
     result: normalizeFeedback(data),
   }
 }
+
+export async function deleteSavedFeedback(id) {
+  if (!Number.isSafeInteger(id) || id <= 0)
+    throw new FeedbackApiError('삭제할 기록을 찾을 수 없어요.', 404)
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}/feedback/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30000),
+    })
+  } catch {
+    throw new FeedbackApiError('서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.')
+  }
+  if (response.ok) return
+  const data = await response.json().catch(() => null)
+  throw new FeedbackApiError(
+    response.status === 401
+      ? '로그인이 만료되었어요. 다시 로그인해 주세요.'
+      : typeof data?.detail === 'string'
+        ? data.detail
+        : '기록을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    response.status,
+  )
+}

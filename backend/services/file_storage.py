@@ -177,3 +177,50 @@ def material_download(connection: Connection, user_id: int, file_id: int) -> dic
         "download_url": url,
         "expires_in": DOWNLOAD_TTL_SECONDS,
     }
+
+
+def delete_feedback(connection: Connection, user_id: int, result_id: int) -> None:
+    """내 피드백 기록과 연결된 원본 파일(DB·S3)을 삭제한다."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT r.status, r.input_file_id, f.s3_key
+            FROM slides_feedback_result AS r
+            LEFT JOIN input_files AS f ON f.file_id = r.input_file_id
+            WHERE r.slides_result_id = %s AND r.user_id = %s
+            """,
+            (result_id, user_id),
+        )
+        row = cursor.fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="저장된 피드백을 찾을 수 없습니다.")
+    if row["status"] in ("pending", "processing"):
+        raise HTTPException(status_code=409, detail="분석이 끝난 뒤에 삭제할 수 있습니다.")
+    key = row["s3_key"]
+    if key and not key.startswith(f"presentai/users/{user_id}/"):
+        key = None
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM slides_feedback_result WHERE slides_result_id=%s AND user_id=%s",
+                (result_id, user_id),
+            )
+            if row["input_file_id"] is not None:
+                cursor.execute(
+                    """
+                    DELETE FROM input_files WHERE file_id=%s AND user_id=%s
+                      AND NOT EXISTS (
+                        SELECT 1 FROM slides_feedback_result WHERE input_file_id=%s
+                      )
+                    """,
+                    (row["input_file_id"], user_id, row["input_file_id"]),
+                )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    if key:
+        try:
+            get_s3_client().delete_object(Bucket=config.S3_BUCKET_NAME, Key=key)
+        except (StorageNotConfigured, BotoCoreError, ClientError) as exc:
+            logger.error("삭제된 기록의 S3 파일 정리 필요: %s, key=%s", type(exc).__name__, key)

@@ -2,9 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, Response
 
-from routers.auth import DatabaseConnection, get_current_user
+from routers.auth import DatabaseConnection, get_current_user, require_trusted_origin
 from schemas.auth import PublicUser
 from schemas.feedback import FeedbackJobStatus, FeedbackList, SavedFeedback
+from services.file_storage import delete_feedback
 from services.feedback_store import list_feedback, read_feedback
 
 router = APIRouter(tags=["feedback"])
@@ -36,3 +37,15 @@ def saved_feedback(
 ):
     response.headers["Cache-Control"] = "no-store"
     return read_feedback(db, current_user.user_id, result_id)
+
+
+@router.delete(
+    "/{result_id}", status_code=204, dependencies=[Depends(require_trusted_origin)]
+)
+def delete_saved_feedback(
+    result_id: Annotated[int, Path(gt=0)],
+    db: DatabaseConnection,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+):
+    delete_feedback(db, current_user.user_id, result_id)
+    return Response(status_code=204, headers={"Cache-Control": "no-store"})

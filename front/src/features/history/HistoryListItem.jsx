@@ -2,10 +2,10 @@ import Icon from '../../components/ui/Icon.jsx'
 import FeedbackTypeIcon from './FeedbackTypeIcon.jsx'
 import { FEEDBACK_TYPES, formatHistoryDate } from './historyFormat.js'
 
-export default function HistoryListItem({ item, onOpen }) {
+export default function HistoryListItem({ item, onOpen, onDelete, deleting }) {
   const href = `#/history/${item.id}`
   return (
-    <li>
+    <li className="history-row">
       <a
         className="history-item"
         href={href}
@@ -43,6 +43,15 @@ export default function HistoryListItem({ item, onOpen }) {
           <Icon name="chevron" size={18} />
         </div>
       </a>
+      <button
+        type="button"
+        className="history-delete"
+        disabled={deleting}
+        aria-label={`${item.title} 기록 삭제`}
+        onClick={() => onDelete(item)}
+      >
+        {deleting ? '삭제 중…' : '삭제'}
+      </button>
     </li>
   )
 }

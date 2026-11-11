@@ -3,7 +3,7 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import HistoryListItem from '../features/history/HistoryListItem.jsx'
 import HistoryLoadState from '../features/history/HistoryLoadState.jsx'
-import { loadFeedbackHistory } from '../features/history/historyApi.js'
+import { deleteSavedFeedback, loadFeedbackHistory } from '../features/history/historyApi.js'
 import useHistoryRequest from '../features/history/useHistoryRequest.js'
 import '../styles/history.css'
 
@@ -15,10 +15,33 @@ const FILTERS = [
 
 export default function HistoryPage({ navigate, user, onLogin }) {
   const request = useHistoryRequest(loadFeedbackHistory, user)
-  const items = request.data || []
+  const [removed, setRemoved] = useState([])
+  const [deletingId, setDeletingId] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const items = (request.data || []).filter((item) => !removed.includes(item.id))
   const [filter, setFilter] = useState('all')
   const visible = filter === 'all' ? items : items.filter((item) => item.type === filter)
   const count = (id) => (id === 'all' ? items.length : items.filter((i) => i.type === id).length)
+
+  async function handleDelete(item) {
+    if (
+      !window.confirm(
+        `"${item.title}" 기록과 저장된 원본 파일을 삭제할까요?\n삭제하면 되돌릴 수 없어요.`,
+      )
+    )
+      return
+    setDeletingId(item.id)
+    setDeleteError('')
+    try {
+      await deleteSavedFeedback(item.id)
+      setRemoved((ids) => [...ids, item.id])
+    } catch (error) {
+      if (error.status === 404) setRemoved((ids) => [...ids, item.id])
+      else setDeleteError(error.message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="history-page section-wrap">
@@ -54,6 +77,11 @@ export default function HistoryPage({ navigate, user, onLogin }) {
               </p>
             </div>
           )}
+          {deleteError && (
+            <p className="history-delete-error" role="alert">
+              {deleteError}
+            </p>
+          )}
           {visible.length > 0 ? (
             <ol className="history-list" aria-label="피드백 기록">
               {visible.map((item) => (
@@ -61,6 +89,8 @@ export default function HistoryPage({ navigate, user, onLogin }) {
                   key={item.id}
                   item={item}
                   onOpen={(id) => navigate(`/history/${id}`)}
+                  onDelete={handleDelete}
+                  deleting={deletingId === item.id}
                 />
               ))}
             </ol>
