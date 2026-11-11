@@ -45,6 +45,7 @@ export default function App() {
     run: runSpeech,
     cancel: cancelSpeech,
     retryPronunciation,
+    retryReview,
   } = useSpeechRequest()
   const [formRoute, setFormRoute] = useState(route)
   const [leftFlow, setLeftFlow] = useState(false)
@@ -198,6 +199,7 @@ export default function App() {
             speech={speechRequest}
             navigate={navigate}
             onRetryPronunciation={retryPronunciation}
+            onRetryReview={retryReview}
           />
         )
       case '/history':

@@ -263,3 +263,46 @@
   transform: translateX(-50%);
   pointer-events: none;
 }
+
+/* AI review */
+.review-summary {
+  margin: 0;
+  line-height: 1.8;
+}
+.review-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.review-list li span {
+  display: block;
+  color: #55554b;
+  font-size: 14px;
+}
+.review-list.good {
+  color: #24591f;
+}
+.review-skeleton {
+  display: grid;
+  gap: 10px;
+}
+.review-skeleton i {
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f1e8 25%, #fafaf4 50%, #f1f1e8 75%);
+  background-size: 200% 100%;
+  animation: speech-shimmer 1.4s infinite linear;
+}
+.review-skeleton i:nth-child(2) {
+  width: 85%;
+}
+.review-skeleton i:nth-child(3) {
+  width: 60%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-skeleton i {
+    animation: none;
+  }
+}

@@ -201,3 +201,87 @@ export function PronunciationPanel({ pronunciation, onRetry }) {
     </section>
   )
 }
+
+const REVIEW_MESSAGES = [
+  'AI가 발음 결과를 읽고 있어요.',
+  '잘한 점과 고칠 점을 정리하고 있어요.',
+  '바로 연습해 볼 방법을 고르고 있어요.',
+]
+
+function ReviewWaiting() {
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((value) => (value + 1) % REVIEW_MESSAGES.length), 3000)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="pron-waiting" role="status">
+      <div className="review-skeleton" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
+      <p key={index} className="fade-text">
+        {REVIEW_MESSAGES[index]}
+      </p>
+    </div>
+  )
+}
+
+// 결과 화면이 먼저 뜬 뒤, AI 리뷰가 준비되면 이 자리가 채워집니다.
+export function ReviewPanel({ review, pronunciation, onRetry }) {
+  const { status, data, error } = review
+  // 발음 평가가 없으면 리뷰할 재료가 없어서 패널을 숨깁니다.
+  if (pronunciation.status !== 'success' && status === 'idle') return null
+  return (
+    <section
+      className="speech-panel review-panel"
+      aria-labelledby="speech-review"
+      aria-busy={status === 'loading'}
+    >
+      <div className="card-label">
+        <Icon name="sparkle" size={18} />
+        AI 리뷰
+      </div>
+      <h2 id="speech-review">AI가 들어 보니 이래요.</h2>
+      {(status === 'idle' || status === 'loading') && <ReviewWaiting />}
+      {status === 'error' && (
+        <div className="pron-error" role="alert">
+          <p>{error}</p>
+          <p className="muted">위의 점수와 단어별 결과는 그대로 확인할 수 있어요.</p>
+          <button type="button" className="text-button" onClick={onRetry}>
+            AI 리뷰 다시 시도
+          </button>
+        </div>
+      )}
+      {status === 'success' && (
+        <>
+          <p className="review-summary">{data.summary}</p>
+          {data.strengths.length > 0 && (
+            <>
+              <h3 className="pron-subtitle">잘한 점</h3>
+              <ul className="review-list good">
+                {data.strengths.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {data.improvements.length > 0 && (
+            <>
+              <h3 className="pron-subtitle">이렇게 연습해 보세요</h3>
+              <ol className="review-list">
+                {data.improvements.map((item) => (
+                  <li key={item.issue}>
+                    <b>{item.issue}</b>
+                    {item.solution && <span>{item.solution}</span>}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+        </>
+      )}
+    </section>
+  )
+}

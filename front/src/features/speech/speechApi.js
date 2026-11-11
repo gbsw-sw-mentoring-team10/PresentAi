@@ -2,17 +2,14 @@ import { API_BASE_URL, FeedbackApiError } from '../feedback/feedbackApi.js'
 
 const REQUEST_TIMEOUT_MS = 180000
 
-async function postAudio(path, fields, file, signal, fallback) {
-  const body = new FormData()
-  for (const [key, value] of Object.entries(fields)) body.append(key, value)
-  body.append('file', file, file.name || 'speech.wav')
+async function send(path, body, signal, fallback, headers = {}) {
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   let response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
       body,
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...headers },
       cache: 'no-store',
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     })
@@ -33,6 +30,13 @@ async function postAudio(path, fields, file, signal, fallback) {
   return data
 }
 
+function postAudio(path, fields, file, signal, fallback) {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(fields)) body.append(key, value)
+  body.append('file', file, file.name || 'speech.wav')
+  return send(path, body, signal, fallback)
+}
+
 const number = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
 
 // 음성을 텍스트로 바꾸고 말하기 속도·쉬는 구간을 받아 옵니다.
@@ -47,6 +51,7 @@ export async function transcribeSpeech(file, { signal, mock = false } = {}) {
   if (typeof data?.text !== 'string')
     throw new FeedbackApiError('음성 분석 결과의 형식을 확인할 수 없어요.')
   return {
+    raw: data,
     text: data.text.trim(),
     chunks: (Array.isArray(data.chunks) ? data.chunks : [])
       .filter((chunk) => typeof chunk?.text === 'string' && Array.isArray(chunk.timestamp))
@@ -77,6 +82,7 @@ export async function assessPronunciation(file, referenceText, { signal, mock = 
   if (!scores || typeof scores !== 'object')
     throw new FeedbackApiError('발음 평가 결과의 형식을 확인할 수 없어요.')
   return {
+    raw: data,
     scores: {
       accuracy: number(scores.accuracy),
       fluency: number(scores.fluency),
@@ -93,4 +99,26 @@ export async function assessPronunciation(file, referenceText, { signal, mock = 
         errorType: typeof word.error_type === 'string' ? word.error_type : 'None',
       })),
   }
+}
+
+// 음성·발음 분석 결과 JSON을 AI가 읽고 코칭 리뷰를 만듭니다.
+export async function reviewSpeech(speech, pronunciation, { signal, mock = false } = {}) {
+  const data = await send(
+    mock ? '/mock/speech-review/' : '/speech-review/',
+    JSON.stringify({ speech: speech.raw, pronunciation: pronunciation.raw }),
+    signal,
+    'AI 리뷰를 만들지 못했어요. 다시 시도해 주세요.',
+    { 'Content-Type': 'application/json' },
+  )
+  const text = (value) => (typeof value === 'string' ? value.trim() : '')
+  const list = (value) => (Array.isArray(value) ? value : [])
+  const review = {
+    summary: text(data?.summary),
+    strengths: list(data?.strengths).map(text).filter(Boolean),
+    improvements: list(data?.improvements)
+      .map((item) => ({ issue: text(item?.issue), solution: text(item?.solution) }))
+      .filter((item) => item.issue),
+  }
+  if (!review.summary) throw new FeedbackApiError('AI 리뷰의 형식을 확인할 수 없어요.')
+  return review
 }

@@ -4,12 +4,18 @@ import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import {
   DeliveryPanel,
   PronunciationPanel,
+  ReviewPanel,
   TranscriptPanel,
 } from '../features/speech/SpeechResult.jsx'
 import '../styles/speech-results.css'
 
-export default function SpeechResultsPage({ speech, navigate, onRetryPronunciation }) {
-  const { stt, mock, audioName, script, pronunciation } = speech
+export default function SpeechResultsPage({
+  speech,
+  navigate,
+  onRetryPronunciation,
+  onRetryReview,
+}) {
+  const { stt, mock, audioName, script, pronunciation, review } = speech
   if (!stt) {
     return (
       <div className="state-page">
@@ -32,7 +38,7 @@ export default function SpeechResultsPage({ speech, navigate, onRetryPronunciati
         <div>
           <span className="section-kicker">A CLEARER STORY. A STRONGER YOU.</span>
           <h1>말을 돌아보면, 전달이 달라져요.</h1>
-          <p>음성 인식 결과를 먼저 보여 드리고, 발음 평가는 준비되는 대로 채워 드려요.</p>
+          <p>말한 내용과 발음을 한눈에 보여 드리고, AI 리뷰는 준비되는 대로 채워 드려요.</p>
         </div>
       </div>
       {mock && (
@@ -51,6 +57,7 @@ export default function SpeechResultsPage({ speech, navigate, onRetryPronunciati
         </div>
       </div>
       <div className="speech-results">
+        <ReviewPanel review={review} pronunciation={pronunciation} onRetry={onRetryReview} />
         <TranscriptPanel stt={stt} pronunciation={pronunciation} />
         {script.trim() && (
           <details className="speech-panel script-details">
