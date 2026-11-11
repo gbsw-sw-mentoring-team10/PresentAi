@@ -69,7 +69,10 @@ export function createSpeechRequest(
   async function assessStep(task, patch = {}) {
     update(task, { ...patch, pronunciation: { status: 'loading', data: null, error: '' } })
     try {
-      task.pronunciationResult = await assess(task.file, task.stt.text, options(task))
+      task.pronunciationResult = await assess(task.file, task.stt.text, {
+        ...options(task),
+        chunks: task.stt.raw?.chunks,
+      })
     } catch (error) {
       update(task, {
         status: 'ready',

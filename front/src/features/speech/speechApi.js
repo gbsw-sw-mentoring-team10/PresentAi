@@ -70,10 +70,18 @@ export async function transcribeSpeech(file, { signal, mock = false } = {}) {
 }
 
 // 인식된 텍스트를 기준 문장으로 보내 발음을 평가합니다.
-export async function assessPronunciation(file, referenceText, { signal, mock = false } = {}) {
+// chunks(음성 인식 구간)를 함께 보내면 서버가 긴 음성을 나눠 동시에 평가해 빨라집니다.
+export async function assessPronunciation(
+  file,
+  referenceText,
+  { signal, mock = false, chunks = null } = {},
+) {
   const data = await postAudio(
     mock ? '/mock/pronunciation/' : '/pronunciation/',
-    { reference_text: referenceText },
+    {
+      reference_text: referenceText,
+      ...(chunks?.length ? { chunks: JSON.stringify(chunks) } : {}),
+    },
     file,
     signal,
     '발음을 평가하지 못했어요. 다시 시도해 주세요.',

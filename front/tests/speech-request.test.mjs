@@ -201,6 +201,19 @@ test('review posts the raw speech and pronunciation JSON and normalizes the answ
   assert.equal(sent.url, '/api/presentation/mock/speech-review/')
 })
 
+test('pronunciation sends the recognition chunks so the server can split long audio', async (t) => {
+  let body
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    body = options.body
+    return Response.json({ scores: { pronunciation: 90 }, segments: [], words: [] })
+  })
+  const chunks = [{ timestamp: [0, 2], text: '안녕' }]
+  await assessPronunciation(audio, '안녕', { chunks })
+  assert.deepEqual(JSON.parse(body.get('chunks')), chunks)
+  await assessPronunciation(audio, '안녕')
+  assert.equal(body.get('chunks'), null)
+})
+
 test('API errors surface the server message', async (t) => {
   t.mock.method(globalThis, 'fetch', async () =>
     Response.json({ detail: '음성 파일을 읽을 수 없습니다.' }, { status: 400 }),
