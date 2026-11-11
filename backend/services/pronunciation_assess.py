@@ -91,7 +91,7 @@ def build_result(segments: list[dict], reference_text: str) -> dict:
     }
 
 
-# Whisper 구간을 길이가 비슷한 묶음으로 나눈다. 구간 경계에서만 자르므로 말 중간이 잘리지 않는다
+# 음성 인식 구간을 길이가 비슷한 묶음으로 나눈다. 구간 경계에서만 자르므로 말 중간이 잘리지 않는다
 def split_groups(chunks: list[dict], workers: int = PARALLEL_WORKERS, min_seconds: float = MIN_GROUP_SECONDS) -> list[dict]:
     spoken = [c for c in chunks if c["text"].strip()]
     if not spoken:
@@ -231,7 +231,7 @@ def recognize_in_parallel(wav_path: str, groups: list[dict], language: str) -> l
 
 
 # 기준 문장(reference_text)과 비교해 발음을 평가하는 함수
-# chunks(Whisper 구간 목록)를 주면 긴 음성을 나눠 동시에 평가해 훨씬 빨라진다
+# chunks(음성 인식 구간 목록)를 주면 긴 음성을 나눠 동시에 평가해 훨씬 빨라진다
 def assess_pronunciation(audio_path: str, reference_text: str, language: str = "ko-KR", chunks: list[dict] | None = None) -> dict:
     wav_path = to_wav(audio_path)
     try:

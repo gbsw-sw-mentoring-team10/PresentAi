@@ -26,7 +26,7 @@ def parse_chunks(raw: str | None) -> list[dict] | None:
         return None
     return chunks if all(c["end"] >= c["start"] for c in chunks) else None
 
-# 기준 문장(reference_text)과 비교해 발음을 평가한다 (기준 문장은 /speech/ 응답의 text를 그대로 보내면 된다)
+# 기준 문장(reference_text)과 비교해 발음을 평가한다 (대본 등 정해진 문장이 있을 때 쓴다. 기준 없이 인식까지 하려면 /speech/)
 @router.post("/")
 def create_pronunciation_feedback(
     reference_text: str = Form(...),

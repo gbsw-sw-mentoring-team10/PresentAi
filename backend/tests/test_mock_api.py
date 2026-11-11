@@ -47,7 +47,10 @@ def test_mock_upload_without_input_is_rejected(client):
 def test_mock_speech_and_pronunciation_share_samples(client):
     audio = {"file": ("a.wav", b"x", "audio/wav")}
     speech = client.post("/mock/speech/", files=audio).json()
-    assert {"text", "chunks", "silence", "speech_rate", "speech_rate_score"} <= speech.keys()
+    assert {"text", "chunks", "silence", "speech_rate", "speech_rate_score", "pronunciation"} <= speech.keys()
+    free = speech["pronunciation"]
+    assert free["mode"] == "free" and free["scores"]["completeness"] is None
+    assert free["recognized_text"] == " ".join(c["text"].strip() for c in speech["chunks"])
     pronunciation = client.post(
         "/mock/pronunciation/", data={"reference_text": speech["text"]}, files=audio
     ).json()

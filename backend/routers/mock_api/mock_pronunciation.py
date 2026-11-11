@@ -9,9 +9,9 @@ from routers.mock_api.mock_speech import SAMPLES
 router = APIRouter()
 
 # 실제 /pronunciation/ 응답과 같은 형식: mode, recognized_text, reference_word_count, scores, segments, words
-# (Whisper 텍스트, 무음, 말하기 속도는 /speech/ 응답에 있다)
+# (/speech/ 응답의 pronunciation은 기준 문장 없이 평가한 같은 형식이다: free=True)
 # 샘플의 chunks를 Azure 발음 평가 응답 형식(segments, words)으로 바꾼다
-def to_response(sample: dict) -> dict:
+def to_response(sample: dict, free: bool = False) -> dict:
     segments, words = [], []
     for i, chunk in enumerate(sample["chunks"]):
         start, end = chunk["timestamp"]
@@ -23,7 +23,7 @@ def to_response(sample: dict) -> dict:
             "text": text,
             "accuracy": float(base),
             "fluency": float(base + 1),
-            "completeness": 100.0,
+            "completeness": None if free else 100.0,
             "pronunciation": float(base),
         })
         tokens = text.split()
@@ -44,13 +44,13 @@ def to_response(sample: dict) -> dict:
         return round(sum(s[key] * (s["end"] - s["start"]) for s in segments) / total, 1)
 
     return {
-        "mode": "script",
+        "mode": "free" if free else "script",
         "recognized_text": " ".join(s["text"] for s in segments),
-        "reference_word_count": len(sample["text"].split()),
+        "reference_word_count": None if free else len(sample["text"].split()),
         "scores": {
             "accuracy": weighted("accuracy"),
             "fluency": weighted("fluency"),
-            "completeness": weighted("completeness"),
+            "completeness": None if free else weighted("completeness"),
             "pronunciation": weighted("pronunciation"),
         },
         "segments": segments,

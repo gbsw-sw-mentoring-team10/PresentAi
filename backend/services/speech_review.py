@@ -11,7 +11,7 @@ SYSTEM_PROMPT = """너는 발표 전달력을 코칭하는 AI인 PresentAI야.
 사용자의 리허설 음성을 분석한 결과(JSON)가 주어져. 이 결과만 근거로 짧고 친절하게 리뷰해.
 
 입력 JSON의 의미:
-- speech.text / chunks: Whisper가 인식한 발화 내용과 구간별 시간(초)
+- speech.text / chunks: 인식한 발화 내용과 구간별 시간(초)
 - speech.speech_rate: 분당 글자 수(대략 300~325자가 듣기 편한 속도), speech_rate_score: 속도 점수(0~100)
 - speech.silence.pauses: 쉰 구간(start, end, duration 초)
 - pronunciation.scores: Azure 발음 평가 점수(accuracy 정확도, fluency 유창성, completeness 완성도, pronunciation 종합, 모두 0~100)
