@@ -39,17 +39,7 @@ function postAudio(path, fields, file, signal, fallback) {
 
 const number = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
 
-// 음성을 텍스트로 바꾸고 말하기 속도·쉬는 구간을 받아 옵니다.
-export async function transcribeSpeech(file, { signal, mock = false } = {}) {
-  const data = await postAudio(
-    mock ? '/mock/speech/' : '/speech/',
-    {},
-    file,
-    signal,
-    '음성을 텍스트로 바꾸지 못했어요. 다시 시도해 주세요.',
-  )
-  if (typeof data?.text !== 'string')
-    throw new FeedbackApiError('음성 분석 결과의 형식을 확인할 수 없어요.')
+function normalizeSpeech(data) {
   return {
     raw: data,
     text: data.text.trim(),
@@ -69,23 +59,7 @@ export async function transcribeSpeech(file, { signal, mock = false } = {}) {
   }
 }
 
-// 인식된 텍스트를 기준 문장으로 보내 발음을 평가합니다.
-// chunks(음성 인식 구간)를 함께 보내면 서버가 긴 음성을 나눠 동시에 평가해 빨라집니다.
-export async function assessPronunciation(
-  file,
-  referenceText,
-  { signal, mock = false, chunks = null } = {},
-) {
-  const data = await postAudio(
-    mock ? '/mock/pronunciation/' : '/pronunciation/',
-    {
-      reference_text: referenceText,
-      ...(chunks?.length ? { chunks: JSON.stringify(chunks) } : {}),
-    },
-    file,
-    signal,
-    '발음을 평가하지 못했어요. 다시 시도해 주세요.',
-  )
+function normalizePronunciation(data) {
   const scores = data?.scores
   if (!scores || typeof scores !== 'object')
     throw new FeedbackApiError('발음 평가 결과의 형식을 확인할 수 없어요.')
@@ -107,6 +81,23 @@ export async function assessPronunciation(
         errorType: typeof word.error_type === 'string' ? word.error_type : 'None',
       })),
   }
+}
+
+// 서버가 음성을 텍스트로 인식하고 발음까지 평가해 한 번에 돌려줍니다.
+export async function analyzeSpeech(file, { signal, mock = false } = {}) {
+  const data = await postAudio(
+    mock ? '/mock/speech/' : '/speech/',
+    {},
+    file,
+    signal,
+    '음성을 분석하지 못했어요. 다시 시도해 주세요.',
+  )
+  if (typeof data?.text !== 'string')
+    throw new FeedbackApiError('음성 분석 결과의 형식을 확인할 수 없어요.')
+  if (!data.text.trim())
+    throw new FeedbackApiError('음성에서 말소리를 찾지 못했어요. 음성을 다시 확인해 주세요.')
+  const { pronunciation, ...speech } = data
+  return { stt: normalizeSpeech(speech), pronunciation: normalizePronunciation(pronunciation) }
 }
 
 // 음성·발음 분석 결과 JSON을 AI가 읽고 코칭 리뷰를 만듭니다.

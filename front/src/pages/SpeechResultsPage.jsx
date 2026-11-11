@@ -9,12 +9,7 @@ import {
 } from '../features/speech/SpeechResult.jsx'
 import '../styles/speech-results.css'
 
-export default function SpeechResultsPage({
-  speech,
-  navigate,
-  onRetryPronunciation,
-  onRetryReview,
-}) {
+export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
   const { stt, mock, audioName, script, pronunciation, review } = speech
   if (!stt) {
     return (
@@ -69,7 +64,7 @@ export default function SpeechResultsPage({
           </details>
         )}
         <DeliveryPanel stt={stt} />
-        <PronunciationPanel pronunciation={pronunciation} onRetry={onRetryPronunciation} />
+        <PronunciationPanel pronunciation={pronunciation} />
       </div>
       <div className="result-bottom-cta">
         <div>

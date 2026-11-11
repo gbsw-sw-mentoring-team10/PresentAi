@@ -2,13 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Icon from '../../components/ui/Icon.jsx'
 import { annotateTranscript, LEVELS } from './annotateTranscript.js'
 
-const WAIT_MESSAGES = [
-  '발음을 꼼꼼히 듣고 있어요.',
-  '단어마다 또렷하게 들리는지 확인하고 있어요.',
-  '말의 자연스러움을 살펴보고 있어요.',
-  '거의 다 됐어요. 조금만 기다려 주세요.',
-]
-
 const SCORE_LABELS = [
   ['pronunciation', '종합'],
   ['accuracy', '정확도'],
@@ -55,10 +48,8 @@ export function TranscriptPanel({ stt, pronunciation }) {
                   {level.label}
                 </span>
               ))
-            ) : pronunciation.status === 'error' ? (
-              <span className="muted">발음 평가를 불러오지 못해 색 표시는 없어요.</span>
             ) : (
-              <span className="muted">발음 평가가 끝나면 단어마다 색으로 표시돼요.</span>
+              <span className="muted">발음 점수를 받지 못해 색 표시는 없어요.</span>
             )}
             {stt.pauses.length > 0 && <span className="legend-item pause-chip">쉬는 구간</span>}
           </div>
@@ -136,50 +127,15 @@ export function DeliveryPanel({ stt }) {
   )
 }
 
-function PronunciationWaiting() {
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const timer = setInterval(() => setIndex((value) => (value + 1) % WAIT_MESSAGES.length), 3500)
-    return () => clearInterval(timer)
-  }, [])
+export function PronunciationPanel({ pronunciation }) {
+  const { status, data } = pronunciation
   return (
-    <div className="pron-waiting" role="status">
-      <div className="speech-skeleton" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-        <i />
-      </div>
-      <p key={index} className="fade-text">
-        {WAIT_MESSAGES[index]}
-      </p>
-    </div>
-  )
-}
-
-export function PronunciationPanel({ pronunciation, onRetry }) {
-  const { status, data, error } = pronunciation
-  return (
-    <section
-      className="speech-panel"
-      aria-labelledby="speech-pron"
-      aria-busy={status === 'loading'}
-    >
+    <section className="speech-panel" aria-labelledby="speech-pron">
       <div className="card-label">
         <Icon name="sparkle" size={18} />
         발음 평가
       </div>
       <h2 id="speech-pron">발음은 이렇게 들렸어요.</h2>
-      {(status === 'idle' || status === 'loading') && <PronunciationWaiting />}
-      {status === 'error' && (
-        <div className="pron-error" role="alert">
-          <p>{error}</p>
-          <p className="muted">음성 인식 결과와 말하기 속도는 위에서 그대로 확인할 수 있어요.</p>
-          <button type="button" className="text-button" onClick={onRetry}>
-            발음 평가 다시 시도
-          </button>
-        </div>
-      )}
       {status === 'success' && (
         <>
           <div className="pron-scores">

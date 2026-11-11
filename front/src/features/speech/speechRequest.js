@@ -1,27 +1,27 @@
 import { isSampleFile } from '../feedback/exampleForm.js'
-import { assessPronunciation, reviewSpeech, transcribeSpeech } from './speechApi.js'
+import { analyzeSpeech, reviewSpeech } from './speechApi.js'
 
 const IDLE_STEP = { status: 'idle', data: null, error: '' }
 
 export const EMPTY_SPEECH = {
-  // idle | transcribing | assessing | ready | error
-  // transcribing·assessing은 분석 화면에서, ready부터 결과 화면에서 보여 줍니다.
+  // idle | transcribing | ready | error
+  // transcribing은 분석 화면에서, ready부터 결과 화면에서 보여 줍니다.
   status: 'idle',
   mock: false,
   audioName: '',
   script: '',
   stt: null,
-  pronunciation: IDLE_STEP, // idle | loading | success | error
+  pronunciation: IDLE_STEP, // 서버가 인식과 함께 돌려줍니다 (idle | success)
   review: IDLE_STEP, // AI 리뷰는 결과 화면이 뜬 뒤 늦게 채워집니다.
   error: '',
 }
 
 const messageOf = (error, fallback) => error?.message || fallback
 
-// 음성 → 텍스트 → 발음 평가가 모두 끝나면 결과를 보여 주고, AI 리뷰는 그 뒤에 따로 불러옵니다.
+// 음성 인식과 발음 평가를 한 번에 받아 결과를 보여 주고, AI 리뷰는 그 뒤에 따로 불러옵니다.
 export function createSpeechRequest(
   onChange,
-  { transcribe = transcribeSpeech, assess = assessPronunciation, review = reviewSpeech } = {},
+  { analyze = analyzeSpeech, review = reviewSpeech } = {},
 ) {
   let active = null
   let state = EMPTY_SPEECH
@@ -65,35 +65,11 @@ export function createSpeechRequest(
     }
   }
 
-  // 발음 평가에 성공하면 이어서 AI 리뷰를 요청합니다.
-  async function assessStep(task, patch = {}) {
-    update(task, { ...patch, pronunciation: { status: 'loading', data: null, error: '' } })
+  async function analyzeAndReview(task) {
     try {
-      task.pronunciationResult = await assess(task.file, task.stt.text, {
-        ...options(task),
-        chunks: task.stt.raw?.chunks,
-      })
-    } catch (error) {
-      update(task, {
-        status: 'ready',
-        pronunciation: {
-          status: 'error',
-          data: null,
-          error: messageOf(error, '발음을 평가하지 못했어요. 다시 시도해 주세요.'),
-        },
-      })
-      return
-    }
-    update(task, {
-      status: 'ready',
-      pronunciation: { status: 'success', data: task.pronunciationResult, error: '' },
-    })
-    await reviewStep(task)
-  }
-
-  async function transcribeAndAssess(task) {
-    try {
-      task.stt = await transcribe(task.file, options(task))
+      const result = await analyze(task.file, options(task))
+      task.stt = result.stt
+      task.pronunciationResult = result.pronunciation
     } catch (error) {
       update(task, {
         status: 'error',
@@ -101,12 +77,17 @@ export function createSpeechRequest(
       })
       return
     }
-    await assessStep(task, { status: 'assessing', stt: task.stt })
+    update(task, {
+      status: 'ready',
+      stt: task.stt,
+      pronunciation: { status: 'success', data: task.pronunciationResult, error: '' },
+    })
+    await reviewStep(task)
   }
 
   async function execute(task) {
     try {
-      await transcribeAndAssess(task)
+      await analyzeAndReview(task)
     } finally {
       task.finished = true
     }
@@ -133,17 +114,11 @@ export function createSpeechRequest(
     return task.promise
   }
 
-  function retryPronunciation() {
-    const task = active
-    if (!task?.stt || state.pronunciation.status !== 'error') return
-    return assessStep(task)
-  }
-
   function retryReview() {
     const task = active
     if (!task?.pronunciationResult || state.review.status !== 'error') return
     return reviewStep(task)
   }
 
-  return { run, cancel, retryPronunciation, retryReview, dispose: stop }
+  return { run, cancel, retryReview, dispose: stop }
 }

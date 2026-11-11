@@ -19,8 +19,8 @@ const WAIT_MESSAGES = [
 
 const REQUEST_STEPS = { success: 3, loading: 1 }
 
-// 텍스트 변환(약 1/3)과 발음 평가(약 1/3)가 이어져서, 원본 길이의 약 0.7배에 맞춰 막대가 천천히 차오르게 합니다.
-const SPEECH_TIME_RATIO = 0.7
+// 인식과 발음 평가를 한 번에 처리해 원본 길이의 약 0.13배가 걸려서, 그보다 조금 여유 있게 막대가 차오르게 합니다.
+const SPEECH_TIME_RATIO = 0.18
 const SPEECH_BASE_SECONDS = 4
 const UNKNOWN_SPEECH_SECONDS = 30
 
@@ -37,9 +37,8 @@ export default function AnalysisPage({
   const request = speech
     ? {
         status:
-          { transcribing: 'loading', assessing: 'loading', idle: 'idle', error: 'error' }[
-            speechRequest.status
-          ] || 'success',
+          { transcribing: 'loading', idle: 'idle', error: 'error' }[speechRequest.status] ||
+          'success',
         error: speechRequest.error,
         submission: speechRequest,
         mock: speechRequest.mock,
@@ -68,7 +67,7 @@ export default function AnalysisPage({
   const messageIndex = Math.floor(elapsed / 3.5) % WAIT_MESSAGES.length
   const waitMessage = WAIT_MESSAGES[messageIndex]
   const labels = speech
-    ? ['음성 전송 준비', '텍스트 변환 · 발음 평가', '분석 완료']
+    ? ['음성 전송 준비', '음성 인식 · 발음 평가', '분석 완료']
     : ['분석 요청 준비', '자료 전송 및 서버 분석', '피드백 수신 완료']
   if (empty) return <MissingMaterials speech={speech} navigate={navigate} />
   if (failed)
@@ -97,7 +96,7 @@ export default function AnalysisPage({
             ? '말한 내용과 발음 평가를 함께 보여 드릴게요. AI 리뷰는 결과 화면에서 이어서 채워져요.'
             : '어디부터 다듬으면 좋을지, 함께 확인해 보세요.'
           : speech
-            ? '음성을 텍스트로 바꾸고 발음을 평가하고 있어요. 길이에 따라 1분 넘게 걸릴 수 있어요.'
+            ? '음성을 텍스트로 바꾸고 발음을 평가하고 있어요. 길이에 따라 몇십 초 걸릴 수 있어요.'
             : waitMessage}
       </p>
       <AnalysisProgressCard

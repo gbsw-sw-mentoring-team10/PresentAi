@@ -1,14 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createSpeechRequest } from '../src/features/speech/speechRequest.js'
-import {
-  assessPronunciation,
-  reviewSpeech,
-  transcribeSpeech,
-} from '../src/features/speech/speechApi.js'
+import { analyzeSpeech, reviewSpeech } from '../src/features/speech/speechApi.js'
 
 const audio = new File(['voice'], 'rehearsal.wav', { type: 'audio/wav' })
 const stt = {
+  raw: { text: '안녕하세요' },
   text: '안녕하세요',
   chunks: [],
   duration: 5,
@@ -16,24 +13,20 @@ const stt = {
   speechRate: 300,
   speechRateScore: 90,
 }
-const pron = { scores: { pronunciation: 88 }, segments: [], words: [] }
+const pron = { raw: { scores: { pronunciation: 88 } }, scores: { pronunciation: 88 }, words: [] }
+const analysis = { stt, pronunciation: pron }
+const review = { summary: '좋아요', strengths: [], improvements: [] }
 
 function collect() {
   const states = []
   return { states, onChange: (state) => states.push(state) }
 }
 
-const review = { summary: '좋아요', strengths: [], improvements: [] }
-
-test('results appear only after transcription and pronunciation, the review follows', async () => {
+test('one analysis call fills the results, then the AI review loads afterwards', async () => {
   const { states, onChange } = collect()
   const order = []
   const manager = createSpeechRequest(onChange, {
-    transcribe: async () => (order.push('stt'), stt),
-    assess: async (file, text) => {
-      order.push(`assess:${text}`)
-      return pron
-    },
+    analyze: async (file) => (order.push(`analyze:${file.name}`), analysis),
     review: async (speech, pronunciation) => {
       order.push('review')
       assert.equal(speech, stt)
@@ -42,48 +35,42 @@ test('results appear only after transcription and pronunciation, the review foll
     },
   })
   await manager.run({ audio, script: '' })
-  assert.deepEqual(order, ['stt', 'assess:안녕하세요', 'review'])
-  const shown = states.map((s) => `${s.status}/${s.pronunciation.status}/${s.review.status}`)
-  assert.deepEqual(shown, [
-    'transcribing/idle/idle',
-    'assessing/loading/idle',
-    'ready/success/idle',
-    'ready/success/loading',
-    'ready/success/success',
-  ])
+  assert.deepEqual(order, ['analyze:rehearsal.wav', 'review'])
+  assert.deepEqual(
+    states.map((s) => `${s.status}/${s.pronunciation.status}/${s.review.status}`),
+    [
+      'transcribing/idle/idle',
+      'ready/success/idle',
+      'ready/success/loading',
+      'ready/success/success',
+    ],
+  )
+  assert.equal(states.at(-1).stt.text, '안녕하세요')
   assert.equal(states.at(-1).review.data.summary, '좋아요')
 })
 
-test('a pronunciation failure still shows the transcript, skips the review and can be retried', async () => {
+test('an analysis failure shows an error and never asks for a review', async () => {
   const { states, onChange } = collect()
-  let attempts = 0
-  let reviews = 0
+  let reviewed = false
   const manager = createSpeechRequest(onChange, {
-    transcribe: async () => stt,
-    assess: async () => {
-      if (++attempts === 1) throw new Error('Azure 오류')
-      return pron
+    analyze: async () => {
+      throw new Error('음성 파일을 읽을 수 없습니다.')
     },
-    review: async () => (reviews++, review),
+    review: async () => {
+      reviewed = true
+    },
   })
   await manager.run({ audio, script: '' })
-  let last = states.at(-1)
-  assert.equal(last.status, 'ready')
-  assert.equal(last.pronunciation.error, 'Azure 오류')
-  assert.equal(reviews, 0)
-  await manager.retryPronunciation()
-  last = states.at(-1)
-  assert.equal(last.pronunciation.status, 'success')
-  assert.equal(last.review.status, 'success')
-  assert.equal(last.stt.text, '안녕하세요')
+  assert.equal(states.at(-1).status, 'error')
+  assert.equal(states.at(-1).error, '음성 파일을 읽을 수 없습니다.')
+  assert.equal(reviewed, false)
 })
 
 test('a review failure keeps the results and can be retried', async () => {
   const { states, onChange } = collect()
   let attempts = 0
   const manager = createSpeechRequest(onChange, {
-    transcribe: async () => stt,
-    assess: async () => pron,
+    analyze: async () => analysis,
     review: async () => {
       if (++attempts === 1) throw new Error('모델 사용량이 많습니다.')
       return review
@@ -99,34 +86,18 @@ test('a review failure keeps the results and can be retried', async () => {
   assert.equal(last.review.status, 'success')
 })
 
-test('a transcription failure stops before pronunciation', async () => {
-  const { states, onChange } = collect()
-  let assessed = false
-  const manager = createSpeechRequest(onChange, {
-    transcribe: async () => {
-      throw new Error('음성 파일을 읽을 수 없습니다.')
-    },
-    assess: async () => {
-      assessed = true
-    },
-  })
-  await manager.run({ audio, script: '' })
-  assert.equal(states.at(-1).status, 'error')
-  assert.equal(states.at(-1).error, '음성 파일을 읽을 수 없습니다.')
-  assert.equal(assessed, false)
-})
-
 test('sample audio uses the mock endpoints with a placeholder file', async () => {
   const seen = []
   const manager = createSpeechRequest(() => {}, {
-    transcribe: async (file, options) => (seen.push(['stt', options.mock, file.size > 0]), stt),
-    assess: async (file, text, options) => (seen.push(['pron', options.mock]), pron),
+    analyze: async (file, options) => (
+      seen.push(['analyze', options.mock, file.size > 0]),
+      analysis
+    ),
     review: async (speech, pronunciation, options) => (seen.push(['review', options.mock]), review),
   })
   await manager.run({ audio: { name: '리허설_1차.m4a', sample: true }, script: '' })
   assert.deepEqual(seen, [
-    ['stt', true, true],
-    ['pron', true],
+    ['analyze', true, true],
     ['review', true],
   ])
 })
@@ -135,8 +106,8 @@ test('cancel aborts the work and ignores late results', async () => {
   const { states, onChange } = collect()
   let release
   const manager = createSpeechRequest(onChange, {
-    transcribe: () => new Promise((resolve) => (release = () => resolve(stt))),
-    assess: async () => pron,
+    analyze: () => new Promise((resolve) => (release = () => resolve(analysis))),
+    review: async () => review,
   })
   const running = manager.run({ audio, script: '' })
   manager.cancel()
@@ -145,34 +116,44 @@ test('cancel aborts the work and ignores late results', async () => {
   assert.equal(states.at(-1).status, 'idle')
 })
 
-test('API layer posts multipart audio and normalizes both responses', async (t) => {
+const speechResponse = {
+  text: ' 안녕하세요 ',
+  chunks: [{ timestamp: [0, 2.5], text: ' 안녕하세요 ' }],
+  silence: { duration: 5, pauses: [{ start: 1, end: 2, duration: 1 }] },
+  speech_rate: 300,
+  speech_rate_score: 91,
+  pronunciation: {
+    mode: 'free',
+    scores: { accuracy: 90, fluency: 80, completeness: null, pronunciation: 88 },
+    segments: [],
+    words: [{ word: '안녕', start: 0, end: 1, accuracy: 40, error_type: 'Mispronunciation' }],
+  },
+}
+
+test('analysis posts the audio once and normalizes speech and pronunciation', async (t) => {
   const calls = []
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     calls.push({ url, body: options.body })
-    if (url.endsWith('/speech/'))
-      return Response.json({
-        text: ' 안녕하세요 ',
-        chunks: [{ timestamp: [0, 2.5], text: ' 안녕하세요 ' }],
-        silence: { duration: 5, pauses: [{ start: 1, end: 2, duration: 1 }] },
-        speech_rate: 300,
-        speech_rate_score: 91,
-      })
-    return Response.json({
-      scores: { accuracy: 90, fluency: 80, completeness: 100, pronunciation: 88 },
-      segments: [],
-      words: [{ word: '안녕', start: 0, end: 1, accuracy: 40, error_type: 'Mispronunciation' }],
-    })
+    return Response.json(speechResponse)
   })
-  const speech = await transcribeSpeech(audio)
-  assert.equal(speech.text, '안녕하세요')
-  assert.equal(speech.chunks[0].end, 2.5)
-  assert.equal(speech.pauses.length, 1)
-  const result = await assessPronunciation(audio, speech.text)
-  assert.equal(result.words[0].errorType, 'Mispronunciation')
+  const { stt, pronunciation } = await analyzeSpeech(audio)
+  assert.equal(calls.length, 1)
   assert.equal(calls[0].url, '/api/presentation/speech/')
-  assert.equal(calls[1].url, '/api/presentation/pronunciation/')
-  assert.equal(calls[1].body.get('reference_text'), '안녕하세요')
-  assert.ok(calls[1].body.get('file'))
+  assert.ok(calls[0].body.get('file'))
+  assert.equal(calls[0].body.get('reference_text'), null) // 기준 문장은 보내지 않는다
+  assert.equal(stt.text, '안녕하세요')
+  assert.equal(stt.chunks[0].end, 2.5)
+  assert.equal(stt.pauses.length, 1)
+  assert.equal(stt.raw.pronunciation, undefined) // 리뷰에 같은 내용을 두 번 보내지 않는다
+  assert.equal(pronunciation.scores.completeness, null)
+  assert.equal(pronunciation.words[0].errorType, 'Mispronunciation')
+})
+
+test('silent audio is reported instead of showing an empty result', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () =>
+    Response.json({ ...speechResponse, text: '  ', chunks: [] }),
+  )
+  await assert.rejects(analyzeSpeech(audio), /말소리를 찾지 못했어요/)
 })
 
 test('review posts the raw speech and pronunciation JSON and normalizes the answer', async (t) => {
@@ -190,33 +171,19 @@ test('review posts the raw speech and pronunciation JSON and normalizes the answ
   })
   const speech = { raw: { text: '안녕' } }
   const pronunciation = { raw: { scores: { pronunciation: 80 } } }
-  const review = await reviewSpeech(speech, pronunciation)
+  const result = await reviewSpeech(speech, pronunciation)
   assert.equal(sent.url, '/api/presentation/speech-review/')
   assert.equal(sent.headers['Content-Type'], 'application/json')
   assert.deepEqual(sent.body, { speech: speech.raw, pronunciation: pronunciation.raw })
-  assert.equal(review.summary, '또렷해요.')
-  assert.equal(review.improvements.length, 1)
-  const mocked = await reviewSpeech(speech, pronunciation, { mock: true })
-  assert.equal(mocked.summary, '또렷해요.')
+  assert.equal(result.summary, '또렷해요.')
+  assert.equal(result.improvements.length, 1)
+  await reviewSpeech(speech, pronunciation, { mock: true })
   assert.equal(sent.url, '/api/presentation/mock/speech-review/')
-})
-
-test('pronunciation sends the recognition chunks so the server can split long audio', async (t) => {
-  let body
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
-    body = options.body
-    return Response.json({ scores: { pronunciation: 90 }, segments: [], words: [] })
-  })
-  const chunks = [{ timestamp: [0, 2], text: '안녕' }]
-  await assessPronunciation(audio, '안녕', { chunks })
-  assert.deepEqual(JSON.parse(body.get('chunks')), chunks)
-  await assessPronunciation(audio, '안녕')
-  assert.equal(body.get('chunks'), null)
 })
 
 test('API errors surface the server message', async (t) => {
   t.mock.method(globalThis, 'fetch', async () =>
     Response.json({ detail: '음성 파일을 읽을 수 없습니다.' }, { status: 400 }),
   )
-  await assert.rejects(transcribeSpeech(audio), /음성 파일을 읽을 수 없습니다/)
+  await assert.rejects(analyzeSpeech(audio), /음성 파일을 읽을 수 없습니다/)
 })

@@ -26,8 +26,8 @@ test('scored words are colored and show their score on hover', () => {
   )
 })
 
-test('words stay plain while pronunciation is still loading', () => {
-  render(<TranscriptPanel stt={stt} pronunciation={{ status: 'loading', data: null, error: '' }} />)
+test('words stay plain when no pronunciation scores are available', () => {
+  render(<TranscriptPanel stt={stt} pronunciation={{ status: 'idle', data: null, error: '' }} />)
   expect(document.querySelector('[data-tip]')).toBeNull()
-  expect(screen.getByText(/끝나면 단어마다 색으로 표시/)).toBeTruthy()
+  expect(screen.getByText(/색 표시는 없어요/)).toBeTruthy()
 })

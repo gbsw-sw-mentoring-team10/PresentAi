@@ -29,7 +29,7 @@ function scored(token, word, chunkStart) {
   }
 }
 
-// 한 줄(Whisper 구간)의 단어에 Azure 단어 점수를 붙입니다.
+// 한 줄(인식 구간)의 단어에 Azure 단어 점수를 붙입니다.
 // 구간 시간대에 있는 Azure 단어만 후보로 쓰기 때문에, 앞쪽이 어긋나도 다음 줄에서 다시 맞춰져요.
 function annotateLine(chunk, words) {
   const tokens = chunk.text.split(/\s+/).filter(Boolean)

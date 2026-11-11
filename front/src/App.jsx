@@ -44,7 +44,6 @@ export default function App() {
     speech: speechRequest,
     run: runSpeech,
     cancel: cancelSpeech,
-    retryPronunciation,
     retryReview,
   } = useSpeechRequest()
   const [formRoute, setFormRoute] = useState(route)
@@ -198,7 +197,6 @@ export default function App() {
           <SpeechResultsPage
             speech={speechRequest}
             navigate={navigate}
-            onRetryPronunciation={retryPronunciation}
             onRetryReview={retryReview}
           />
         )

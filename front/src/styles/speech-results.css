@@ -135,34 +135,14 @@
   color: #85857a;
   font-size: 14px;
 }
-.speech-skeleton {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-.speech-skeleton i {
-  height: 78px;
-  border-radius: 14px;
-  background: linear-gradient(90deg, #f1f1e8 25%, #fafaf4 50%, #f1f1e8 75%);
-  background-size: 200% 100%;
-  animation: speech-shimmer 1.4s infinite linear;
-}
 @keyframes speech-shimmer {
   to {
     background-position: -200% 0;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .speech-skeleton i {
-    animation: none;
-  }
-}
 @media (max-width: 640px) {
   .speech-panel {
     padding: 20px;
-  }
-  .speech-skeleton {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
