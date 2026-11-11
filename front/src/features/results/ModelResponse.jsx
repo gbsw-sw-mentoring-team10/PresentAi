@@ -8,6 +8,10 @@ export function StorageNotice({ result }) {
   return (
     <div className="demo-notice" role="status">
       <p>{message}</p>
+      {result.file_storage_status === 'failed' && (
+        <p>{result.file_storage_message || '발표자료 원본을 저장하지 못했어요.'}</p>
+      )}
+      {result.file_storage_status === 'saved' && <p>발표자료 원본도 내 계정에 저장했어요.</p>}
     </div>
   )
 }

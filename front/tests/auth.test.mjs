@@ -97,16 +97,22 @@ test('analysis carries the service session and retains server-confirmed saved re
     strengths: [],
     improvements: [],
     saved_result_id: 42,
+    saved_file_id: 37,
+    file_storage_status: 'saved',
   }
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(options.credentials, 'include')
     return Response.json(result)
   })
-  assert.equal(
-    (await createFeedback({ title: '', purpose: '교육', description: '', script: '대본' }))
-      .saved_result_id,
-    42,
-  )
+  const saved = await createFeedback({
+    title: '',
+    purpose: '교육',
+    description: '',
+    script: '대본',
+  })
+  assert.equal(saved.saved_result_id, 42)
+  assert.equal(saved.saved_file_id, 37)
+  assert.equal(saved.file_storage_status, 'saved')
   assert.equal(normalizeFeedback({ ...result, saved_result_id: null }).saved_result_id, undefined)
   t.mock.method(globalThis, 'fetch', async () =>
     Response.json({ detail: 'DB에 연결할 수 없습니다.' }, { status: 503 }),

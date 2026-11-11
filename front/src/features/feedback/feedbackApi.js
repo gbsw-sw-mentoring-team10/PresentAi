@@ -81,7 +81,58 @@ export function getPresentationTitle(form) {
   return form.title.trim() || form.file?.name?.replace(/\.[^.]+$/, '') || '제목 없는 발표'
 }
 
-export async function createFeedback(form, { signal, mock = false } = {}) {
+function waitForNextPoll(interval, signal) {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(signal?.reason || new DOMException('Aborted', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, interval)
+    signal?.addEventListener('abort', onAbort, { once: true })
+    if (signal?.aborted) onAbort()
+  })
+}
+
+async function pollFeedback(resultId, signal, interval) {
+  if (!Number.isSafeInteger(resultId) || resultId <= 0)
+    throw new FeedbackApiError('분석 서버의 작업 번호를 확인할 수 없어요.')
+  const deadline = Date.now() + 180000
+  while (Date.now() < deadline) {
+    signal?.throwIfAborted()
+    let response
+    try {
+      response = await fetch(`${API_BASE_URL}/feedback/${resultId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal,
+      })
+    } catch (error) {
+      if (error.name === 'AbortError' || signal?.aborted) throw error
+      throw new FeedbackApiError('분석 결과를 조회하지 못했어요. 인터넷 연결을 확인해 주세요.')
+    }
+    const data = await response.json().catch(() => null)
+    if (!response.ok)
+      throw new FeedbackApiError(
+        typeof data?.detail === 'string' ? data.detail : '분석 결과를 조회하지 못했어요.',
+        response.status,
+      )
+    if (data?.status === 'completed' && data.saved_result_id === resultId) return data
+    if (data?.status === 'failed')
+      throw new FeedbackApiError(data.error_message || '분석 중 오류가 발생했어요.', 502)
+    if (!['pending', 'processing'].includes(data?.status))
+      throw new FeedbackApiError('분석 서버의 작업 상태를 확인할 수 없어요.')
+    await waitForNextPoll(interval, signal)
+  }
+  throw new FeedbackApiError('분석 응답이 오래 걸리고 있어요. 잠시 후 다시 시도해 주세요.', 504)
+}
+
+export async function createFeedback(form, { signal, mock = false, pollIntervalMs = 1000 } = {}) {
   const title = getPresentationTitle(form)
   // The published API spells the required query parameter "perpose".
   const query = new URLSearchParams({ title, perpose: form.purpose.trim() })
@@ -104,7 +155,7 @@ export async function createFeedback(form, { signal, mock = false } = {}) {
       '분석 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
     )
   }
-  const raw = await response.text().catch(() => '')
+  let raw = await response.text().catch(() => '')
   let data = null
   try {
     data = JSON.parse(raw)
@@ -133,6 +184,10 @@ export async function createFeedback(form, { signal, mock = false } = {}) {
       response.status,
     )
   }
+  if (!mock && ['pending', 'processing'].includes(data?.status)) {
+    data = await pollFeedback(data.result_id ?? data.saved_result_id, signal, pollIntervalMs)
+    raw = JSON.stringify(data)
+  }
   let result
   try {
     result = normalizeFeedback(data)
@@ -146,5 +201,11 @@ export async function createFeedback(form, { signal, mock = false } = {}) {
     result.saved_result_id = data.saved_result_id
   if (typeof data?.storage_status === 'string') result.storage_status = data.storage_status
   if (typeof data?.storage_message === 'string') result.storage_message = data.storage_message
+  if (Number.isInteger(data?.saved_file_id) && data.saved_file_id > 0)
+    result.saved_file_id = data.saved_file_id
+  if (typeof data?.file_storage_status === 'string')
+    result.file_storage_status = data.file_storage_status
+  if (typeof data?.file_storage_message === 'string')
+    result.file_storage_message = data.file_storage_message
   return result
 }

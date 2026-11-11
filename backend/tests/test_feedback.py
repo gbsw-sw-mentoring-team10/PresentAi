@@ -2,6 +2,7 @@ import copy
 import os
 import re
 from contextlib import nullcontext
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -193,6 +194,138 @@ def test_other_user_and_guest_cannot_read_saved_result(client):
     assert client.get(f"/feedback/{result_id}").status_code == 401
     login(client, "other-feedback-test@example.com")
     assert client.get(f"/feedback/{result_id}?user_id=1").status_code == 404
+
+
+def test_saved_feedback_list_is_empty_for_new_user(client):
+    login(client)
+    for path in ("/feedback", "/feedback/"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        assert response.json() == {
+            "items": [], "total": 0, "page": 1, "page_size": 20,
+        }
+
+
+def test_saved_feedback_list_filters_owner_and_paginates_in_stable_order(client, connection):
+    owner = login(client)
+    result_ids = [analyze(client).json()["result_id"] for _ in range(3)]
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "UPDATE slides_feedback_result SET created_at=%s WHERE user_id=%s",
+            ("2025-01-01 00:00:00", owner["user_id"]),
+        )
+        cursor.execute(
+            "UPDATE slides_feedback_result SET created_at=%s WHERE slides_result_id=%s",
+            ("2026-01-01 00:00:00", result_ids[0]),
+        )
+    connection.commit()
+    client.post("/auth/logout")
+    other = login(client, "other-history-test@example.com")
+    other_result_id = analyze(client).json()["result_id"]
+    client.post("/auth/logout")
+    assert client.post("/auth/login", json=CREDENTIALS).status_code == 200
+
+    response = client.get(
+        f"/feedback?page=1&page_size=2&user_id={other['user_id']}"
+    )
+    assert response.status_code == 200
+    page = response.json()
+    assert (page["total"], page["page"], page["page_size"]) == (3, 1, 2)
+    assert [item["saved_result_id"] for item in page["items"]] == [
+        result_ids[0], result_ids[2],
+    ]
+    assert set(page["items"][0]) == {"saved_result_id", "title", "score", "created_at"}
+    assert page["items"][0]["title"] == "저장 테스트"
+    assert page["items"][0]["score"] == RESULT["score"]
+    assert datetime.fromisoformat(page["items"][0]["created_at"]).utcoffset() == timedelta(0)
+    second = client.get("/feedback?page=2&page_size=2").json()
+    assert [item["saved_result_id"] for item in second["items"]] == [result_ids[1]]
+    assert second["total"] == 3
+    beyond = client.get("/feedback?page=3&page_size=2").json()
+    assert beyond["items"] == [] and beyond["total"] == 3
+    assert client.get(f"/feedback/{result_ids[0]}").status_code == 200
+    assert client.get(f"/feedback/{other_result_id}").status_code == 404
+
+
+def test_saved_feedback_detail_matches_initial_analysis_format(client):
+    login(client)
+    original = analyze(client).json()
+    result_id = original["result_id"]
+    response = client.get(f"/feedback/{result_id}")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    saved = response.json()
+    assert {key: saved[key] for key in RESULT} == RESULT
+    assert saved["saved_result_id"] == result_id
+    assert saved["status"] == "completed"
+    assert saved["title"] == "저장 테스트"
+    assert "created_at" in saved
+    assert not {"user_id", "result"} & saved.keys()
+
+
+@pytest.mark.parametrize("mode", ["script", "material", "both"])
+def test_saved_feedback_preserves_initial_feedback_fields(client, monkeypatch, mode):
+    login(client)
+    payload = copy.deepcopy(RESULT)
+    if mode == "script":
+        payload.pop("slides")
+    elif mode == "material":
+        payload.pop("revised_script")
+        payload["slides"][0].pop("script_connection")
+    for name in ("generate_script_feedback", "generate_material_feedback", "overall_result"):
+        monkeypatch.setattr(upload, name, lambda *args, **kwargs: copy.deepcopy(payload))
+    kwargs = {}
+    if mode != "material":
+        kwargs["data"] = {"prompt": "합성 대본"}
+    if mode != "script":
+        kwargs["files"] = {"file": ("synthetic.pdf", b"synthetic", "application/pdf")}
+    original = client.post("/upload/?title=테스트&perpose=교육", **kwargs).json()
+    response = client.get(f"/feedback/{original['result_id']}")
+    assert response.status_code == 200
+    saved = response.json()
+    for key in ("score", "feedback", "strengths", "improvements"):
+        assert saved[key] == payload[key]
+    assert saved["saved_result_id"] == original["result_id"]
+    assert saved["status"] == "completed"
+    assert saved["revised_script"] == payload.get("revised_script", "")
+    expected_slides = copy.deepcopy(payload.get("slides", []))
+    for slide in expected_slides:
+        slide.setdefault("script_connection", "")
+    assert saved["slides"] == expected_slides
+    assert not {"saved_file_id", "file_storage_status", "file_storage_message"} & saved.keys()
+
+
+def test_saved_feedback_list_requires_an_active_session(client, connection):
+    assert client.get("/feedback").status_code == 401
+    login(client)
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE auth_sessions SET expires_at=UTC_TIMESTAMP(6)")
+    connection.commit()
+    response = client.get("/feedback")
+    assert response.status_code == 401
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("query", [
+    "page=0", "page=-1", "page=invalid", "page_size=0", "page_size=101",
+    "page_size=invalid",
+])
+def test_saved_feedback_list_rejects_invalid_pagination(client, query):
+    login(client)
+    assert client.get(f"/feedback?{query}").status_code == 422
+
+
+def test_missing_saved_feedback_returns_not_found(client):
+    login(client)
+    response = client.get("/feedback/999999999")
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("result_id", [0, -1])
+def test_saved_feedback_detail_rejects_nonpositive_ids(client, result_id):
+    login(client)
+    assert client.get(f"/feedback/{result_id}").status_code == 422
 
 
 @pytest.mark.parametrize("invalid", ["forged", "expired", "logout"])

@@ -22,3 +22,6 @@ if cookie_secure_value not in {"true", "false"}:
 AUTH_COOKIE_SECURE = cookie_secure_value == "true"
 AUTH_COOKIE_NAME = "presentai_session"
 SESSION_TTL_SECONDS = 60 * 60 * 24
+
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "").strip()
+S3_REGION = os.getenv("AWS_DEFAULT_REGION") or os.getenv("AWS_REGION") or ""

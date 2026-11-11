@@ -1,4 +1,5 @@
 import json
+from datetime import timezone
 
 from fastapi import HTTPException
 from pymysql.connections import Connection
@@ -104,6 +105,43 @@ def complete_feedback(
     except Exception:
         connection.rollback()
         raise
+
+
+def _with_utc_timestamp(row: dict) -> dict:
+    # MySQL 연결의 time_zone은 UTC이며, PyMySQL은 timezone 없는 datetime을 반환한다.
+    if row["created_at"].tzinfo is None:
+        row["created_at"] = row["created_at"].replace(tzinfo=timezone.utc)
+    return row
+
+
+def list_feedback(
+    connection: Connection, user_id: int, *, page: int, page_size: int
+) -> dict:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM slides_feedback_result AS r
+            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
+            WHERE r.user_id = %s
+            """,
+            (user_id,),
+        )
+        total = cursor.fetchone()["total"]
+        cursor.execute(
+            """
+            SELECT r.slides_result_id AS saved_result_id, r.title, r.created_at,
+                   e.score
+            FROM slides_feedback_result AS r
+            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
+            WHERE r.user_id = %s
+            ORDER BY r.created_at DESC, r.slides_result_id DESC
+            LIMIT %s OFFSET %s
+            """,
+            (user_id, page_size, (page - 1) * page_size),
+        )
+        items = [_with_utc_timestamp(row) for row in cursor.fetchall()]
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:

@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -34,3 +37,30 @@ class FeedbackPayload(BaseModel):
         if len(numbers) != len(set(numbers)):
             raise ValueError("슬라이드 번호가 중복되었습니다.")
         return self
+
+
+class FeedbackSummary(BaseModel):
+    saved_result_id: int = Field(gt=0)
+    title: str
+    score: int = Field(ge=0, le=100)
+    created_at: datetime
+
+
+class FeedbackList(BaseModel):
+    items: list[FeedbackSummary]
+    total: int = Field(ge=0)
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+
+
+class SavedFeedback(FeedbackPayload):
+    saved_result_id: int = Field(gt=0)
+    title: str
+    created_at: datetime
+    status: Literal["completed"]
+
+
+class FeedbackJobStatus(BaseModel):
+    saved_result_id: int = Field(gt=0)
+    status: Literal["pending", "processing", "failed"]
+    error_message: str | None = None

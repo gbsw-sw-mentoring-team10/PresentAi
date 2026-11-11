@@ -46,7 +46,10 @@ CREATE TABLE `slides_feedback_result` (
   `slides_result_id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
   `title` text NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `error_message` text,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`slides_result_id`),
   KEY `fk_slices_feedback_result_user` (`user_id`),
   CONSTRAINT `fk_slices_feedback_result_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
