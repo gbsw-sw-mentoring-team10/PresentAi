@@ -65,7 +65,7 @@
     margin: 0;
   }
 
-  .site-header-home .nav-wrap > nav > button {
+  .site-header-home .nav-wrap > nav > button:not(.nav-mobile-only) {
     display: flex;
     align-items: center;
     justify-content: center;
