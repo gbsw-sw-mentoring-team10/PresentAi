@@ -41,20 +41,24 @@ def to_wav(audio_path: str) -> str:
 def build_result(segments: list[dict], reference_text: str) -> dict:
     seg_list, words = [], []
     for seg in segments:
-        best = seg["NBest"][0]
-        score = best["PronunciationAssessment"]
+        # Azure가 인식은 했지만 발음 평가를 붙이지 못한 구간(노래·잡음·아주 짧은 소리 등)도 있어서 없는 값은 비워 둔다
+        candidates = seg.get("NBest") or []
+        if not candidates:
+            continue
+        best = candidates[0]
+        score = best.get("PronunciationAssessment") or {}
         start = seg["Offset"] / TICKS_PER_SECOND
-        end = start + seg["Duration"] / TICKS_PER_SECOND
+        end = start + seg.get("Duration", 0) / TICKS_PER_SECOND
         seg_list.append({
             "start": round(start, 2),
             "end": round(end, 2),
-            "text": best["Display"],
-            "accuracy": score["AccuracyScore"],
-            "fluency": score["FluencyScore"],
-            "completeness": score["CompletenessScore"],
-            "pronunciation": score["PronScore"],
+            "text": best.get("Display", ""),
+            "accuracy": score.get("AccuracyScore"),
+            "fluency": score.get("FluencyScore"),
+            "completeness": score.get("CompletenessScore"),
+            "pronunciation": score.get("PronScore"),
         })
-        for w in best["Words"]:
+        for w in best.get("Words", []):
             w_score = w.get("PronunciationAssessment", {})
             w_start = w["Offset"] / TICKS_PER_SECOND if "Offset" in w else None  # 말하지 않은 단어(누락)는 시간이 없다
             w_end = w_start + w["Duration"] / TICKS_PER_SECOND if w_start is not None else None
@@ -67,12 +71,13 @@ def build_result(segments: list[dict], reference_text: str) -> dict:
             })
 
     # 전체 점수는 구간 점수를 구간 길이로 가중평균한 값이다 (구간이 하나면 Azure 점수와 같다)
-    total = sum(s["end"] - s["start"] for s in seg_list)
-
     def weighted(key: str):
+        # 점수가 있는 구간만으로 평균을 낸다. 하나도 없으면 None
+        scored = [s for s in seg_list if s[key] is not None]
+        total = sum(s["end"] - s["start"] for s in scored)
         if total <= 0:
             return None
-        return round(sum(s[key] * (s["end"] - s["start"]) for s in seg_list) / total, 1)
+        return round(sum(s[key] * (s["end"] - s["start"]) for s in scored) / total, 1)
 
     scripted = bool(reference_text.strip())  # 기준 문장이 없으면 완성도는 의미가 없다
 

@@ -134,3 +134,25 @@ def test_endpoint_passes_chunks_to_the_assessor(monkeypatch):
     )
     assert response.status_code == 200
     assert seen["chunks"] == [{"start": 0.0, "end": 1.0, "text": "안녕"}]
+
+
+def test_segments_without_pronunciation_scores_do_not_crash_and_are_kept_as_text():
+    scored = segment(0.0, "안녕")
+    unscored = {
+        "Offset": 5 * TICKS_PER_SECOND,
+        "Duration": 2 * TICKS_PER_SECOND,
+        "NBest": [{"Display": "노래 가사", "Words": [{"Word": "노래", "Offset": 5 * TICKS_PER_SECOND, "Duration": TICKS_PER_SECOND}]}],
+    }
+    empty = {"Offset": 8 * TICKS_PER_SECOND, "Duration": TICKS_PER_SECOND}  # NBest 자체가 없는 구간
+    result = pa.build_result([scored, unscored, empty], "")
+    assert result["recognized_text"] == "안녕 노래 가사"
+    assert result["scores"]["accuracy"] == 90  # 점수가 있는 구간만으로 평균
+    assert result["segments"][1]["accuracy"] is None
+    assert result["words"][1]["accuracy"] is None and result["words"][1]["error_type"] is None
+
+
+def test_when_no_segment_has_scores_the_scores_are_empty_but_the_text_survives():
+    only_text = {"Offset": 0, "Duration": TICKS_PER_SECOND, "NBest": [{"Display": "음악"}]}
+    result = pa.build_result([only_text], "")
+    assert result["recognized_text"] == "음악"
+    assert result["scores"] == {"accuracy": None, "fluency": None, "completeness": None, "pronunciation": None}
