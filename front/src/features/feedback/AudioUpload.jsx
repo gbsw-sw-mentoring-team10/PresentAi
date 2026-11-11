@@ -18,7 +18,7 @@ export default function AudioUpload({ stepNumber, file, error, onFile, onError }
   }, [file, hasAudio])
 
   return (
-    <section className="form-section">
+    <section className="form-section" id="audio-upload">
       <div className="form-section-title">
         <span>{stepNumber}</span>
         <h2>리허설 음성</h2>

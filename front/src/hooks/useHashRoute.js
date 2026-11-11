@@ -7,7 +7,14 @@ const PAGE_TITLES = {
   '/analysis': '분석 진행',
   '/results': '발표자료 피드백',
   '/speech-results': '발표 피드백 결과',
+  '/history': '내 피드백',
+  '/mypage': '마이페이지',
 }
+
+// '/history/<id>' 경로에서 기록 id를 꺼냅니다.
+export const historyRouteId = (route) => route.match(/^\/history\/([^/]+)$/)?.[1] ?? null
+
+const pageTitle = (route) => PAGE_TITLES[route] || (historyRouteId(route) ? '피드백 상세' : null)
 
 const readRoute = () => window.location.hash.replace(/^#/, '') || '/'
 
@@ -30,7 +37,7 @@ export default function useHashRoute() {
   }, [route])
 
   useEffect(() => {
-    document.title = `${PAGE_TITLES[route] || '페이지를 찾을 수 없어요'} | PresentAi`
+    document.title = `${pageTitle(route) || '페이지를 찾을 수 없어요'} | PresentAi`
   }, [route])
 
   const navigate = useCallback((path) => {

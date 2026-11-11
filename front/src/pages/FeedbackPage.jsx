@@ -7,6 +7,8 @@ import PresentationFields from '../features/feedback/PresentationFields.jsx'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
+import SampleFileWarning from '../features/feedback/SampleFileWarning.jsx'
+import { isExampleForm } from '../features/feedback/exampleForm.js'
 
 import useFeedbackForm from '../features/feedback/useFeedbackForm.js'
 
@@ -24,7 +26,12 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
     readScript,
     handleSubmit,
     fillExample,
+    sampleWarning,
+    closeSampleWarning,
+    continueWithoutSample,
+    reselectFile,
   } = useFeedbackForm({ mode, form, setForm, start })
+  const example = isExampleForm(form, mode)
 
   return (
     <div className="workspace-page section-wrap">
@@ -84,18 +91,27 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
             onFile={(file) => updateField('audio', file)}
             onError={(message) => setFieldError('audio', message)}
           />
-          <SubmissionNotice speech={speech} isExample={!!form.file?.sample} />
+          <SubmissionNotice speech={speech} isExample={example} />
           <div className="form-actions">
             <button type="button" className="text-button" onClick={() => navigate('/')}>
               취소
             </button>
             <Button variant="yellow" type="submit" icon="sparkle" disabled={readingScript}>
-              {speech ? '피드백 미리보기' : form.file?.sample ? '예시 분석 시작' : '분석 시작'}
+              {speech ? '피드백 미리보기' : example ? '예시 분석 시작' : '분석 시작'}
             </Button>
           </div>
         </form>
         <FeedbackFormGuide speech={speech} onFillExample={fillExample} />
       </div>
+      {sampleWarning && (
+        <SampleFileWarning
+          speech={speech}
+          file={speech ? form.audio : form.file}
+          onReselect={reselectFile}
+          onContinue={continueWithoutSample}
+          onClose={closeSampleWarning}
+        />
+      )}
     </div>
   )
 }

@@ -4,7 +4,7 @@ import FileUpload from './FileUpload.jsx'
 
 export default function MaterialUpload({ file, error, onFile, onError }) {
   return (
-    <section className="form-section">
+    <section className="form-section" id="file-upload">
       <div className="form-section-title">
         <span>02</span>
         <h2>발표자료</h2>

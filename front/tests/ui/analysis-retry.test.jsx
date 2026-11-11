@@ -30,6 +30,7 @@ test('a server error can be retried from the UI without losing input, then opens
   await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
   expect((await screen.findByRole('alert')).textContent).toContain('(500)')
   await user.click(screen.getByRole('button', { name: '다시 시도' }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('재시도에 성공한 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
   expect(analysisFetch).toHaveBeenCalledTimes(2)
@@ -37,7 +38,7 @@ test('a server error can be retried from the UI without losing input, then opens
   expect(analysisFetch.mock.calls[1][1].body.get('prompt')).toBe(originalScript)
 })
 
-test('unexpected model output opens immediately as raw text even when storage fails', async () => {
+test('unexpected model output opens as raw text even when storage fails', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) =>
@@ -57,6 +58,7 @@ test('unexpected model output opens immediately as raw text even when storage fa
   await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육')
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('모델이 생성한 원문 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
   expect(screen.getByRole('status').textContent).toContain('DB 저장 실패')

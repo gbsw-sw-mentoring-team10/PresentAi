@@ -1,0 +1,96 @@
+/* Sample file warning — 로그인 팝업과 같은 시각 언어를 사용합니다. */
+.sample-warning-modal {
+  width: 460px;
+  text-align: center;
+}
+.sample-warning-symbol {
+  display: flex;
+  width: 53px;
+  height: 53px;
+  background: var(--yellow);
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto 19px;
+  transform: rotate(-7deg);
+}
+.sample-warning-modal h2 {
+  font-size: 23px;
+  letter-spacing: -0.8px;
+}
+.sample-warning-modal > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8f8f7f;
+  margin: 12px 0 22px;
+  word-break: keep-all;
+}
+.sample-warning-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  text-align: left;
+}
+.sample-warning-file svg {
+  flex-shrink: 0;
+  color: #8e8e81;
+}
+.sample-warning-file span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sample-warning-file small {
+  flex-shrink: 0;
+  border-radius: 5px;
+  padding: 4px 8px;
+  background: var(--yellow-pale);
+  color: #82764c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.sample-warning-question {
+  display: block;
+  margin: 24px 0 14px;
+  font-size: 14px;
+}
+.sample-warning-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sample-warning-actions .button {
+  width: 100%;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .sample-warning-modal {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+  .sample-warning-modal h2 {
+    font-size: 20px;
+  }
+  .sample-warning-modal > p {
+    font-size: 12px;
+  }
+  .sample-warning-actions {
+    grid-template-columns: 1fr;
+  }
+  .sample-warning-actions .button {
+    font-size: 14px;
+  }
+  /* 입력 화면 버튼처럼 진행 버튼을 위에 둡니다. */
+  .sample-warning-actions .button-outline {
+    order: 1;
+  }
+}

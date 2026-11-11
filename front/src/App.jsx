@@ -6,8 +6,15 @@ import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import Button from './components/ui/Button.jsx'
 import { example } from './data/examplePresentation.js'
 import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
+import {
+  hasLeftFormFlow,
+  prepareSubmission,
+  shouldResetForm,
+} from './features/feedback/exampleForm.js'
 import useAuth from './features/auth/useAuth.js'
-import useHashRoute from './hooks/useHashRoute.js'
+import { resetSampleAccount } from './features/account/accountApi.js'
+import { LoginRequiredModal, LoginRequiredPage } from './features/auth/LoginRequired.jsx'
+import useHashRoute, { historyRouteId } from './hooks/useHashRoute.js'
 import './styles/app.css'
 import './styles/responsive.css'
 import './styles/brand.css'
@@ -17,6 +24,9 @@ const FeedbackPage = lazy(() => import('./pages/FeedbackPage.jsx'))
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage.jsx'))
 const ExampleResultsPage = lazy(() => import('./pages/ExampleResultsPage.jsx'))
 const FeedbackResultsPage = lazy(() => import('./pages/FeedbackResultsPage.jsx'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage.jsx'))
+const HistoryDetailPage = lazy(() => import('./pages/HistoryDetailPage.jsx'))
+const MyPage = lazy(() => import('./pages/MyPage.jsx'))
 const AuthModal = lazy(() => import('./features/auth/AuthModal.jsx'))
 
 const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: null, audio: null }
@@ -27,19 +37,32 @@ export default function App() {
   const [mode, setMode] = useState('material')
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
+  const [loginNotice, setLoginNotice] = useState(false)
+  const [afterLogin, setAfterLogin] = useState(null)
   const account = useAuth()
   const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
+  const [formRoute, setFormRoute] = useState(route)
+  const [leftFlow, setLeftFlow] = useState(false)
+
+  // 다른 화면을 거쳐 입력 화면에 들어오면 이전 입력을 비웁니다.
+  if (formRoute !== route) {
+    setFormRoute(route)
+    if (shouldResetForm(formRoute, route, mode, leftFlow)) setForm(EMPTY_FORM)
+    setLeftFlow(hasLeftFormFlow(route, leftFlow))
+  }
 
   useEffect(() => {
     if (route !== '/analysis') cancelFeedback()
   }, [route, cancelFeedback])
 
-  useEffect(() => {
-    if (route === '/analysis' && mode !== 'speech' && request.status === 'success')
-      changeRoute('/results')
-  }, [route, mode, request.status, changeRoute])
-
-  const closeAuth = useCallback(() => setAuth(false), [])
+  const closeAuth = useCallback(() => {
+    setAuth(false)
+    setAfterLogin(null)
+  }, [])
+  const closeLoginNotice = useCallback(() => {
+    setLoginNotice(false)
+    setAfterLogin(null)
+  }, [])
   const navigate = useCallback(
     (path) => {
       if (path !== '/analysis') cancelFeedback()
@@ -56,22 +79,66 @@ export default function App() {
   }
 
   function start(nextMode) {
+    // 수정한 자료에 남은 예시 파일은 분석 화면과 요청에서 뺍니다.
+    const submitted = prepareSubmission(form, nextMode)
+    if (submitted !== form) setForm(submitted)
     setMode(nextMode)
     setResultKind(nextMode === 'speech' ? 'example' : 'api')
-    if (nextMode !== 'speech') runFeedback(form)
+    if (nextMode !== 'speech') runFeedback(submitted)
     navigate('/analysis')
   }
 
-  async function logout() {
-    if (await account.logout()) {
-      cancelFeedback()
-      setResultKind(null)
-      setForm(EMPTY_FORM)
-      navigate('/')
+  // 로그인이 필요한 화면은 로그인 전이면 이동하지 않고 안내 팝업을 띄웁니다.
+  function openMember(path) {
+    if (account.user || account.busy) {
+      navigate(path)
+      return
     }
+    setAfterLogin(path)
+    setLoginNotice(true)
+  }
+
+  function loginFromNotice() {
+    setLoginNotice(false)
+    setAuth(true)
+  }
+
+  async function authenticate(...credentials) {
+    await account.authenticate(...credentials)
+    if (afterLogin) navigate(afterLogin)
+  }
+
+  function resetSession() {
+    resetSampleAccount()
+    cancelFeedback()
+    setResultKind(null)
+    setForm(EMPTY_FORM)
+    navigate('/')
+  }
+
+  async function logout() {
+    if (await account.logout()) resetSession()
+  }
+
+  function deleteAccount() {
+    account.clearUser()
+    resetSession()
+  }
+
+  function renderMember(page) {
+    if (account.user) return page
+    if (account.busy)
+      return (
+        <div className="state-page" role="status">
+          <p>계정 정보를 확인하고 있어요.</p>
+        </div>
+      )
+    return <LoginRequiredPage onLogin={() => setAuth(true)} />
   }
 
   function renderPage() {
+    const historyId = historyRouteId(route)
+    if (historyId) return renderMember(<HistoryDetailPage id={historyId} navigate={navigate} />)
     switch (route) {
       case '/':
         return <HomePage navigate={navigate} startExample={startExample} />
@@ -117,6 +184,17 @@ export default function App() {
         )
       case '/speech-results':
         return <ExampleResultsPage navigate={navigate} speech />
+      case '/history':
+        return renderMember(<HistoryPage navigate={navigate} />)
+      case '/mypage':
+        return renderMember(
+          <MyPage
+            user={account.user}
+            navigate={navigate}
+            onLogin={() => setAuth(true)}
+            onAccountDeleted={deleteAccount}
+          />,
+        )
       default:
         return (
           <div className="state-page">
@@ -145,6 +223,7 @@ export default function App() {
         route={route}
         mode={mode}
         navigate={navigate}
+        openMember={openMember}
         scrollSection={scrollSection}
         onLogin={() => setAuth(true)}
         user={account.user}
@@ -173,10 +252,11 @@ export default function App() {
       {auth && (
         <PageErrorBoundary key="auth">
           <Suspense fallback={null}>
-            <AuthModal onClose={closeAuth} onAuthenticate={account.authenticate} />
+            <AuthModal onClose={closeAuth} onAuthenticate={authenticate} />
           </Suspense>
         </PageErrorBoundary>
       )}
+      {loginNotice && <LoginRequiredModal onClose={closeLoginNotice} onLogin={loginFromNotice} />}
     </>
   )
 }
