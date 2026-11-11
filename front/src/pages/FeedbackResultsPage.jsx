@@ -16,6 +16,7 @@ import useSlideReview from '../features/slides/useSlideReview.js'
 import usePdfDocument from '../features/slides/usePdfDocument.js'
 import { mergeDocumentSlides } from '../features/slides/slideFeedback.js'
 import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
+import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 
 export default function FeedbackResultsPage({ request, navigate }) {
   if (request.result.raw_only)
@@ -90,9 +91,14 @@ function StructuredResults({ request, navigate }) {
           <h1>좋은 발표에 한 걸음 더 가까이.</h1>
           <p>지금 잘하고 있는 것부터, 더 다듬으면 좋을 부분까지.</p>
         </div>
-        <Button variant="outline" icon="download" onClick={exportReport}>
-          보고서 받기
-        </Button>
+        <div className="result-download-actions">
+          {!mock && (
+            <OriginalFileDownload key={result.saved_file_id} fileId={result.saved_file_id} />
+          )}
+          <Button variant="outline" icon="download" onClick={exportReport}>
+            보고서 받기
+          </Button>
+        </div>
       </div>
       {mock && (
         <div className="example-banner">

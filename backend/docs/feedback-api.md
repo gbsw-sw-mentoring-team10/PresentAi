@@ -92,7 +92,32 @@ main의 응답 형식에 따라 결과 ID, 제목, 생성일, 완료 상태를 �
 슬라이드의 대본 연관성이 없는 경우 해당 필드는 빈 문자열입니다.
 `slides[].issues`는 `problem`, `solution`이 있는 객체 배열입니다.
 `saved_result_id`, `title`, `created_at`, `status`는 main의 상세 응답 형식과 같습니다.
-원본 파일 저장 정보는 현재 main의 분석 흐름에 연결되어 있지 않아 반환하지 않습니다.
+
+파일을 업로드한 새 기록에는 원본 저장 정보도 최상위 필드로 포함합니다.
+피드백 JSON 본문에는 파일 정보를 끼워 넣지 않습니다.
+
+- `file_storage_status`: `pending`, `saved`, `failed`. 분석 상태와 별도로 관리합니다.
+- `saved_file_id`, `file_name`, `file_size`, `file_content_type`: 저장된 원본 정보.
+- `file_storage_message`: 원본 저장 실패 시 사용자 안내. 분석 결과는 계속 조회할 수 있습니다.
+
+과거 기록과 대본만 입력한 기록에는 위 정보가 없습니다. 파일 정보는 분석 중 응답에도
+포함될 수 있으며, 완료 응답을 기준으로 원본 저장 성공·실패를 화면에 표시합니다.
+
+`GET /files/{saved_file_id}/download`를 같은 세션 쿠키로 호출하면 아래처럼 5분간
+유효한 주소를 받습니다. 같은 출처 프록시는 `/api/presentation/files/{id}/download`입니다.
+주소를 보관하지 않고 다운로드 버튼을 누를 때마다 새로 요청합니다.
+
+```json
+{
+  "file_id": 37,
+  "file_name": "발표자료.pdf",
+  "download_url": "https://...임시 서명 주소...",
+  "expires_in": 300
+}
+```
+
+본인 소유 파일만 요청할 수 있고 다른 계정·없는 파일은 404, 로그인 만료는 401,
+S3 인증·설정 오류는 503으로 반환합니다. URL 응답도 `Cache-Control: no-store`입니다.
 
 ## 화면에서 호출하기
 

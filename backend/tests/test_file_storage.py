@@ -18,6 +18,7 @@ USER = SimpleNamespace(user_id=12)
 
 class Database:
     lastrowid = 37
+    rowcount = 1
 
     def __init__(self, *, row=None, fail_commit=False):
         self.row = row
@@ -83,6 +84,27 @@ def test_saved_original_is_complete_after_model_consumes_stream(monkeypatch, s3)
     assert params[2].startswith("presentai/users/12/")
     assert params[3:] == (len(b"synthetic PDF bytes"), "application/pdf")
     assert db.commits == 1
+
+
+def test_file_metadata_and_feedback_link_are_committed_together(monkeypatch, s3):
+    db = Database()
+    monkeypatch.setattr(file_storage, "find_session_user", lambda *args, **kwargs: USER)
+    expect_upload(s3)
+    assert file_storage.save_material(db, "session", 12, material(), result_id=88) == 37
+    assert db.queries[1][1] == (37, 88, 12)
+    assert db.commits == 1
+
+
+def test_invalid_feedback_link_rolls_back_metadata_and_removes_object(monkeypatch, s3):
+    db = Database()
+    db.rowcount = 0
+    monkeypatch.setattr(file_storage, "find_session_user", lambda *args, **kwargs: USER)
+    expect_upload(s3)
+    s3.add_response("delete_object", {}, {"Bucket": config.S3_BUCKET_NAME, "Key": ANY})
+    with pytest.raises(HTTPException) as error:
+        file_storage.save_material(db, "session", 12, material(), result_id=88)
+    assert error.value.status_code == 409
+    assert db.commits == 0 and db.rollbacks == 2
 
 
 @pytest.mark.parametrize("failure", ["database", "revoked-session"])

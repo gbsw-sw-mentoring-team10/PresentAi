@@ -75,7 +75,12 @@ def get_s3_client():
 
 
 def save_material(
-    connection: Connection, token: str, user_id: int, upload: UploadFile
+    connection: Connection,
+    token: str,
+    user_id: int,
+    upload: UploadFile,
+    *,
+    result_id: int | None = None,
 ) -> int:
     material = inspect_material(upload)
     user = find_session_user(connection, token)
@@ -114,6 +119,21 @@ def save_material(
                 (user_id, material.name, key, material.size, material.content_type),
             )
             file_id = cursor.lastrowid
+            if result_id is not None:
+                cursor.execute(
+                    """
+                    UPDATE slides_feedback_result
+                    SET input_file_id=%s, file_storage_status='saved',
+                        file_storage_message=NULL
+                    WHERE slides_result_id=%s AND user_id=%s
+                      AND input_file_id IS NULL
+                    """,
+                    (file_id, result_id, user_id),
+                )
+                if cursor.rowcount != 1:
+                    raise HTTPException(
+                        status_code=409, detail="원본을 연결할 분석 기록을 찾을 수 없습니다."
+                    )
         connection.commit()
         return file_id
     except Exception:

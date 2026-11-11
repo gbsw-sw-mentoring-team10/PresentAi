@@ -10,6 +10,7 @@ import useHistoryRequest from '../features/history/useHistoryRequest.js'
 import { feedbackTypeLabel, formatHistoryDate } from '../features/history/historyFormat.js'
 import { buildApiReport, downloadTextFile } from '../features/results/feedbackReport.js'
 import useToastMessage from '../hooks/useToastMessage.js'
+import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 import '../styles/history.css'
 
 export default function HistoryDetailPage({ id, navigate, user, onLogin }) {
@@ -70,10 +71,19 @@ function SavedDetail({ item, navigate }) {
           <h1>{item.title}</h1>
           {item.summary && <p>{item.summary}</p>}
         </div>
-        <Button variant="outline" icon="download" onClick={exportReport}>
-          보고서 받기
-        </Button>
+        <div className="result-download-actions">
+          <OriginalFileDownload key={result.saved_file_id} fileId={result.saved_file_id} />
+          <Button variant="outline" icon="download" onClick={exportReport}>
+            보고서 받기
+          </Button>
+        </div>
       </div>
+      {result.file_storage_status === 'failed' && (
+        <p className="history-notice" role="status">
+          <Icon name="info" size={16} />
+          {result.file_storage_message || '발표자료 원본을 저장하지 못했어요.'}
+        </p>
+      )}
       <div className="result-meta">
         <div>
           <small>피드백 날짜</small>

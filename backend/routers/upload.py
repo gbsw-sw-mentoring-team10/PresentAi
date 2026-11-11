@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from typing import Annotated
 
 import pymysql
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -33,12 +34,15 @@ from services.ai_feedback_method import (
 from services.feedback_store import (
     complete_feedback,
     create_pending_feedback,
+    set_file_storage_failure,
     set_feedback_status,
 )
+from services.file_storage import StorageNotConfigured, inspect_material, save_material
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 STORAGE_UNAVAILABLE = "분석 결과는 받았지만 DB에 저장하지 못했습니다."
+FILE_STORAGE_UNAVAILABLE = "발표자료 원본을 저장하지 못했습니다. 피드백 분석은 계속 진행합니다."
 
 
 def get_feedback_db(request: Request) -> Iterator[Connection | None]:
@@ -126,6 +130,10 @@ def run_feedback_job(
     title: str,
     perpose: str,
     detail: str | None,
+    *,
+    file_name: str | None = None,
+    user_id: int | None = None,
+    session_token: str | None = None,
 ) -> None:
     # 응답이 나간 뒤 실행되므로 요청용 DB 연결 대신 단계마다 새 연결을 쓴다.
     # 긴 AI 호출 동안에는 DB 연결을 잡고 있지 않는다.
@@ -134,6 +142,30 @@ def run_feedback_job(
     try:
         with database.get_connection() as db:
             set_feedback_status(db, result_id, "processing")
+        if file_bytes is not None:
+            # 요청 스트림과 별도로 원본 전체를 저장한다. 저장 실패도 기록에 남긴다.
+            try:
+                with io.BytesIO(file_bytes) as source, database.get_connection() as db:
+                    save_material(
+                        db,
+                        session_token,
+                        user_id,
+                        UploadFile(filename=file_name, file=source),
+                        result_id=result_id,
+                    )
+            except (
+                StorageNotConfigured,
+                BotoCoreError,
+                ClientError,
+                pymysql.MySQLError,
+                HTTPException,
+            ) as exc:
+                logger.warning("원본 파일 저장 실패: %s", type(exc).__name__)
+                try:
+                    with database.get_connection() as db:
+                        set_file_storage_failure(db, result_id, FILE_STORAGE_UNAVAILABLE)
+                except pymysql.MySQLError as db_exc:
+                    logger.error("파일 저장 상태 기록 실패: %s", type(db_exc).__name__)
         input_file = io.BytesIO(file_bytes) if file_bytes is not None else None
         try:
             result = run_analysis(
@@ -184,11 +216,15 @@ def create_feedback(
         raise HTTPException(
             status_code=400, detail="대본이나 파일 중 하나 이상을 입력해야 합니다."
         )
+    if file is not None:
+        inspect_material(file)
 
     if current_user is not None and db is not None:
         # 회원: 요청 한 건을 pending으로 기록하고 분석은 background에서 처리한다.
         try:
-            result_id = create_pending_feedback(db, current_user.user_id, title)
+            result_id = create_pending_feedback(
+                db, current_user.user_id, title, has_file=file is not None
+            )
         except pymysql.MySQLError as exc:
             logger.warning("피드백 요청 기록 실패: %s", type(exc).__name__)
             request.state.feedback_storage_error = STORAGE_UNAVAILABLE
@@ -204,6 +240,9 @@ def create_feedback(
                 title,
                 perpose,
                 detail,
+                file_name=file.filename if file is not None else None,
+                user_id=current_user.user_id,
+                session_token=request.cookies.get(config.AUTH_COOKIE_NAME),
             )
             return {"result_id": result_id, "status": "pending"}
 

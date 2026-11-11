@@ -4,6 +4,7 @@ import os
 import re
 from contextlib import nullcontext
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,7 @@ from main import app
 from routers import auth, upload
 from routers.mock_api import common as mock_common
 from services.auth_security import AuthRateLimiter
+from services import file_storage
 
 RESULT = {
     "score": 85,
@@ -38,6 +40,7 @@ CREDENTIALS = {"email": "feedback-test@example.com", "password": "PresentAI-test
 TABLES = (
     "users",
     "auth_sessions",
+    "input_files",
     "slides_feedback_result",
 )
 
@@ -52,16 +55,44 @@ def connection():
                 cursor.execute(f"SHOW CREATE TABLE `{table}`")
                 ddl = cursor.fetchone()["Create Table"]
                 ddl = ddl.replace("CREATE TABLE", "CREATE TEMPORARY TABLE", 1)
-                ddl = re.sub(r",\s*CONSTRAINT[^\n]*FOREIGN KEY[^\n]*", "", ddl)
+                ddl = re.sub(r"(?m)^  CONSTRAINT[^\n]*\n", "", ddl)
+                ddl = ddl.replace(",\n)", "\n)")
                 cursor.execute(ddl)
             cursor.execute("SHOW COLUMNS FROM slides_feedback_result LIKE 'feedback_result'")
             if cursor.fetchone() is None:
                 cursor.execute("ALTER TABLE slides_feedback_result ADD COLUMN feedback_result JSON NULL")
+            for column, definition in (
+                ("input_file_id", "BIGINT NULL"),
+                ("file_storage_status", "VARCHAR(20) NULL"),
+                ("file_storage_message", "TEXT NULL"),
+            ):
+                cursor.execute("SHOW COLUMNS FROM slides_feedback_result LIKE %s", (column,))
+                if cursor.fetchone() is None:
+                    cursor.execute(f"ALTER TABLE slides_feedback_result ADD COLUMN {column} {definition}")
         yield db
 
 
 @pytest.fixture
-def client(connection, monkeypatch):
+def stored_files(monkeypatch):
+    objects = {}
+
+    def put_object(**kwargs):
+        objects[kwargs["Key"]] = kwargs["Body"]
+
+    def delete_object(**kwargs):
+        objects.pop(kwargs["Key"], None)
+
+    client = SimpleNamespace(
+        put_object=put_object,
+        delete_object=delete_object,
+        generate_presigned_url=lambda *args, **kwargs: "https://synthetic.example/download",
+    )
+    monkeypatch.setattr(file_storage, "get_s3_client", lambda: client)
+    return objects
+
+
+@pytest.fixture
+def client(connection, monkeypatch, stored_files):
     with connection.cursor() as cursor:
         for table in reversed(TABLES):
             cursor.execute(f"DELETE FROM `{table}`")
@@ -322,7 +353,12 @@ def test_saved_feedback_preserves_initial_feedback_fields(client, monkeypatch, m
     for slide in expected_slides:
         slide.setdefault("script_connection", "")
     assert saved["slides"] == expected_slides
-    assert not {"saved_file_id", "file_storage_status", "file_storage_message"} & saved.keys()
+    if mode == "script":
+        assert "saved_file_id" not in saved and "file_storage_status" not in saved
+    else:
+        assert saved["saved_file_id"] > 0
+        assert saved["file_storage_status"] == "saved"
+        assert saved["file_name"] == "synthetic.pdf"
 
 
 def test_saved_feedback_list_requires_an_active_session(client, connection):
@@ -529,6 +565,102 @@ def test_unparsed_model_text_is_returned_as_raw_output(monkeypatch):
         response = analyze(client)
     assert response.status_code == 200
     assert response.json()["raw_result"] == text
+
+
+def test_file_upload_is_linked_to_feedback_and_only_owner_can_download(
+    client, connection, stored_files, monkeypatch
+):
+    user = login(client)
+    body = b"complete synthetic presentation bytes"
+    analyzed = []
+
+    def analyze_material(**kwargs):
+        analyzed.append(kwargs["input_file"].read())
+        assert list(stored_files.values()) == [body]
+        return copy.deepcopy(RESULT)
+
+    monkeypatch.setattr(upload, "generate_material_feedback", analyze_material)
+    original = client.post(
+        "/upload/?title=S3 flow&perpose=Testing",
+        files={"file": ("deck.pdf", body, "application/pdf")},
+    ).json()
+    saved = client.get(f"/feedback/{original['result_id']}").json()
+    assert analyzed == [body]
+    assert saved["file_storage_status"] == "saved"
+    assert saved["file_size"] == len(body)
+    assert saved["file_name"] == "deck.pdf"
+    assert saved["file_content_type"] == "application/pdf"
+    assert "s3_key" not in saved
+    file_id = saved["saved_file_id"]
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT input_file_id, user_id, feedback_result FROM slides_feedback_result WHERE slides_result_id=%s", (original["result_id"],))
+        row = cursor.fetchone()
+    assert row["input_file_id"] == file_id and row["user_id"] == user["user_id"]
+    assert json.loads(row["feedback_result"]) == RESULT
+    downloaded = client.get(f"/files/{file_id}/download")
+    assert downloaded.status_code == 200
+    assert downloaded.headers["cache-control"] == "no-store"
+    assert downloaded.json()["expires_in"] == 300
+    client.post("/auth/logout")
+    assert client.get(f"/files/{file_id}/download").status_code == 401
+    login(client, "other-file-owner@example.com")
+    assert client.get(f"/files/{file_id}/download?user_id={user['user_id']}").status_code == 404
+    assert client.get(f"/feedback/{original['result_id']}").status_code == 404
+
+
+def test_s3_failure_keeps_feedback_and_persists_file_failure(client, connection, monkeypatch):
+    from botocore.exceptions import ClientError
+
+    login(client)
+
+    def denied():
+        raise ClientError({"Error": {"Code": "AccessDenied", "Message": "private AWS detail"}}, "PutObject")
+
+    monkeypatch.setattr(file_storage, "get_s3_client", denied)
+    response = client.post(
+        "/upload/?title=Storage unavailable&perpose=Testing",
+        files={"file": ("deck.pdf", b"synthetic", "application/pdf")},
+    )
+    saved = client.get(f"/feedback/{response.json()['result_id']}").json()
+    assert saved["status"] == "completed" and saved["score"] == RESULT["score"]
+    assert saved["file_storage_status"] == "failed"
+    assert "원본" in saved["file_storage_message"]
+    assert "private AWS detail" not in str(saved)
+    assert "saved_file_id" not in saved
+    assert count(connection, "input_files") == 0
+
+
+def test_guest_file_and_mock_file_are_not_uploaded(client, connection, stored_files, monkeypatch):
+    file = {"file": ("guest.pdf", b"synthetic", "application/pdf")}
+    guest = client.post("/upload/?title=Guest&perpose=Testing", files=file)
+    assert guest.status_code == 200 and guest.json()["storage_status"] == "guest"
+    login(client)
+    monkeypatch.setattr(mock_common.time, "sleep", lambda seconds: None)
+    mock = client.post("/mock/upload/?title=Mock&perpose=Testing", files=file)
+    assert mock.status_code == 200
+    assert not stored_files
+    assert count(connection, "input_files") == count(connection, "slides_feedback_result") == 0
+
+
+@pytest.mark.parametrize("filename,body,status", [
+    ("empty.pdf", b"", 400), ("bad.exe", b"data", 400), ("large.pdf", b"12345", 413),
+])
+def test_invalid_files_are_rejected_before_analysis_or_storage(
+    client, connection, stored_files, monkeypatch, filename, body, status
+):
+    login(client)
+    monkeypatch.setattr(file_storage, "MAX_FILE_BYTES", 4)
+
+    def forbidden(**kwargs):
+        raise AssertionError("invalid files must not run analysis")
+
+    monkeypatch.setattr(upload, "generate_material_feedback", forbidden)
+    response = client.post(
+        "/upload/?title=Invalid&perpose=Testing", files={"file": (filename, body)},
+    )
+    assert response.status_code == status
+    assert not stored_files
+    assert count(connection, "slides_feedback_result") == 0
 
 
 @pytest.mark.parametrize("configured", [None, "", "gemini-2.5-pro"])

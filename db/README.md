@@ -9,7 +9,7 @@ DBeaver에서 확인한 현재 DB 구조와 변경 SQL을 관리합니다.
 | `users` | 사용자 계정 |
 | `auth_sessions` | 로그인 세션 |
 | `input_files` | 원본 파일 정보 |
-| `slides_feedback_result` | 발표 정보, 분석 상태, 피드백 JSON 전체 |
+| `slides_feedback_result` | 발표 정보, 분석 상태, 피드백 JSON 전체, 원본 파일 연결·저장 상태 |
 
 `slides_feedback_result.feedback_result`는 **`JSON DEFAULT NULL`**입니다.
 분석 전·실패한 요청은 SQL `NULL`로 둘 수 있으며, 분석이 완료되면 아래 내용을
@@ -55,7 +55,8 @@ PresentAi/
         ├── 002_user_roles.sql
         ├── 003_slide_feedback_key.sql
         ├── 004_slides_feedback_result.sql
-        └── 005_feedback_result_json.sql
+        ├── 005_feedback_result_json.sql
+        └── 006_feedback_files.sql
 ```
 
 ## 파일별 역할
@@ -69,6 +70,7 @@ PresentAi/
 | [migrations/003_slide_feedback_key.sql](migrations/003_slide_feedback_key.sql) | 통합 전 슬라이드 키 변경 이력 |
 | [migrations/004_slides_feedback_result.sql](migrations/004_slides_feedback_result.sql) | 분석 작업 상태 컬럼 추가 이력 |
 | [migrations/005_feedback_result_json.sql](migrations/005_feedback_result_json.sql) | JSON 컬럼 추가와 기존 세 테이블 삭제. 아래 이관 스크립트로만 실행 |
+| [migrations/006_feedback_files.sql](migrations/006_feedback_files.sql) | 피드백에 원본 파일 ID와 저장 상태를 연결 |
 
 `schema.sql`에는 위 4개 테이블의 컬럼·키·외래키·인덱스가 포함됩니다.
 테이블 데이터와 DB 접속 계정 정보는 포함하지 않습니다.
@@ -126,6 +128,24 @@ python -m scripts.init_auth_db
 백업과 이관 검증을 마친 다음에만 삭제합니다.
 
 비회원 분석과 예시 분석은 저장하지 않습니다. 음성파일 저장도 포함하지 않습니다.
+
+## S3 원본 파일 연결
+
+`slides_feedback_result.input_file_id`는 `input_files.file_id`를 참조하는 nullable
+외래키입니다. `file_storage_status`는 원본의 `pending`·`saved`·`failed` 상태이고,
+`file_storage_message`에는 저장 실패 안내만 남깁니다. AI 피드백 JSON은 수정하지 않습니다.
+과거 기록과 대본만 분석한 기록은 파일 컬럼을 비워 둡니다.
+
+기존 DB에서는 `backend`에서 다음 명령으로 컬럼만 추가합니다.
+
+```sh
+python -m scripts.init_file_storage
+python -m scripts.init_file_storage --apply
+```
+
+저장과 다운로드 흐름은 [S3 안내](../backend/docs/s3.md)를 참고합니다.
+
+## DB 구조 내보내기
 
 DB 구조를 DBeaver에서 바꿨다면 기존 DB에 적용할 변경 SQL을 새 번호의
 `migrations/*.sql`로 남깁니다. 이후 `backend` 폴더에서 다음 명령을 실행해

@@ -47,6 +47,44 @@ test('failed jobs show the server message instead of rendering the pending respo
   await assert.rejects(createFeedback(form), /모델 사용량 한도/)
 })
 
+test('file storage metadata survives asynchronous polling and saved feedback normalization', async (t) => {
+  const stored = {
+    ...completed,
+    saved_file_id: 37,
+    file_name: '원본.pdf',
+    file_size: 1234,
+    file_content_type: 'application/pdf',
+    file_storage_status: 'saved',
+  }
+  t.mock.method(globalThis, 'fetch', async (url, options) =>
+    Response.json(options.method === 'POST' ? { result_id: 42, status: 'pending' } : stored),
+  )
+  const result = await createFeedback(form, { pollIntervalMs: 0 })
+  assert.equal(result.saved_file_id, 37)
+  assert.equal(result.file_storage_status, 'saved')
+  assert.equal(result.file_name, stored.file_name)
+  assert.equal(result.file_size, 1234)
+})
+
+test('failed original storage still returns completed feedback with an accurate warning', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url, options) =>
+    Response.json(
+      options.method === 'POST'
+        ? { result_id: 42, status: 'pending' }
+        : {
+            ...completed,
+            file_storage_status: 'failed',
+            file_storage_message: '원본 저장 실패',
+          },
+    ),
+  )
+  const result = await createFeedback(form)
+  assert.equal(result.score, completed.score)
+  assert.equal(result.saved_file_id, undefined)
+  assert.equal(result.file_storage_status, 'failed')
+  assert.equal(result.file_storage_message, '원본 저장 실패')
+})
+
 test('polling respects expired sessions without resubmitting analysis', async (t) => {
   let posts = 0
   t.mock.method(globalThis, 'fetch', async (url, options) => {

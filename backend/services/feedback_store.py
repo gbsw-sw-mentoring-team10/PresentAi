@@ -9,18 +9,36 @@ from schemas.feedback import FeedbackPayload
 VALID_STATUS = {"pending", "processing", "completed", "failed"}
 
 
-def create_pending_feedback(connection: Connection, user_id: int, title: str) -> int:
+def create_pending_feedback(
+    connection: Connection, user_id: int, title: str, *, has_file: bool = False
+) -> int:
     # 분석을 시작하기 전에 요청 한 건을 pending 상태로 먼저 기록한다.
     try:
         with connection.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO slides_feedback_result (user_id, title, status) "
-                "VALUES (%s, %s, 'pending')",
-                (user_id, title),
+                "INSERT INTO slides_feedback_result "
+                "(user_id, title, status, file_storage_status) "
+                "VALUES (%s, %s, 'pending', %s)",
+                (user_id, title, "pending" if has_file else None),
             )
             result_id = cursor.lastrowid
         connection.commit()
         return result_id
+    except Exception:
+        connection.rollback()
+        raise
+
+
+def set_file_storage_failure(connection: Connection, result_id: int, message: str) -> None:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE slides_feedback_result "
+                "SET file_storage_status='failed', file_storage_message=%s "
+                "WHERE slides_result_id=%s AND input_file_id IS NULL",
+                (message, result_id),
+            )
+        connection.commit()
     except Exception:
         connection.rollback()
         raise
@@ -109,18 +127,39 @@ def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT slides_result_id, title, created_at, status, error_message,
-                   feedback_result
-            FROM slides_feedback_result
-            WHERE slides_result_id = %s AND user_id = %s
+            SELECT r.slides_result_id, r.title, r.created_at, r.status, r.error_message,
+                   r.feedback_result, r.file_storage_status, r.file_storage_message,
+                   f.file_id AS saved_file_id, f.file_name, f.file_size,
+                   f.content_type AS file_content_type
+            FROM slides_feedback_result AS r
+            LEFT JOIN input_files AS f
+                ON f.file_id = r.input_file_id AND f.user_id = r.user_id
+            WHERE r.slides_result_id = %s AND r.user_id = %s
             """,
             (result_id, user_id),
         )
         row = cursor.fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="저장된 결과를 찾을 수 없습니다.")
+    material = {
+        key: row[key]
+        for key in (
+            "saved_file_id",
+            "file_name",
+            "file_size",
+            "file_content_type",
+            "file_storage_status",
+            "file_storage_message",
+        )
+        if row[key] is not None
+    }
+    if material.get("file_storage_status") == "saved" and not material.get("saved_file_id"):
+        material.update(
+            file_storage_status="failed",
+            file_storage_message="저장된 원본 자료를 찾을 수 없습니다.",
+        )
     if row["status"] != "completed":
-        body = {"saved_result_id": result_id, "status": row["status"]}
+        body = {"saved_result_id": result_id, "status": row["status"], **material}
         if row["status"] == "failed":
             body["error_message"] = row["error_message"]
         return body
@@ -134,6 +173,7 @@ def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
         **payload,
         "saved_result_id": row["slides_result_id"],
         "title": row["title"],
-        "created_at": row["created_at"],
+        "created_at": _with_utc_timestamp(row)["created_at"],
         "status": "completed",
+        **material,
     }

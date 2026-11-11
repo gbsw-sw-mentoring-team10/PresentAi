@@ -86,5 +86,10 @@ export async function loadSavedFeedback(id, { signal } = {}) {
   if (['pending', 'processing', 'failed'].includes(data.status)) return data
   if (data.status !== 'completed')
     throw new FeedbackApiError('저장된 피드백의 상태를 확인할 수 없어요.')
-  return { ...historyItem(data), status: data.status, result: normalizeFeedback(data) }
+  return {
+    ...historyItem(data),
+    status: data.status,
+    fileName: typeof data.file_name === 'string' ? data.file_name : undefined,
+    result: normalizeFeedback(data),
+  }
 }

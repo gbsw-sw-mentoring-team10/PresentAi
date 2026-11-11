@@ -74,7 +74,24 @@ export function normalizeFeedback(data) {
   if (Array.isArray(data.slides)) result.slides = normalizeSlides(data.slides)
   if (Number.isInteger(data.saved_result_id) && data.saved_result_id > 0)
     result.saved_result_id = data.saved_result_id
+  Object.assign(result, feedbackFileMetadata(data))
   return result
+}
+
+export function feedbackFileMetadata(data) {
+  const metadata = {}
+  if (Number.isSafeInteger(data?.saved_file_id) && data.saved_file_id > 0)
+    metadata.saved_file_id = data.saved_file_id
+  for (const key of [
+    'file_name',
+    'file_content_type',
+    'file_storage_status',
+    'file_storage_message',
+  ])
+    if (typeof data?.[key] === 'string') metadata[key] = data[key]
+  if (Number.isSafeInteger(data?.file_size) && data.file_size >= 0)
+    metadata.file_size = data.file_size
+  return metadata
 }
 
 export function getPresentationTitle(form) {
@@ -201,11 +218,6 @@ export async function createFeedback(form, { signal, mock = false, pollIntervalM
     result.saved_result_id = data.saved_result_id
   if (typeof data?.storage_status === 'string') result.storage_status = data.storage_status
   if (typeof data?.storage_message === 'string') result.storage_message = data.storage_message
-  if (Number.isInteger(data?.saved_file_id) && data.saved_file_id > 0)
-    result.saved_file_id = data.saved_file_id
-  if (typeof data?.file_storage_status === 'string')
-    result.file_storage_status = data.file_storage_status
-  if (typeof data?.file_storage_message === 'string')
-    result.file_storage_message = data.file_storage_message
+  Object.assign(result, feedbackFileMetadata(data))
   return result
 }

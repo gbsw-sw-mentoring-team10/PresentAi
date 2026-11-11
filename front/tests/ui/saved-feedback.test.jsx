@@ -32,11 +32,11 @@ const detail = {
   ],
 }
 
-function server() {
+function server(value = detail) {
   const fetch = vi.fn(async (input) => {
     const url = new URL(input, 'http://localhost')
     if (url.pathname.endsWith('/auth/me')) return Response.json(account)
-    if (url.pathname.endsWith('/feedback/321')) return Response.json(detail)
+    if (url.pathname.endsWith('/feedback/321')) return Response.json(value)
     if (url.pathname.endsWith('/feedback'))
       return Response.json({ items: [saved], total: 1, page: 1, page_size: 100 })
     return Response.json({ detail: '없는 요청' }, { status: 404 })
@@ -67,6 +67,23 @@ test('logged-in history reads the saved list and JSON detail through the real AP
   expect(fetch.mock.calls.some(([url]) => url.endsWith('/feedback/321'))).toBe(true)
   for (const [url, options] of fetch.mock.calls.filter(([url]) => url.includes('/feedback')))
     expect(options.credentials, url).toBe('include')
+})
+
+test('saved S3 originals expose a download button and the actual file name in history', async () => {
+  server({
+    ...detail,
+    saved_file_id: 37,
+    file_name: '저장한 발표.pdf',
+    file_storage_status: 'saved',
+  })
+  window.history.replaceState(null, '', '/#/history/321')
+  const events = userEvent.setup()
+  render(<App />)
+  expect(await screen.findByRole('button', { name: '원본 자료 받기' })).toBeTruthy()
+  expect(screen.getByText('저장한 발표.pdf')).toBeTruthy()
+  await events.click(screen.getByRole('tab', { name: '슬라이드별 피드백' }))
+  expect(screen.queryByText(/원본 슬라이드가 저장되지 않아/)).toBeNull()
+  expect(screen.getByText(/원본은 위의/)).toBeTruthy()
 })
 
 test('my page uses saved feedback counts and average instead of sample records', async () => {

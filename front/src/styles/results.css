@@ -11,12 +11,35 @@
 .result-topline .stepper {
   margin: 0;
 }
-.results-page > .page-heading > .button {
+.results-page > .page-heading > .button,
+.results-page > .page-heading .result-download-actions .button {
   font-size: 11px;
   min-height: 42px;
   gap: 12px;
   padding: 10px 15px;
   margin-bottom: 5px;
+}
+.result-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.original-download p {
+  max-width: 260px;
+  font-size: 12px;
+  color: #a23c2b;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .results-page > .page-heading {
+    flex-wrap: wrap;
+  }
+  .result-download-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 .example-banner {
   display: flex;

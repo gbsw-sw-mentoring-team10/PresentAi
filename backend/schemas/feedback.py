@@ -53,14 +53,23 @@ class FeedbackList(BaseModel):
     page_size: int = Field(ge=1, le=100)
 
 
-class SavedFeedback(FeedbackPayload):
+class FeedbackFileStorage(BaseModel):
+    saved_file_id: int | None = Field(default=None, gt=0)
+    file_name: str | None = None
+    file_size: int | None = Field(default=None, ge=0)
+    file_content_type: str | None = None
+    file_storage_status: Literal["pending", "saved", "failed"] | None = None
+    file_storage_message: str | None = None
+
+
+class SavedFeedback(FeedbackPayload, FeedbackFileStorage):
     saved_result_id: int = Field(gt=0)
     title: str
     created_at: datetime
     status: Literal["completed"]
 
 
-class FeedbackJobStatus(BaseModel):
+class FeedbackJobStatus(FeedbackFileStorage):
     saved_result_id: int = Field(gt=0)
     status: Literal["pending", "processing", "failed"]
     error_message: str | None = None
