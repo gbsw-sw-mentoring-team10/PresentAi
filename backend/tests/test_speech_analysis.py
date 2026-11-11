@@ -107,18 +107,90 @@ def test_long_audio_is_recognized_in_parallel_pieces(fake_audio, monkeypatch):
     assert result["text"] == "하나 둘"
 
 
-def test_endpoint_returns_the_analysis(monkeypatch):
-    monkeypatch.setattr(speech, "analyze_speech", lambda path: {"text": "안녕", "pronunciation": {"scores": {}}})
+def use_analyzers(monkeypatch, **analyzers):
+    monkeypatch.setattr(speech, "ANALYZERS", analyzers)
+
+
+def test_endpoint_defaults_to_the_accurate_analysis(monkeypatch):
+    use_analyzers(
+        monkeypatch,
+        accurate=lambda path: {"text": "정확", "pronunciation": {"scores": {}}},
+        fast=lambda path: {"text": "빠름", "pronunciation": {"scores": {}}},
+    )
+    client = TestClient(app)
+    files = {"file": ("a.wav", b"x", "audio/wav")}
+    assert client.post("/speech/", files=files).json()["text"] == "정확"
+    assert client.post("/speech/", data={"mode": "fast"}, files=files).json()["text"] == "빠름"
+
+
+def test_endpoint_rejects_an_unknown_mode(monkeypatch):
+    use_analyzers(monkeypatch, accurate=lambda path: {}, fast=lambda path: {})
+    client = TestClient(app)
+    response = client.post("/speech/", data={"mode": "turbo"}, files={"file": ("a.wav", b"x", "audio/wav")})
+    assert response.status_code == 400
+
+
+def test_accurate_mode_reports_a_server_without_whisper(monkeypatch):
+    def missing(path):
+        raise ModuleNotFoundError("faster_whisper")
+
+    use_analyzers(monkeypatch, accurate=missing, fast=lambda path: {})
     client = TestClient(app)
     response = client.post("/speech/", files={"file": ("a.wav", b"x", "audio/wav")})
-    assert response.status_code == 200 and response.json()["text"] == "안녕"
+    assert response.status_code == 503 and "빠른 분석" in response.json()["detail"]
 
 
 def test_endpoint_reports_azure_failures_as_bad_gateway(monkeypatch):
     def fail(path):
         raise RuntimeError("Azure 음성 서비스 오류: boom")
 
-    monkeypatch.setattr(speech, "analyze_speech", fail)
+    use_analyzers(monkeypatch, accurate=fail, fast=fail)
     client = TestClient(app)
     response = client.post("/speech/", files={"file": ("a.wav", b"x", "audio/wav")})
     assert response.status_code == 502 and "Azure" in response.json()["detail"]
+
+
+def test_accurate_analysis_scores_the_whisper_text_and_hides_completeness(monkeypatch):
+    import sys
+    import types
+
+    whisper = types.SimpleNamespace(
+        transcribe_audio=lambda path: {
+            "text": " 안녕하세요 발표입니다",
+            "chunks": [{"timestamp": [0.0, 2.0], "text": " 안녕하세요"}, {"timestamp": [2.0, 4.0], "text": " 발표입니다"}],
+        }
+    )
+    monkeypatch.setitem(sys.modules, "services.stt_whisper", whisper)
+    monkeypatch.setattr(
+        sa, "detect_pauses",
+        lambda path, min_pause=0.5: {"duration": 4.0, "noise_floor_db": -50, "threshold_db": -42, "pauses": []},
+    )
+    seen = {}
+
+    def assess(path, reference_text, language, chunks=None):
+        seen.update(reference=reference_text, chunks=chunks)
+        return {"mode": "script", "recognized_text": reference_text,
+                "scores": {"accuracy": 90.0, "completeness": 100.0, "pronunciation": 88.0}, "segments": [], "words": []}
+
+    monkeypatch.setattr(sa, "assess_pronunciation", assess)
+    result = sa.analyze_speech_accurate("a.wav")
+    assert result["text"] == "안녕하세요 발표입니다"
+    assert seen["reference"] == "안녕하세요 발표입니다"
+    assert seen["chunks"][0] == {"start": 0.0, "end": 2.0, "text": " 안녕하세요"}
+    assert result["pronunciation"]["scores"]["completeness"] is None
+    assert result["chunks"][0]["timestamp"] == [0.0, 2.0]
+    assert result["speech_rate"] > 0
+
+
+def test_accurate_analysis_of_silence_skips_azure(monkeypatch):
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "services.stt_whisper", types.SimpleNamespace(transcribe_audio=lambda path: {"text": " ", "chunks": []}))
+    monkeypatch.setattr(
+        sa, "detect_pauses",
+        lambda path, min_pause=0.5: {"duration": 4.0, "noise_floor_db": -50, "threshold_db": -42, "pauses": []},
+    )
+    monkeypatch.setattr(sa, "assess_pronunciation", lambda *args, **kwargs: pytest.fail("Azure를 부르면 안 된다"))
+    result = sa.analyze_speech_accurate("a.wav")
+    assert result["text"] == "" and result["speech_rate"] == 0.0

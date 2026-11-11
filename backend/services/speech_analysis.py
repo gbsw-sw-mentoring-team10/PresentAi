@@ -4,6 +4,7 @@ import wave
 from services.pronunciation_assess import (
     MIN_GROUP_SECONDS,
     PARALLEL_WORKERS,
+    assess_pronunciation,
     build_result,
     recognize_in_parallel,
     recognize_segments,
@@ -36,7 +37,21 @@ def plan_cuts(total: float, pauses: list[dict], workers: int = PARALLEL_WORKERS,
     return cuts
 
 
-# 기준 문장 없이 Azure가 음성을 직접 인식하고 발음까지 평가한다 (구간별 동시 호출)
+# 인식 텍스트·쉼·발음 결과를 /speech/ 응답 형식으로 묶는다 (두 분석 방식이 같은 형식을 쓴다)
+def build_response(text: str, chunks: list[dict], silence: dict, pronunciation: dict) -> dict:
+    speaking_time = silence["duration"] - sum(p["duration"] for p in silence["pauses"])
+    speech_rate = get_speech_rate(text, silence) if text and speaking_time > 0 else 0.0
+    return {
+        "text": text,
+        "chunks": chunks,
+        "silence": silence,
+        "speech_rate": speech_rate,
+        "speech_rate_score": get_speech_rate_score(speech_rate),
+        "pronunciation": pronunciation,
+    }
+
+
+# 빠른 분석: 기준 문장 없이 Azure가 음성을 직접 인식하고 발음까지 평가한다 (구간별 동시 호출)
 # 응답: text, chunks, silence, speech_rate, speech_rate_score, pronunciation(/pronunciation/ 응답과 같은 형식)
 def analyze_speech(audio_path: str, language: str = "ko-KR") -> dict:
     silence_info = detect_pauses(audio_path, min_pause=CUT_MIN_PAUSE)
@@ -58,17 +73,27 @@ def analyze_speech(audio_path: str, language: str = "ko-KR") -> dict:
         os.remove(wav_path)
 
     pronunciation = build_result(segments, "")
-    text = pronunciation["recognized_text"].strip()
-    speaking_time = silence["duration"] - sum(p["duration"] for p in silence["pauses"])
-    speech_rate = get_speech_rate(text, silence) if text and speaking_time > 0 else 0.0
-    return {
-        "text": text,
-        "chunks": [
-            {"timestamp": [seg["start"], seg["end"]], "text": seg["text"]}
-            for seg in pronunciation["segments"]
-        ],
-        "silence": silence,
-        "speech_rate": speech_rate,
-        "speech_rate_score": get_speech_rate_score(speech_rate),
-        "pronunciation": pronunciation,
-    }
+    chunks = [
+        {"timestamp": [seg["start"], seg["end"]], "text": seg["text"]}
+        for seg in pronunciation["segments"]
+    ]
+    return build_response(pronunciation["recognized_text"].strip(), chunks, silence, pronunciation)
+
+
+# 정확한 분석: Whisper가 말한 내용을 받아 적고, 그 텍스트를 기준으로 Azure가 발음을 평가한다
+# Whisper 텍스트가 곧 기준 문장이라 완성도 점수는 의미가 없어 비워 둔다
+def analyze_speech_accurate(audio_path: str, language: str = "ko-KR") -> dict:
+    from services.stt_whisper import transcribe_audio  # 무거운 의존성은 이 방식을 쓸 때만 불러온다
+
+    stt = transcribe_audio(audio_path)
+    text = stt["text"].strip()
+    silence = detect_pauses(audio_path, min_pause=REPORT_MIN_PAUSE)
+    if text:
+        chunks = [
+            {"start": c["timestamp"][0], "end": c["timestamp"][1], "text": c["text"]} for c in stt["chunks"]
+        ]
+        pronunciation = assess_pronunciation(audio_path, text, language, chunks=chunks)
+        pronunciation["scores"]["completeness"] = None
+    else:
+        pronunciation = build_result([], "")
+    return build_response(text, stt["chunks"], silence, pronunciation)

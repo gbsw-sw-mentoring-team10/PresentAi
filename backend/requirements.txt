@@ -6,6 +6,7 @@ python-multipart
 azure-cognitiveservices-speech
 av<17
 numpy
+faster-whisper
 PyMySQL[rsa]>=1.1,<2
 pwdlib[argon2]>=0.3,<1
 email-validator>=2,<3
