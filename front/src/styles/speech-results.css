@@ -1,0 +1,265 @@
+/* Speech feedback: transcript first, pronunciation fills in later. */
+.speech-results {
+  display: grid;
+  gap: 20px;
+}
+.speech-panel {
+  padding: 28px;
+  background: #fff;
+  border: 1px solid var(--line, #e7e7de);
+  border-radius: 22px;
+}
+.speech-panel h2 {
+  margin: 10px 0 16px;
+  font-size: 22px;
+}
+.speech-panel .muted {
+  color: #85857a;
+  font-size: 14px;
+}
+.transcript-text {
+  margin: 0;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.transcript-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.transcript-list li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+}
+.transcript-list time {
+  color: #85857a;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding-top: 4px;
+}
+.transcript-list p {
+  margin: 0;
+  line-height: 1.7;
+}
+.speech-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.speech-metrics > div {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  background: #fafaf4;
+  border-radius: 14px;
+}
+.speech-metrics small,
+.speech-metrics span {
+  color: #85857a;
+  font-size: 12px;
+}
+.speech-metrics strong {
+  font-size: 22px;
+}
+.pause-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: #55554b;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.pron-scores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+.pron-score {
+  display: grid;
+  gap: 2px;
+  padding: 16px;
+  text-align: center;
+  background: #fafaf4;
+  border-radius: 14px;
+}
+.pron-score small {
+  color: #85857a;
+  font-size: 12px;
+}
+.pron-score strong {
+  font-size: 30px;
+}
+.pron-score.good strong {
+  color: #3f7a3f;
+}
+.pron-score.fair strong {
+  color: #8a6d00;
+}
+.pron-score.low strong {
+  color: #a33a2a;
+}
+.pron-subtitle {
+  margin: 22px 0 10px;
+  font-size: 15px;
+}
+.pron-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pron-words li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fbeeeb;
+  border-radius: 999px;
+  font-size: 14px;
+}
+.pron-words span,
+.pron-words small {
+  color: #a33a2a;
+  font-size: 12px;
+}
+.pron-waiting {
+  display: grid;
+  gap: 14px;
+}
+.pron-waiting p {
+  margin: 0;
+  color: #85857a;
+  font-size: 14px;
+}
+.speech-skeleton {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.speech-skeleton i {
+  height: 78px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f1e8 25%, #fafaf4 50%, #f1f1e8 75%);
+  background-size: 200% 100%;
+  animation: speech-shimmer 1.4s infinite linear;
+}
+@keyframes speech-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speech-skeleton i {
+    animation: none;
+  }
+}
+@media (max-width: 640px) {
+  .speech-panel {
+    padding: 20px;
+  }
+  .speech-skeleton {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Word-level pronunciation colors inside the transcript */
+.transcript-list .word {
+  padding: 1px 3px;
+  border-radius: 0;
+}
+.lv-good {
+  background: #dff1dc;
+  color: #24591f;
+}
+.lv-fair {
+  background: #fdf1c4;
+  color: #6b5400;
+}
+.lv-weak {
+  background: #fddcc0;
+  color: #7a3a05;
+}
+.lv-poor {
+  background: #f8cfc9;
+  color: #8f2a1c;
+}
+.pause-chip {
+  display: inline-block;
+  margin: 0 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: #6b6b60;
+  background: #ececdf;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+.pause-chip.long {
+  color: #fff;
+  background: #85857a;
+}
+.transcript-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #efefe6;
+  font-size: 12px;
+}
+.legend-item {
+  padding: 3px 10px;
+  border-radius: 0;
+}
+.legend-item.pause-chip {
+  border-radius: 999px;
+}
+.pron-hint {
+  margin: 14px 0 0;
+}
+.script-details summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.script-details .transcript-text {
+  margin-top: 14px;
+}
+
+.transcript-list .pause-row {
+  display: block;
+  margin: -2px 0;
+  padding-left: 64px;
+}
+.pause-row .pause-chip {
+  margin: 0;
+}
+
+/* Custom hover/focus tooltip: native title tooltips don't show in every embedded browser. */
+.transcript-list .word[data-tip] {
+  position: relative;
+  cursor: help;
+}
+.transcript-list .word[data-tip]:hover::after,
+.transcript-list .word[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 5;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: #1a1a17;
+  border-radius: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

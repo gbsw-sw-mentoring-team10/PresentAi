@@ -29,7 +29,7 @@ export default function FeedbackFormGuide({ speech, onFillExample }) {
         <div className="side-checks">
           <strong>확인하게 될 내용</strong>
           {(speech
-            ? ['대본과 음성 비교', '발음·전달 피드백', '다음 연습을 위한 제안']
+            ? ['말한 내용의 텍스트 변환', '말하기 속도와 쉬는 구간', '발음 정확도·유창성 평가']
             : [
                 '발표 목적에 따른 종합 피드백',
                 '100점 기준의 발표 점수',

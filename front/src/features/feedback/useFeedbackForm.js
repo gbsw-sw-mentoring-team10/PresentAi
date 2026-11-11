@@ -97,6 +97,10 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
       purposeRef.current.focus()
       return
     }
+    if (speech && !form.audio) {
+      setFieldError('audio', '분석할 리허설 음성을 선택해 주세요.')
+      return
+    }
     const example = isExampleForm(form, mode)
     // 사용자 자료라면 예시 파일은 첨부되지 않은 것으로 봅니다.
     const sampleField = example ? null : speech ? 'audio' : 'file'

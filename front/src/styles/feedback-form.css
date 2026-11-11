@@ -476,3 +476,65 @@
 .side-bottom button > span {
   margin-left: 10px;
 }
+
+/* In-browser recording */
+.audio-recorder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.recorder-or {
+  color: #85857a;
+  font-size: 13px;
+}
+.rec-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink, #1a1a17);
+  background: #fff;
+  border: 1px solid #d8d8cc;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rec-button:hover {
+  background: #fffef6;
+  border-color: var(--ink, #1a1a17);
+}
+.rec-button.stop {
+  color: #fff;
+  background: #c0392b;
+  border-color: #c0392b;
+}
+.audio-recorder.recording {
+  padding: 14px 16px;
+  background: #fbeeeb;
+  border-radius: 14px;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background: #c0392b;
+  border-radius: 50%;
+  animation: rec-pulse 1.2s infinite ease-in-out;
+}
+.recorder-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+@keyframes rec-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot {
+    animation: none;
+  }
+}

@@ -5,6 +5,7 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import useAnalysisProgress from '../features/analysis/useAnalysisProgress.js'
+import useAudioDuration from '../features/analysis/useAudioDuration.js'
 
 const WAIT_MESSAGES = [
   '분석 서버의 응답을 기다리고 있어요. 잠시만 기다려 주세요.',
@@ -18,31 +19,62 @@ const WAIT_MESSAGES = [
 
 const REQUEST_STEPS = { success: 3, loading: 1 }
 
-export default function AnalysisPage({ form, mode, navigate, request, onRetry }) {
+// 음성 변환은 원본 길이의 약 1/3이 걸려서, 그 시간에 맞춰 막대가 천천히 차오르게 합니다.
+const SPEECH_TIME_RATIO = 0.35
+const SPEECH_BASE_SECONDS = 4
+const UNKNOWN_SPEECH_SECONDS = 30
+
+export default function AnalysisPage({
+  form,
+  mode,
+  navigate,
+  request: feedbackRequest,
+  speechRequest,
+  onRetry,
+}) {
   const speech = mode === 'speech'
-  const empty = speech ? !form.audio && !form.script.trim() : !form.file && !form.script.trim()
-  const waiting = !speech && request.status === 'loading'
-  const { previewStep, readFailed, elapsed, retryPreview } = useAnalysisProgress({
-    speech,
+  // 음성은 텍스트 변환이 끝나면 바로 결과로 넘어가고, 발음 평가는 결과 화면에서 이어집니다.
+  const request = speech
+    ? {
+        status:
+          { transcribing: 'loading', idle: 'idle', error: 'error' }[speechRequest.status] ||
+          'success',
+        error: speechRequest.error,
+        submission: speechRequest,
+        mock: speechRequest.mock,
+      }
+    : feedbackRequest
+  const empty = speech ? !form.audio : !form.file && !form.script.trim()
+  const waiting = request.status === 'loading'
+  const { elapsed } = useAnalysisProgress({
+    speech: false,
     audio: form.audio,
     waiting,
     submission: request.submission,
     enabled: !empty,
   })
-  const step = speech ? previewStep : REQUEST_STEPS[request.status] || 0
-  const failed = speech ? readFailed : request.status === 'error'
-  const percent = step === 3 ? 100 : waiting ? 7 + 85 * (1 - Math.exp(-elapsed / 8)) : step * 33 + 7
+  const step = REQUEST_STEPS[request.status] || 0
+  const failed = request.status === 'error'
+  const audioSeconds = useAudioDuration(speech ? form.audio : null)
+  const expectedSeconds =
+    audioSeconds == null
+      ? UNKNOWN_SPEECH_SECONDS
+      : SPEECH_BASE_SECONDS + audioSeconds * SPEECH_TIME_RATIO
+  // 예상 시간쯤에 약 90%가 되고, 그 뒤로는 멈추지 않고 아주 천천히 100%에 다가갑니다.
+  const rise = speech ? expectedSeconds / 2.3 : 8
+  const percent =
+    step === 3 ? 100 : waiting ? 7 + 88 * (1 - Math.exp(-elapsed / rise)) : step * 33 + 7
   const messageIndex = Math.floor(elapsed / 3.5) % WAIT_MESSAGES.length
   const waitMessage = WAIT_MESSAGES[messageIndex]
   const labels = speech
-    ? ['음성 자료 확인', '대본·음성 비교 화면 준비', '예시 피드백 구성']
+    ? ['음성 전송 준비', '음성을 텍스트로 변환', '변환 완료']
     : ['분석 요청 준비', '자료 전송 및 서버 분석', '피드백 수신 완료']
   if (empty) return <MissingMaterials speech={speech} navigate={navigate} />
   if (failed)
     return (
       <AnalysisError
-        message={speech ? '파일을 읽지 못했어요. 파일을 다시 선택해 주세요.' : request.error}
-        onRetry={speech ? retryPreview : onRetry}
+        message={request.error}
+        onRetry={onRetry}
         onBack={() => navigate(speech ? '/speech' : '/materials')}
       />
     )
@@ -60,9 +92,11 @@ export default function AnalysisPage({ form, mode, navigate, request, onRetry })
       <h1>{step === 3 ? '피드백을 만날 준비가 됐어요.' : '더 나은 발표를 위한 준비 중.'}</h1>
       <p key={step === 3 ? 'done' : messageIndex} className="fade-text">
         {step === 3
-          ? '어디부터 다듬으면 좋을지, 함께 확인해 보세요.'
+          ? speech
+            ? '인식된 내용부터 보여 드릴게요. 발음 평가는 이어서 채워져요.'
+            : '어디부터 다듬으면 좋을지, 함께 확인해 보세요.'
           : speech
-            ? '잠시만 기다려 주세요. 예시 분석 과정을 체험하고 있어요.'
+            ? '음성을 텍스트로 바꾸고 있어요. 길이에 따라 1분 가까이 걸릴 수 있어요.'
             : waitMessage}
       </p>
       <AnalysisProgressCard

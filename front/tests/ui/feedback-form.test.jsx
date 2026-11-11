@@ -196,12 +196,12 @@ test('the sample PDF does not count as a file for edited data without a script',
 
 test('speech mode warns about the sample audio before continuing to the preview', async () => {
   const { user, onStart } = await openExampleForm('speech')
-  await user.click(screen.getByRole('button', { name: '피드백 미리보기' }))
+  await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(onStart).toHaveBeenCalledOnce()
 
   await user.type(screen.getByRole('textbox', { name: /발표 제목/ }), ' 2차')
-  await user.click(screen.getByRole('button', { name: '피드백 미리보기' }))
+  await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   const dialog = screen.getByRole('dialog', { name: '예시 음성 안내' })
   expect(dialog.textContent).toContain('리허설_1차.m4a')
   await user.click(within(dialog).getByRole('button', { name: '그대로 진행' }))
@@ -212,12 +212,12 @@ test('speech mode warns about the sample audio before continuing to the preview'
 test('speech mode asks for real audio or a script when only the sample audio remains', async () => {
   const { user, onStart } = await openExampleForm('speech')
   await user.clear(screen.getByRole('textbox', { name: '발표 대본' }))
-  await user.click(screen.getByRole('button', { name: '피드백 미리보기' }))
+  await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(screen.getByRole('alert').textContent).toContain('예시 음성은 실제 파일이 아니라')
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '대본')
   expect(screen.queryByRole('alert')).toBeNull()
-  await user.click(screen.getByRole('button', { name: '피드백 미리보기' }))
+  await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   expect(screen.getByRole('dialog', { name: '예시 음성 안내' })).toBeTruthy()
   expect(onStart).not.toHaveBeenCalled()
 })

@@ -5,6 +5,7 @@ import AppFooter from './components/layout/AppFooter.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import Button from './components/ui/Button.jsx'
 import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
+import useSpeechRequest from './features/speech/useSpeechRequest.js'
 import {
   hasLeftFormFlow,
   prepareSubmission,
@@ -20,7 +21,7 @@ import './styles/slide-workspace.css'
 
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage.jsx'))
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage.jsx'))
-const ExampleResultsPage = lazy(() => import('./pages/ExampleResultsPage.jsx'))
+const SpeechResultsPage = lazy(() => import('./pages/SpeechResultsPage.jsx'))
 const FeedbackResultsPage = lazy(() => import('./pages/FeedbackResultsPage.jsx'))
 const HistoryPage = lazy(() => import('./pages/HistoryPage.jsx'))
 const HistoryDetailPage = lazy(() => import('./pages/HistoryDetailPage.jsx'))
@@ -39,6 +40,12 @@ export default function App() {
   const [afterLogin, setAfterLogin] = useState(null)
   const account = useAuth()
   const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
+  const {
+    speech: speechRequest,
+    run: runSpeech,
+    cancel: cancelSpeech,
+    retryPronunciation,
+  } = useSpeechRequest()
   const [formRoute, setFormRoute] = useState(route)
   const [leftFlow, setLeftFlow] = useState(false)
 
@@ -51,7 +58,8 @@ export default function App() {
 
   useEffect(() => {
     if (route !== '/analysis') cancelFeedback()
-  }, [route, cancelFeedback])
+    if (route !== '/analysis' && route !== '/speech-results') cancelSpeech()
+  }, [route, cancelFeedback, cancelSpeech])
 
   const closeAuth = useCallback(() => {
     setAuth(false)
@@ -64,9 +72,10 @@ export default function App() {
   const navigate = useCallback(
     (path) => {
       if (path !== '/analysis') cancelFeedback()
+      if (path !== '/analysis' && path !== '/speech-results') cancelSpeech()
       changeRoute(path)
     },
-    [changeRoute, cancelFeedback],
+    [changeRoute, cancelFeedback, cancelSpeech],
   )
 
   function start(nextMode) {
@@ -75,7 +84,8 @@ export default function App() {
     if (submitted !== form) setForm(submitted)
     setMode(nextMode)
     setResultKind(nextMode === 'speech' ? null : 'api')
-    if (nextMode !== 'speech') runFeedback(submitted)
+    if (nextMode === 'speech') runSpeech(submitted)
+    else runFeedback(submitted)
     navigate('/analysis')
   }
 
@@ -101,6 +111,7 @@ export default function App() {
 
   function resetSession() {
     cancelFeedback()
+    cancelSpeech()
     setResultKind(null)
     setForm(EMPTY_FORM)
     navigate('/')
@@ -160,7 +171,8 @@ export default function App() {
             mode={mode}
             navigate={navigate}
             request={request}
-            onRetry={() => runFeedback(form)}
+            speechRequest={speechRequest}
+            onRetry={() => (mode === 'speech' ? runSpeech(form) : runFeedback(form))}
           />
         )
       case '/results':
@@ -181,7 +193,13 @@ export default function App() {
           </div>
         )
       case '/speech-results':
-        return <ExampleResultsPage navigate={navigate} speech />
+        return (
+          <SpeechResultsPage
+            speech={speechRequest}
+            navigate={navigate}
+            onRetryPronunciation={retryPronunciation}
+          />
+        )
       case '/history':
         return renderMember(
           <HistoryPage user={account.user} navigate={navigate} onLogin={() => setAuth(true)} />,

@@ -17,7 +17,9 @@ export default function AnalysisProgressCard({
           <b>{(speech ? form.audio : form.file)?.name || '직접 입력한 대본'}</b>
           <small>
             {speech
-              ? '음성 피드백 · 기능 미리보기'
+              ? request.mock
+                ? '예시 음성 · 서버 샘플 분석'
+                : '발표 음성 · 서버 분석'
               : request.mock
                 ? '예시 자료 · 서버 샘플 분석'
                 : '발표자료 · 서버 분석'}

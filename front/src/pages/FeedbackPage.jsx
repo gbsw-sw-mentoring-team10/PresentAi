@@ -84,20 +84,22 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
             error={errors.script}
             onError={(message) => setFieldError('script', message)}
           />
-          <AudioUpload
-            stepNumber={speech ? '03' : '04'}
-            file={form.audio}
-            error={errors.audio}
-            onFile={(file) => updateField('audio', file)}
-            onError={(message) => setFieldError('audio', message)}
-          />
+          {speech && (
+            <AudioUpload
+              stepNumber="03"
+              file={form.audio}
+              error={errors.audio}
+              onFile={(file) => updateField('audio', file)}
+              onError={(message) => setFieldError('audio', message)}
+            />
+          )}
           <SubmissionNotice speech={speech} isExample={example} />
           <div className="form-actions">
             <button type="button" className="text-button" onClick={() => navigate('/')}>
               취소
             </button>
             <Button variant="yellow" type="submit" icon="sparkle" disabled={readingScript}>
-              {speech ? '피드백 미리보기' : example ? '예시 분석 시작' : '분석 시작'}
+              {speech ? '음성 분석 시작' : example ? '예시 분석 시작' : '분석 시작'}
             </Button>
           </div>
         </form>
