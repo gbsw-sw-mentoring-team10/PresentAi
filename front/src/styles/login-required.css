@@ -1,0 +1,60 @@
+/* Login required — 로그인 팝업과 같은 시각 언어를 사용합니다. */
+.login-required-modal {
+  width: 420px;
+  text-align: center;
+}
+.login-required-symbol {
+  display: flex;
+  width: 53px;
+  height: 53px;
+  background: var(--yellow);
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto 19px;
+  transform: rotate(-7deg);
+}
+.login-required-modal h2 {
+  font-size: 21px;
+  letter-spacing: -0.8px;
+  word-break: keep-all;
+}
+.login-required-modal > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8f8f7f;
+  margin: 12px 0 26px;
+  word-break: keep-all;
+}
+.login-required-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.login-required-actions .button {
+  width: 100%;
+}
+.login-required-page h1,
+.login-required-page p {
+  word-break: keep-all;
+}
+
+@media (max-width: 600px) {
+  .login-required-modal {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+  .login-required-modal h2 {
+    font-size: 19px;
+  }
+  .login-required-actions {
+    grid-template-columns: 1fr;
+  }
+  .login-required-actions .button {
+    font-size: 14px;
+  }
+  /* 입력 화면 버튼처럼 주요 버튼을 위에 둡니다. */
+  .login-required-actions .button-outline {
+    order: 1;
+  }
+}

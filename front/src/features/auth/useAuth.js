@@ -48,5 +48,14 @@ export default function useAuth() {
     }
   }
 
-  return { user, busy, error, authenticate, logout }
+  // 계정 탈퇴처럼 서버 결과와 관계없이 이 기기에서 바로 로그아웃 상태로 바꿉니다.
+  function clearUser() {
+    ++sequence.current
+    setUser(null)
+    setBusy(false)
+    setError('')
+    accountRequest('logout').catch(() => {})
+  }
+
+  return { user, busy, error, authenticate, logout, clearUser }
 }

@@ -1,4 +1,5 @@
 import { createFeedback, getPresentationTitle } from './feedbackApi.js'
+import { isExampleForm, withoutSampleFiles } from './exampleForm.js'
 
 export const EMPTY_REQUEST = {
   status: 'idle',
@@ -55,8 +56,10 @@ export function createFeedbackRequest(
 
   function run(form) {
     if (active) return active.promise
-    const submission = { ...form, title: getPresentationTitle(form) }
-    const mock = !!form.file?.sample
+    // 예시 그대로일 때만 샘플 API를 쓰고, 수정한 자료에서는 가상 파일을 뺍니다.
+    const mock = isExampleForm(form, 'material')
+    const sent = mock ? form : withoutSampleFiles(form)
+    const submission = { ...sent, title: getPresentationTitle(sent) }
     const task = { controller: new AbortController(), mock, context: { submission, mock } }
     active = task
     onChange({ ...EMPTY_REQUEST, ...task.context, status: 'loading' })
@@ -65,7 +68,7 @@ export function createFeedbackRequest(
       stop()
       onChange({ ...task.context, status: 'error', result: null, error: TIMEOUT_MESSAGE })
     }, timeoutMs)
-    task.promise = execute(form, task)
+    task.promise = execute(sent, task)
     return task.promise
   }
 

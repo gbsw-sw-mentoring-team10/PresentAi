@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import Icon from '../../components/ui/Icon.jsx'
+import { isSampleFile } from './exampleForm.js'
 import { UPLOAD_TYPES, validateUpload } from './uploadRules.js'
 
 export default function FileUpload({ file, onFile, kind = 'material', error, setError }) {
@@ -34,7 +35,7 @@ export default function FileUpload({ file, onFile, kind = 'material', error, set
             <strong>{file.name}</strong>
             <small>
               {(file.size / 1024 / 1024).toFixed(1)} MB ·{' '}
-              {file.sample ? '예시 파일' : '파일 선택 완료'}
+              {isSampleFile(file) ? '예시 파일' : '파일 선택 완료'}
             </small>
           </div>
           <span className="file-ok">

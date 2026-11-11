@@ -2,11 +2,13 @@ import Button from '../ui/Button.jsx'
 import Icon from '../ui/Icon.jsx'
 import Logo from '../ui/Logo.jsx'
 import useMobileMenu from './useMobileMenu.js'
+import '../../styles/header-nav.css'
 
 export default function AppHeader({
   route,
   mode,
   navigate,
+  openMember,
   scrollSection,
   onLogin,
   user,
@@ -20,10 +22,18 @@ export default function AppHeader({
     route === '/speech' ||
     route === '/speech-results' ||
     (route === '/analysis' && mode === 'speech')
+  const activeHistory = route === '/history' || route.startsWith('/history/')
+  const activeMyPage = route === '/mypage'
 
   function handleNavigate(path) {
     close()
     navigate(path)
+  }
+
+  // 로그인이 필요한 화면은 App에서 이동 여부를 정합니다.
+  function handleMember(path) {
+    close()
+    openMember(path)
   }
 
   function showHow() {
@@ -55,8 +65,29 @@ export default function AppHeader({
             발표 피드백
           </button>
           <button onClick={() => showHow()}>이용 방법</button>
+          <button
+            className={activeHistory ? 'active' : ''}
+            aria-current={activeHistory ? 'page' : undefined}
+            onClick={() => handleMember('/history')}
+          >
+            내 피드백
+          </button>
+          <button
+            className={`nav-mobile-only${activeMyPage ? ' active' : ''}`}
+            aria-current={activeMyPage ? 'page' : undefined}
+            onClick={() => handleMember('/mypage')}
+          >
+            마이페이지
+          </button>
         </nav>
         <div className="nav-actions">
+          <button
+            className={`login-button mypage-button${activeMyPage ? ' active' : ''}`}
+            aria-current={activeMyPage ? 'page' : undefined}
+            onClick={() => handleMember('/mypage')}
+          >
+            마이페이지
+          </button>
           <button
             className="login-button"
             disabled={authBusy}

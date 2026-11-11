@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { example } from '../../data/examplePresentation.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createExampleForm, isExampleForm, isSampleFile } from './exampleForm.js'
 import { MAX_SCRIPT_BYTES, validateScriptText } from './uploadRules.js'
+
+export const SAMPLE_FILE_ONLY_ERROR =
+  '예시 파일은 실제 파일이 아니라 분석에 쓸 수 없어요. 발표자료를 선택하거나 대본을 입력해 주세요.'
+export const SAMPLE_AUDIO_ONLY_ERROR =
+  '예시 음성은 실제 파일이 아니라 미리보기에 쓸 수 없어요. 음성을 선택하거나 대본을 입력해 주세요.'
 
 // 입력 검증, TXT 읽기, 예시 채우기를 한곳에서 관리합니다.
 export default function useFeedbackForm({ mode, form, setForm, start }) {
@@ -9,6 +14,7 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
   const [scriptFile, setScriptFile] = useState(null)
   const [errors, setErrors] = useState({})
   const [readingScript, setReadingScript] = useState(false)
+  const [sampleWarning, setSampleWarning] = useState(false)
   const scriptReadVersion = useRef(0)
   const purposeRef = useRef(null)
   useEffect(
@@ -27,7 +33,12 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     setErrors((current) => ({
       ...current,
       [field]: '',
-      ...(field === 'script' ? { file: '' } : {}),
+      ...(field === 'script'
+        ? {
+            file: '',
+            audio: current.audio === SAMPLE_AUDIO_ONLY_ERROR ? '' : current.audio,
+          }
+        : {}),
     }))
   }
   function setFieldError(field, message) {
@@ -86,8 +97,20 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
       purposeRef.current.focus()
       return
     }
-    if (!speech && !form.file && !form.script.trim()) {
-      setFieldError('file', '발표자료를 선택하거나 대본을 입력해 주세요.')
+    const example = isExampleForm(form, mode)
+    // 사용자 자료라면 예시 파일은 첨부되지 않은 것으로 봅니다.
+    const sampleField = example ? null : speech ? 'audio' : 'file'
+    const hasSample = !!sampleField && isSampleFile(form[sampleField])
+    const hasScript = !!form.script.trim()
+    if (!speech && !hasScript && (!form.file || hasSample)) {
+      setFieldError(
+        'file',
+        hasSample ? SAMPLE_FILE_ONLY_ERROR : '발표자료를 선택하거나 대본을 입력해 주세요.',
+      )
+      return
+    }
+    if (speech && hasSample && !hasScript) {
+      setFieldError('audio', SAMPLE_AUDIO_ONLY_ERROR)
       return
     }
     const scriptError = (scriptMode === 'file' && errors.script) || validateScriptText(form.script)
@@ -97,15 +120,30 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     }
     if (errors.audio) return
     if (errors.file && form.file) return
+    if (hasSample) {
+      setSampleWarning(true)
+      return
+    }
     start(mode)
+  }
+  const closeSampleWarning = useCallback(() => setSampleWarning(false), [])
+  function continueWithoutSample() {
+    setSampleWarning(false)
+    start(mode)
+  }
+  function reselectFile() {
+    const field = speech ? 'audio' : 'file'
+    setSampleWarning(false)
+    updateField(field, null)
+    // 대화상자가 닫힌 뒤 비워진 업로드 영역으로 초점을 옮깁니다.
+    requestAnimationFrame(() => {
+      document.querySelector(`#${field}-upload .upload-zone`)?.focus()
+    })
   }
   function fillExample() {
     scriptReadVersion.current += 1
     setReadingScript(false)
-    setForm({
-      ...example,
-      audio: speech ? { name: '리허설_1차.m4a', size: 4823449, sample: true } : null,
-    })
+    setForm(createExampleForm(mode))
     setErrors({})
     setScriptMode('text')
     setScriptFile(null)
@@ -123,5 +161,9 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     readScript,
     handleSubmit,
     fillExample,
+    sampleWarning,
+    closeSampleWarning,
+    continueWithoutSample,
+    reselectFile,
   }
 }
