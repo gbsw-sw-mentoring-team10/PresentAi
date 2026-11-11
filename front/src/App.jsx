@@ -4,7 +4,6 @@ import AppHeader from './components/layout/AppHeader.jsx'
 import AppFooter from './components/layout/AppFooter.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import Button from './components/ui/Button.jsx'
-import { example } from './data/examplePresentation.js'
 import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
 import {
   hasLeftFormFlow,
@@ -32,7 +31,7 @@ const AuthModal = lazy(() => import('./features/auth/AuthModal.jsx'))
 const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: null, audio: null }
 
 export default function App() {
-  const { route, navigate: changeRoute, scrollSection } = useHashRoute()
+  const { route, activeSection, navigate: changeRoute, scrollSection } = useHashRoute()
   const [form, setForm] = useState(EMPTY_FORM)
   const [mode, setMode] = useState('material')
   const [resultKind, setResultKind] = useState(null)
@@ -71,19 +70,12 @@ export default function App() {
     [changeRoute, cancelFeedback],
   )
 
-  function startExample() {
-    setResultKind('example')
-    setForm({ ...example, audio: null })
-    setMode('material')
-    navigate('/results')
-  }
-
   function start(nextMode) {
     // 수정한 자료에 남은 예시 파일은 분석 화면과 요청에서 뺍니다.
     const submitted = prepareSubmission(form, nextMode)
     if (submitted !== form) setForm(submitted)
     setMode(nextMode)
-    setResultKind(nextMode === 'speech' ? 'example' : 'api')
+    setResultKind(nextMode === 'speech' ? null : 'api')
     if (nextMode !== 'speech') runFeedback(submitted)
     navigate('/analysis')
   }
@@ -138,10 +130,19 @@ export default function App() {
 
   function renderPage() {
     const historyId = historyRouteId(route)
-    if (historyId) return renderMember(<HistoryDetailPage id={historyId} navigate={navigate} />)
+    if (historyId)
+      return renderMember(
+        <HistoryDetailPage
+          key={`${account.user?.user_id}:${historyId}`}
+          id={historyId}
+          user={account.user}
+          navigate={navigate}
+          onLogin={() => setAuth(true)}
+        />,
+      )
     switch (route) {
       case '/':
-        return <HomePage navigate={navigate} startExample={startExample} />
+        return <HomePage navigate={navigate} scrollSection={scrollSection} />
       case '/materials':
       case '/speech':
         return (
@@ -174,7 +175,6 @@ export default function App() {
             />
           )
         }
-        if (resultKind === 'example') return <ExampleResultsPage navigate={navigate} />
         return (
           <div className="state-page">
             <h1>아직 분석 결과가 없어요.</h1>
@@ -185,10 +185,13 @@ export default function App() {
       case '/speech-results':
         return <ExampleResultsPage navigate={navigate} speech />
       case '/history':
-        return renderMember(<HistoryPage navigate={navigate} />)
+        return renderMember(
+          <HistoryPage user={account.user} navigate={navigate} onLogin={() => setAuth(true)} />,
+        )
       case '/mypage':
         return renderMember(
           <MyPage
+            key={account.user?.user_id}
             user={account.user}
             navigate={navigate}
             onLogin={() => setAuth(true)}
@@ -221,6 +224,7 @@ export default function App() {
       </a>
       <AppHeader
         route={route}
+        activeSection={activeSection}
         mode={mode}
         navigate={navigate}
         openMember={openMember}

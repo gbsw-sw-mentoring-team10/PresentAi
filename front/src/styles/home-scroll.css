@@ -49,6 +49,7 @@
   }
 
   .home-page .faq-section {
+    min-height: calc(var(--section-height) * 0.75);
     align-content: start;
   }
 

@@ -20,10 +20,16 @@ const readRoute = () => window.location.hash.replace(/^#/, '') || '/'
 
 export default function useHashRoute() {
   const [route, setRoute] = useState(readRoute)
+  const [activeSection, setActiveSection] = useState(null)
   const pendingSection = useRef(null)
 
   useEffect(() => {
-    const change = () => setRoute(readRoute())
+    const change = () => {
+      const nextRoute = readRoute()
+      if (nextRoute !== '/') pendingSection.current = null
+      setActiveSection(nextRoute === '/' ? pendingSection.current : null)
+      setRoute(nextRoute)
+    }
     window.addEventListener('hashchange', change)
     return () => window.removeEventListener('hashchange', change)
   }, [])
@@ -41,6 +47,8 @@ export default function useHashRoute() {
   }, [route])
 
   const navigate = useCallback((path) => {
+    pendingSection.current = null
+    setActiveSection(null)
     if (readRoute() === path) window.scrollTo({ top: 0, behavior: 'auto' })
     else window.location.hash = path
   }, [])
@@ -48,14 +56,15 @@ export default function useHashRoute() {
   const scrollSection = useCallback(
     (id) => {
       if (readRoute() === '/') {
+        setActiveSection(id)
         document.getElementById(id)?.scrollIntoView({ behavior: 'auto' })
         return
       }
-      pendingSection.current = id
       navigate('/')
+      pendingSection.current = id
     },
     [navigate],
   )
 
-  return { route, navigate, scrollSection }
+  return { route, activeSection: route === '/' ? activeSection : null, navigate, scrollSection }
 }

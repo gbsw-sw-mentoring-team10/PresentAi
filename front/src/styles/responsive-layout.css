@@ -94,9 +94,6 @@
     opacity: 0.3;
     right: -5px;
   }
-  .card-decoration {
-    opacity: 0.4;
-  }
   .how-grid {
     gap: 35px;
   }
@@ -820,7 +817,6 @@
   }
   .card-decoration {
     display: block;
-    opacity: 0.6;
     right: 17px;
   }
   .how-section {

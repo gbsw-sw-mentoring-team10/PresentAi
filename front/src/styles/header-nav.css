@@ -2,6 +2,18 @@
 .site-header nav > .nav-mobile-only {
   display: none;
 }
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--yellow);
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
 .login-button {
   white-space: nowrap;
 }
@@ -16,6 +28,57 @@
   width: 100%;
   height: 3px;
   background: var(--yellow);
+}
+
+.site-header-home .nav-actions .button {
+  display: inline-flex;
+  min-height: 44px;
+  padding: 11px 20px;
+  font-size: 13px;
+}
+
+@media (min-width: 801px) {
+  .site-header nav {
+    position: relative;
+  }
+  .site-header-home .nav-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .site-header-home .nav-wrap > .logo-button {
+    justify-self: start;
+  }
+
+  .site-header-home .nav-wrap > nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: clamp(328px, 28vw, 376px);
+    gap: 8px;
+    margin: 0;
+  }
+
+  .site-header-home .nav-wrap > nav > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .site-header-home .nav-actions {
+    justify-self: end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-indicator {
+    transition: none;
+  }
 }
 
 @media (max-width: 960px) {

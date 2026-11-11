@@ -14,8 +14,7 @@ export default function FeatureSection() {
         </div>
         <p>
           무엇을 고쳐야 할지 막막할 때,
-          <br />
-          다음 한 걸음을 알려 주는 피드백.
+          <br />더 나은 발표를 위한 맞춤형 피드백.
         </p>
       </div>
       <div className="feature-grid">
@@ -51,8 +50,7 @@ export default function FeatureSection() {
             </li>
           </ul>
           <div className="card-decoration" aria-hidden="true">
-            <span>01</span>
-            <i />
+            <img src="/icons/ppt-file.svg" alt="" width={95} height={100} />
           </div>
         </article>
         <article className="feature-card speech-card">
@@ -60,7 +58,7 @@ export default function FeatureSection() {
             <span className="feature-icon">
               <Icon name="mic" size={27} />
             </span>
-            <span className="tag tag-outline">준비 중 · 미리보기</span>
+            <span className="tag tag-outline">발표 전달력 피드백</span>
           </div>
           <h3>
             써 내려간 문장이

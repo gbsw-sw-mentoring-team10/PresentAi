@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
-import { sampleAccount } from '../data/sampleAccount.js'
-import { feedbackHistory } from '../data/sampleHistory.js'
 import AccountTabs from '../features/account/AccountTabs.jsx'
 import ChangeEmailModal from '../features/account/ChangeEmailModal.jsx'
 import ChangePasswordModal from '../features/account/ChangePasswordModal.jsx'
@@ -11,6 +9,9 @@ import ProfilePanel from '../features/account/ProfilePanel.jsx'
 import RecordPanel from '../features/account/RecordPanel.jsx'
 import { getAccountProfile } from '../features/account/accountApi.js'
 import { formatKoreanDate, summarizeFeedbackHistory } from '../features/account/accountRecord.js'
+import HistoryLoadState from '../features/history/HistoryLoadState.jsx'
+import { loadFeedbackHistory } from '../features/history/historyApi.js'
+import useHistoryRequest from '../features/history/useHistoryRequest.js'
 import useToastMessage from '../hooks/useToastMessage.js'
 import '../styles/mypage.css'
 
@@ -28,20 +29,28 @@ export default function MyPage({ user, navigate, onAccountDeleted, onLogin }) {
         )}
       </div>
     )
-  return <AccountView user={user} onAccountDeleted={onAccountDeleted} />
+  return (
+    <AccountView
+      user={user}
+      navigate={navigate}
+      onLogin={onLogin}
+      onAccountDeleted={onAccountDeleted}
+    />
+  )
 }
 
-function AccountView({ user, onAccountDeleted }) {
+function AccountView({ user, navigate, onLogin, onAccountDeleted }) {
   const [tab, setTab] = useState('profile')
   const [dialog, setDialog] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loadError, setLoadError] = useState('')
   const [reload, setReload] = useState(0)
   const { message: toast, show: showToast } = useToastMessage()
-  const summary = summarizeFeedbackHistory(feedbackHistory)
+  const history = useHistoryRequest(loadFeedbackHistory, user)
+  const summary = summarizeFeedbackHistory(history.data)
   const loading = !profile && !loadError
   // 서버가 돌려준 이메일을 먼저 쓰고, 없으면 로그인한 계정의 이메일을 이름으로 보여 줘요.
-  const email = profile?.email || user?.email || sampleAccount.email
+  const email = profile?.email || user.email
 
   useEffect(() => {
     const controller = new AbortController()
@@ -76,7 +85,11 @@ function AccountView({ user, onAccountDeleted }) {
             {formatKoreanDate(profile?.createdAt)
               ? `${formatKoreanDate(profile.createdAt)}부터 PresentAi와 함께하고 있어요. `
               : ''}
-            지금까지 피드백을 {summary.total}번 받았어요.
+            {history.status === 'success'
+              ? `지금까지 피드백을 ${summary.total}번 받았어요.`
+              : history.status === 'loading'
+                ? '피드백 기록을 확인하고 있어요.'
+                : '피드백 기록을 불러오지 못했어요.'}
           </p>
         </div>
       </div>
@@ -105,8 +118,15 @@ function AccountView({ user, onAccountDeleted }) {
       >
         {tab === 'profile' ? (
           <ProfilePanel email={email} profile={profile} loading={loading} onOpen={setDialog} />
+        ) : history.status !== 'success' ? (
+          <HistoryLoadState request={history} onLogin={onLogin} />
         ) : (
-          <RecordPanel summary={summary} profile={profile} loading={loading} />
+          <RecordPanel
+            summary={summary}
+            profile={profile}
+            loading={loading}
+            onViewHistory={() => navigate('/history')}
+          />
         )}
       </section>
       {toast && (

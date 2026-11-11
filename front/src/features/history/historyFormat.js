@@ -6,4 +6,4 @@ export const FEEDBACK_TYPES = {
 export const feedbackTypeLabel = (type) => (FEEDBACK_TYPES[type] || FEEDBACK_TYPES.material).label
 
 // 'YYYY-MM-DD' → 'YYYY.MM.DD'
-export const formatHistoryDate = (value) => value.replaceAll('-', '.')
+export const formatHistoryDate = (value) => value.slice(0, 10).replaceAll('-', '.')

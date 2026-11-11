@@ -1,43 +1,53 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
-import { findFeedbackHistory } from '../data/sampleHistory.js'
-import { normalizeFeedback } from '../features/feedback/feedbackApi.js'
 import FeedbackTypeIcon from '../features/history/FeedbackTypeIcon.jsx'
 import HistoryMaterialDetail from '../features/history/HistoryMaterialDetail.jsx'
 import HistorySpeechDetail from '../features/history/HistorySpeechDetail.jsx'
+import HistoryLoadState from '../features/history/HistoryLoadState.jsx'
+import { loadSavedFeedback } from '../features/history/historyApi.js'
+import useHistoryRequest from '../features/history/useHistoryRequest.js'
 import { feedbackTypeLabel, formatHistoryDate } from '../features/history/historyFormat.js'
 import { buildApiReport, downloadTextFile } from '../features/results/feedbackReport.js'
 import useToastMessage from '../hooks/useToastMessage.js'
 import '../styles/history.css'
 
-export default function HistoryDetailPage({ id, navigate }) {
-  const item = findFeedbackHistory(id)
-  // 저장된 기록도 실제 분석 응답과 같은 규칙으로 정리해 결과 화면 구성 요소에 넘깁니다.
-  const result = useMemo(() => (item ? normalizeFeedback(item.result) : null), [item])
-  const [tab, setTab] = useState('overview')
-  const { message: toast, show: showToast } = useToastMessage()
-
-  if (!item)
+export default function HistoryDetailPage({ id, navigate, user, onLogin }) {
+  const load = useCallback((options) => loadSavedFeedback(id, options), [id])
+  const request = useHistoryRequest(load, user)
+  if (request.status !== 'success')
     return (
-      <div className="state-page history-missing">
+      <div className="history-page section-wrap">
         <span className="section-kicker">MY FEEDBACK</span>
-        <h1>피드백 기록을 찾을 수 없어요.</h1>
-        <p>
-          삭제되었거나 주소가 잘못된 기록이에요.
-          <br />
-          목록에서 다른 기록을 확인해 주세요.
-        </p>
+        <HistoryLoadState request={request} onLogin={onLogin} onBack={() => navigate('/history')} />
+      </div>
+    )
+  const item = request.data
+  if (item.status !== 'completed')
+    return (
+      <div className="state-page" role="status">
+        <h1>
+          {item.status === 'failed' ? '분석을 완료하지 못했어요.' : '아직 분석 중인 기록이에요.'}
+        </h1>
+        <p>{item.error_message || '잠시 후 다시 확인해 주세요.'}</p>
+        <Button onClick={request.retry}>다시 불러오기</Button>
         <Button variant="outline" icon="back" onClick={() => navigate('/history')}>
           목록으로
         </Button>
       </div>
     )
+  return <SavedDetail key={item.id} item={item} navigate={navigate} />
+}
+
+function SavedDetail({ item, navigate }) {
+  const result = item.result
+  const [tab, setTab] = useState('overview')
+  const { message: toast, show: showToast } = useToastMessage()
 
   const speech = item.type === 'speech'
   const deck = !speech && tab === 'slides'
   function exportReport() {
-    const submission = { title: item.title, purpose: item.purpose }
+    const submission = { title: item.title, purpose: item.purpose || '저장된 정보 없음' }
     downloadTextFile(buildApiReport({ result, submission }), `presentai-history-${item.id}.txt`)
     showToast('피드백 보고서를 내려받았어요.')
   }
@@ -58,7 +68,7 @@ export default function HistoryDetailPage({ id, navigate }) {
         <div>
           <span className="section-kicker">MY FEEDBACK · {formatHistoryDate(item.createdAt)}</span>
           <h1>{item.title}</h1>
-          <p>{item.summary}</p>
+          {item.summary && <p>{item.summary}</p>}
         </div>
         <Button variant="outline" icon="download" onClick={exportReport}>
           보고서 받기
@@ -71,17 +81,21 @@ export default function HistoryDetailPage({ id, navigate }) {
             <time dateTime={item.createdAt}>{formatHistoryDate(item.createdAt)}</time>
           </strong>
         </div>
-        <div>
-          <small>발표 목적</small>
-          <span>{item.purpose}</span>
-        </div>
-        <div>
-          <small>{speech ? '분석 음성' : '분석 자료'}</small>
-          <span>
-            <Icon name={speech ? 'mic' : 'file'} size={16} />
-            {item.fileName}
-          </span>
-        </div>
+        {item.purpose && (
+          <div>
+            <small>발표 목적</small>
+            <span>{item.purpose}</span>
+          </div>
+        )}
+        {item.fileName && (
+          <div>
+            <small>{speech ? '분석 음성' : '분석 자료'}</small>
+            <span>
+              <Icon name={speech ? 'mic' : 'file'} size={16} />
+              {item.fileName}
+            </span>
+          </div>
+        )}
       </div>
       {speech ? (
         <HistorySpeechDetail

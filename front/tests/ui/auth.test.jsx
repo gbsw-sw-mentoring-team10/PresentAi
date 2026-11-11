@@ -60,7 +60,8 @@ test('login, real analysis storage confirmation and logout work together', async
   await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('분석 결과를 내 계정에 저장했어요.')).toBeTruthy()
   await user.click(screen.getByRole('button', { name: '로그아웃' }))
-  expect(await screen.findByRole('button', { name: '로그인', exact: true })).toBeTruthy()
+  await waitFor(() => expect(window.location.hash).toBe('#/'))
+  expect(screen.queryByRole('button', { name: '로그인', exact: true })).toBeNull()
   expect(loggedIn).toBe(false)
 })
 
@@ -73,7 +74,7 @@ test('restores the server session and keeps the account on failed logout', async
         : Response.json({ detail: '잠시 후 다시 시도해 주세요.' }, { status: 503 }),
     ),
   )
-  window.history.replaceState(null, '', '/#/')
+  window.history.replaceState(null, '', '/#/materials')
   const user = userEvent.setup()
   render(<App />)
   await user.click(await screen.findByRole('button', { name: '로그아웃' }))

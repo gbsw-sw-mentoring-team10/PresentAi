@@ -7,13 +7,13 @@ import HeroSection from '../features/home/HeroSection.jsx'
 import FeedbackShowcase from '../features/home/FeedbackShowcase.jsx'
 import '../styles/home-scroll.css'
 
-export default function HomePage({ navigate, startExample }) {
+export default function HomePage({ navigate, scrollSection }) {
   return (
     <div className="home-page">
-      <HeroSection navigate={navigate} startExample={startExample} />
+      <HeroSection onShowHow={() => scrollSection('how')} />
       <div className="home-showcase">
         <div className="section-wrap">
-          <FeedbackShowcase startExample={startExample} />
+          <FeedbackShowcase />
         </div>
         <SupportedFormats />
       </div>

@@ -2,7 +2,7 @@ import Icon from '../../components/ui/Icon.jsx'
 import SampleSlideArtwork from '../slides/SampleSlideArtwork.jsx'
 import { slides } from '../../data/examplePresentation.js'
 
-export default function FeedbackShowcase({ startExample }) {
+export default function FeedbackShowcase() {
   return (
     <div className="showcase" aria-label="발표 피드백 결과 예시">
       <div className="showcase-label">
@@ -59,10 +59,6 @@ export default function FeedbackShowcase({ startExample }) {
         <div className="suggestion-mini">
           <span>이렇게 바꿔 보세요</span>“하반기, 우리가 함께 만들어 갈<br />세 가지 변화”
         </div>
-        <button onClick={startExample}>
-          전체 피드백 보기
-          <Icon name="arrow" size={16} />
-        </button>
       </div>
       <div className="time-float">
         <span>

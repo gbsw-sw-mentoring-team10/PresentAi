@@ -6,9 +6,9 @@ export default function FrequentlyAskedQuestions() {
       <div>
         <span className="section-kicker">A LITTLE MORE CLARITY.</span>
         <h2>
-          시작하기 전에
+          시작하기 전
           <br />
-          궁금한 것들.
+          자주 묻는 질문
         </h2>
       </div>
       <div className="faq-list">
@@ -23,7 +23,7 @@ export default function FrequentlyAskedQuestions() {
           ],
           [
             '지금 실제 자료를 분석할 수 있나요?',
-            '분석 시작 시 발표 정보·대본·선택한 발표자료를 분석 서버로 전송합니다. 서버가 반환한 점수와 피드백을 확인할 수 있어요. 예시 결과 둘러보기는 별도의 샘플 화면이며, 음성 피드백은 준비 중입니다.',
+            '분석 시작 시 발표 정보·대본·선택한 발표자료를 분석 서버로 전송합니다. 서버가 반환한 점수와 피드백을 확인할 수 있어요. 음성 피드백은 준비 중입니다.',
           ],
           [
             '음성 피드백도 사용할 수 있나요?',

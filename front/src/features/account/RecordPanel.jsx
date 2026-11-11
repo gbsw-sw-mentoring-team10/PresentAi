@@ -1,13 +1,10 @@
-import { useState } from 'react'
+import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import { describeDate } from './accountRecord.js'
 import ScoreGauge from './ScoreGauge.jsx'
 
-export default function RecordPanel({ summary, profile, loading }) {
+export default function RecordPanel({ summary, profile, loading, onViewHistory }) {
   const average = summary.average ?? 0
-  const [preview, setPreview] = useState(String(average))
-  const typed = preview.trim() === '' ? average : Number(preview)
-  const outOfRange = !Number.isFinite(typed) || typed < 0 || typed > 100
 
   return (
     <div className="mypage-record">
@@ -17,7 +14,7 @@ export default function RecordPanel({ summary, profile, loading }) {
           <h2 id="mypage-grade-title">나의 발표 등급</h2>
         </div>
         <ScoreGauge
-          value={typed}
+          value={average}
           label="전체 발표 점수"
           description={
             summary.average === null
@@ -25,39 +22,6 @@ export default function RecordPanel({ summary, profile, loading }) {
               : `지금까지 받은 피드백 ${summary.total}개의 평균 점수는 ${summary.average}점이에요.`
           }
         />
-        <div className="score-preview">
-          <div className="score-preview-head">
-            <span className="tag tag-yellow">샘플 미리보기</span>
-            <label htmlFor="mypage-score-preview">점수 미리보기</label>
-          </div>
-          <div className="score-preview-controls">
-            <input
-              id="mypage-score-preview"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={100}
-              step={1}
-              value={preview}
-              aria-describedby="mypage-score-preview-help"
-              aria-invalid={outOfRange}
-              onChange={(e) => setPreview(e.target.value)}
-            />
-            <button
-              type="button"
-              className="text-button"
-              disabled={preview === String(average)}
-              onClick={() => setPreview(String(average))}
-            >
-              평균으로 되돌리기
-            </button>
-          </div>
-          <p id="mypage-score-preview-help" className="field-help">
-            {outOfRange
-              ? '0부터 100 사이로 맞춰서 보여 드려요.'
-              : '아직 서버와 연결되기 전이라, 숫자를 바꿔 게이지가 차오르고 줄어드는 모습을 미리 볼 수 있어요.'}
-          </p>
-        </div>
       </section>
       <section className="mypage-card" aria-labelledby="mypage-count-title">
         <div className="card-label">
@@ -90,6 +54,9 @@ export default function RecordPanel({ summary, profile, loading }) {
             </strong>
           </li>
         </ul>
+        <Button variant="outline" icon="list" onClick={onViewHistory}>
+          내 피드백 보기
+        </Button>
       </section>
       <section className="mypage-card" aria-labelledby="mypage-history-title">
         <div className="card-label">

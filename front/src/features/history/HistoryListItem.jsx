@@ -23,13 +23,17 @@ export default function HistoryListItem({ item, onOpen }) {
             <time dateTime={item.createdAt}>{formatHistoryDate(item.createdAt)}</time>
           </div>
           <h2>{item.title}</h2>
-          <span className="history-file">
-            <Icon name={item.type === 'speech' ? 'mic' : 'file'} size={14} />
-            <span>{item.fileName}</span>
-          </span>
-          <p className="history-summary" title={item.summary}>
-            {item.summary}
-          </p>
+          {item.fileName && (
+            <span className="history-file">
+              <Icon name={item.type === 'speech' ? 'mic' : 'file'} size={14} />
+              <span>{item.fileName}</span>
+            </span>
+          )}
+          {item.summary && (
+            <p className="history-summary" title={item.summary}>
+              {item.summary}
+            </p>
+          )}
         </div>
         <div className="history-item-side">
           <span className="history-score">

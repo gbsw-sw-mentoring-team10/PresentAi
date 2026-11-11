@@ -1,8 +1,9 @@
 import { sampleAccount } from '../../data/sampleAccount.js'
 import { API_BASE_URL } from '../feedback/feedbackApi.js'
+import { accountRequest } from '../auth/authApi.js'
 
-// 계정 관리 엔드포인트는 아직 백엔드에 없어요.
-// 실제로 보낼 요청은 그대로 만들어 두고, fetch 직전에 멈춘 뒤 샘플 응답을 돌려줍니다.
+// 계정 조회는 실제 로그인 세션을 사용합니다.
+// 이메일·비밀번호 변경·탈퇴 API는 아직 없어 기존 샘플 동작을 유지합니다.
 const SIMULATED_DELAY = 500
 
 function buildAccountRequest(path, method = 'GET', body) {
@@ -38,17 +39,10 @@ function normalizeAccountProfile(data) {
   }
 }
 
-// owner는 로그인한 이메일이에요. 다른 계정으로 바뀌면 샘플 상태를 새로 시작합니다.
-export function getAccountProfile({ owner, signal } = {}) {
-  const request = buildAccountRequest('account')
-  return send(
-    request,
-    () => {
-      if (simulated.owner !== (owner ?? null)) simulated = initialAccount(owner)
-      return normalizeAccountProfile(simulated)
-    },
-    signal,
-  )
+export async function getAccountProfile({ signal } = {}) {
+  const data = await accountRequest('me', { signal })
+  if (!data) throw new Error('로그인이 만료되었어요. 다시 로그인해 주세요.')
+  return normalizeAccountProfile(data)
 }
 
 export function changeEmail({ email, password }, { signal } = {}) {

@@ -2,7 +2,7 @@ import Icon from '../../components/ui/Icon.jsx'
 
 export default function HowItWorks() {
   return (
-    <section className="how-section" id="how">
+    <section className="how-section" id="how" aria-label="이용 방법">
       <div className="section-wrap">
         <div className="section-heading">
           <div>
