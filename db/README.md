@@ -12,7 +12,9 @@ PresentAi/
     └── migrations/
         ├── 001_auth.sql
         ├── 002_user_roles.sql
-        └── 003_slide_feedback_key.sql
+        ├── 003_slide_feedback_key.sql
+        ├── 004_slides_feedback_result.sql
+        └── 005_feedback_result_json.sql
 ```
 
 ## 파일별 역할
@@ -22,10 +24,12 @@ PresentAi/
 | [schema.sql](schema.sql) | 현재 DB 전체 테이블 구조. 새 빈 DB를 준비할 때 사용 |
 | [migrations/001_auth.sql](migrations/001_auth.sql) | 로그인 테이블 준비 |
 | [migrations/002_user_roles.sql](migrations/002_user_roles.sql) | 기존 `users`에 관리자 역할 컬럼 추가 |
-| [migrations/003_slide_feedback_key.sql](migrations/003_slide_feedback_key.sql) | 슬라이드 키를 `(slides_result_id, slide_number)`로 변경 |
+| [migrations/003_slide_feedback_key.sql](migrations/003_slide_feedback_key.sql) | 통합 전 슬라이드 키 변경 이력 |
+| [migrations/004_slides_feedback_result.sql](migrations/004_slides_feedback_result.sql) | 분석 작업 상태 컬럼 추가 이력 |
+| [migrations/005_feedback_result_json.sql](migrations/005_feedback_result_json.sql) | JSON 컬럼 추가와 기존 세 테이블 삭제. 아래 이관 스크립트로만 실행 |
 
-`schema.sql`에는 `users`, `input_files`, `slides_feedback_result`,
-`entire_result`, `entire_improvements`, `slide_feedback`, `auth_sessions`의
+통합 후 `schema.sql`에는 `users`, `input_files`, `slides_feedback_result`,
+`auth_sessions` 4개 테이블의
 컬럼·키·외래키·인덱스가 포함됩니다. 현재 테이블 이름과 컬럼 이름을 그대로
 보존하며, 테이블 데이터와 DB 접속 계정 정보는 포함하지 않습니다.
 
@@ -54,15 +58,33 @@ python -m scripts.init_auth_db
 
 ## 구조 변경 및 내보내기
 
-기존 DB에서 로그인 사용자의 발표별 피드백 저장을 준비하려면 `backend`에서
-`python -m scripts.init_feedback_db`를 실행합니다. 이미 적용한 키는 건너뜁니다.
-기존 데이터는 유지하며, 여러 발표에 같은 슬라이드 번호를 저장할 수 있게 합니다.
+피드백은 `slides_feedback_result.feedback_result`에 JSON 객체 하나로 저장합니다.
+컬럼은 `JSON NULL`이며 분석 전·실패한 요청은 비워 둘 수 있습니다.
+완료된 결과의 `score`, `feedback`, `strengths`, `improvements`, `revised_script`,
+`slides`를 원래 배열과 객체 구조 그대로 저장합니다.
+기존 세 상세 테이블은 이관 완료 후 삭제합니다.
 
-로그인한 실제 분석은 `slides_feedback_result`, `entire_result`,
-`entire_improvements`, `slide_feedback`에 한 트랜잭션으로 저장합니다.
-장점과 슬라이드별 문제 목록은 TEXT 컬럼에 JSON으로 보관합니다.
-비회원 분석과 예시 분석은 저장하지 않습니다.
-현재 음성파일 저장 기능은 없으며, 이 작업에서는 음성파일이나 보관 경로를 DB에 저장하지 않습니다.
+기존 DB는 `backend` 폴더에서 아래 순서로 전환합니다.
+
+1. `python -m scripts.migrate_feedback_json`으로 데이터와 컬럼을 확인합니다.
+2. `python -m scripts.migrate_feedback_json --apply`로 JSON 컬럼을 추가하고 기존 결과를 복사·검증합니다. 기존 테이블은 유지합니다.
+3. 이 DB를 사용하는 모든 백엔드를 새 저장·조회 코드로 배포하거나 재시작합니다.
+4. `python -m scripts.migrate_feedback_json --apply --drop-legacy`로 최종 복사·검증 후 `entire_improvements`, `slide_feedback`, `entire_result`를 삭제합니다.
+
+`005_feedback_result_json.sql`을 DBeaver에서 단독 실행하지 않습니다.
+이관 스크립트는 JSON 배열 순서와 문자열을 보존하며, 과거 `problem`·`solution`
+컬럼에만 기록된 내용도 슬라이드 `issues`에 옮깁니다.
+이미 저장된 JSON이 기존 결과와 다르거나 처리 중 작업이 남아 있으면 최종 삭제를 중단합니다.
+과거에 완료 결과가 저장되었지만 `pending`·`processing`으로 표시되던 기록은
+결과를 검증한 뒤 `completed`로 정리합니다.
+
+변경 전 테이블 정의와 전체 기록은 프로젝트의 `.git/db-backups/날짜-식별자/feedback-tables.json`에
+백업합니다. 폴더는 0700, 파일은 0600 권한이며 Git에 포함되지 않습니다.
+`--backup-dir`로 다른 로컬 경로를 지정할 수도 있습니다. 백업에는 사용자 피드백이
+포함되므로 소스 저장소에 올리지 않습니다. MySQL DDL은 자동 커밋되므로
+백업과 이관 검증을 마친 다음에만 삭제합니다.
+
+비회원 분석과 예시 분석은 저장하지 않습니다. 음성파일 저장도 포함하지 않습니다.
 
 DB 구조를 DBeaver에서 바꿨다면 기존 DB에 적용할 변경 SQL을 새 번호의
 `migrations/*.sql`로 남깁니다. 이후 `backend` 폴더에서 다음 명령을 실행해

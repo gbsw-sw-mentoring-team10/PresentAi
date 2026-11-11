@@ -11,7 +11,7 @@ source .venv/bin/activate 가상환경 활성화 후 pip install -r requirements
 관리합니다. 프로젝트 배치는 `PresentAi/backend`, `PresentAi/front`,
 `PresentAi/db`입니다. 실행 코드도 이 상대 위치에서 SQL 파일을 찾습니다.
 
-- `../db/schema.sql`: 현재 7개 테이블 전체 정의. 새 빈 DB에 실행합니다.
+- `../db/schema.sql`: 통합 후 4개 테이블 전체 정의. 새 빈 DB에 실행합니다.
 - `../db/migrations/`: 기존 DB에 적용하는 변경 SQL입니다.
 - [DB 사용 안내](../db/README.md): 새 DB 준비, 변경 적용, GitHub 공유 방법입니다.
 
@@ -97,14 +97,14 @@ DB에는 쿠키 원문 대신 SHA-256 해시만 저장합니다.
 `GET /feedback/{result_id}`로 `pending`, `processing`, `completed`, `failed`를
 조회할 수 있으며 완료되면 피드백 전체를 반환합니다.
 
-로그인한 사용자의 실제 결과는 다음 기존 테이블에 한 트랜잭션으로 저장합니다.
+로그인한 사용자의 결과는 `slides_feedback_result` 한 테이블에서 관리합니다.
+`user_id`, 제목, 작업 상태는 기존 컬럼에 두고, 피드백 본문 전체는
+`feedback_result JSON NULL`에 저장합니다. 분석 전이나 실패한 요청의 본문은
+SQL `NULL`이며, 완료 시 피드백 JSON과 `completed` 상태를 한 UPDATE로 저장합니다.
+`entire_result`, `entire_improvements`, `slide_feedback`는 통합 이후 사용하지 않습니다.
 
-- `slides_feedback_result`: 로그인 세션에서 확인한 `user_id`, 발표 제목
-- `entire_result`: 점수, 종합 평가, 장점 목록, 수정 대본
-- `entire_improvements`: 개선 항목별 문제점·감점·해결책
-- `slide_feedback`: 슬라이드별 요약·장점·문제점/해결책·대본 연관성
-
-장점 목록과 슬라이드 문제점 목록은 기존 TEXT 컬럼에 JSON으로 저장합니다.
+JSON에는 점수, 종합 평가, 장점 배열, 개선 항목 배열, 수정 대본,
+슬라이드별 피드백 배열을 원래 구조대로 보관합니다. 조회 API의 응답 형식은 유지합니다.
 자료만 분석한 경우 수정 대본과 대본 연관성은 빈 문자열입니다.
 S3 원본 저장 서비스와 다운로드 API는 별도로 준비되어 있습니다.
 현재 main의 업로드 분석 흐름에는 원본 자동 저장이 연결되어 있지 않습니다.
@@ -114,7 +114,7 @@ S3 원본 저장 서비스와 다운로드 API는 별도로 준비되어 있습�
 
 완료된 회원 결과의 조회 응답에는 피드백 필드와 `saved_result_id`,
 `title`, `created_at`, `status: "completed"`가 포함됩니다.
-백그라운드 분석이나 저장이 실패하면 하위 결과 저장을 롤백하고 작업을 `failed`로
+백그라운드 분석이나 저장이 실패하면 JSON 저장을 롤백하고 작업을 `failed`로
 표시하며, 상세 API에 사용자용 `error_message`를 반환합니다.
 비회원은 기존처럼 모델 결과를 즉시 반환하며 ID는 `null`, 저장 상태는 `guest`입니다.
 DB 연결 또는 작업 생성에 실패한 경우에도 동기로 분석하고 저장 실패를 표시합니다.
@@ -128,18 +128,30 @@ DB 연결 또는 작업 생성에 실패한 경우에도 동기로 분석하고 
 상세 응답은 main의 형식에 따라 피드백 필드와 결과 ID·제목·생성일·상태를 최상위 JSON으로 반환합니다.
 프런트엔드 프록시 경로, 응답 예시와 오류 처리는 [피드백 조회 API 안내](docs/feedback-api.md)를 참고하세요.
 
-기존 DB에서는 한 번 아래 명령을 실행해 슬라이드 키를 준비합니다.
+기존 DB의 피드백 JSON 통합은 아래 명령으로 준비합니다.
 
 ```bash
-python -m scripts.init_feedback_db
+python -m scripts.migrate_feedback_json
+python -m scripts.migrate_feedback_json --apply
 ```
 
-`slide_feedback`의 기본키를 `(slides_result_id, slide_number)`로 변경합니다.
-여러 발표가 각각 1번 슬라이드를 저장할 수 있도록 하며 기존 행은 보존합니다.
-이미 적용했다면 건너뜁니다. 새 DB의 `../db/schema.sql`에는 변경이 포함되어 있습니다.
-기존 DB에서 작업 상태 컬럼이 없다면
-`../db/migrations/004_slides_feedback_result.sql`도 한 번 적용합니다.
-새 DB의 `schema.sql`에는 이 컬럼들이 포함되어 있습니다.
+첫 명령은 확인만 하며, `--apply`는 기존 기록을 비공개 로컬 백업에 보관하고
+JSON 컬럼에 복사·검증합니다. 기존 세 테이블은 이 단계에서 유지합니다.
+같은 DB를 쓰는 백엔드를 모두 새 코드로 전환한 뒤 최종 정리합니다.
+
+```bash
+python -m scripts.migrate_feedback_json --apply --drop-legacy
+```
+
+최종 명령은 새로 추가된 기존 형식 결과도 다시 이관·검증한 다음 세 테이블을
+삭제합니다. 처리 중 작업이나 내용이 다른 JSON이 있으면 삭제를 중단합니다.
+`python -m scripts.init_feedback_db`도 같은 명령의 별칭입니다.
+자세한 순서와 백업 위치는 [DB 사용 안내](../db/README.md)를 참고하세요.
+새 DB의 `../db/schema.sql`에는 nullable JSON 컬럼과 작업 상태 컬럼이 포함되어 있습니다.
+
+`GET /health`는 피드백 본문을 읽지 않고 JSON 컬럼 접근을 확인합니다.
+응답의 `feedback_storage`는 `json`이며, Render의 `revision`은 배포된 커밋 SHA입니다.
+최종 테이블 삭제 전에 이 경로에서 새 커밋과 정상 상태를 확인합니다.
 
 로컬 프론트는 같은 출처의 `/api/presentation` 프록시를 통해
 기본적으로 `http://127.0.0.1:8000`에 연결합니다. 브라우저에 DB 자격 증명을

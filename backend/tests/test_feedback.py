@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import re
 from contextlib import nullcontext
@@ -38,9 +39,6 @@ TABLES = (
     "users",
     "auth_sessions",
     "slides_feedback_result",
-    "entire_result",
-    "entire_improvements",
-    "slide_feedback",
 )
 
 
@@ -56,6 +54,9 @@ def connection():
                 ddl = ddl.replace("CREATE TABLE", "CREATE TEMPORARY TABLE", 1)
                 ddl = re.sub(r",\s*CONSTRAINT[^\n]*FOREIGN KEY[^\n]*", "", ddl)
                 cursor.execute(ddl)
+            cursor.execute("SHOW COLUMNS FROM slides_feedback_result LIKE 'feedback_result'")
+            if cursor.fetchone() is None:
+                cursor.execute("ALTER TABLE slides_feedback_result ADD COLUMN feedback_result JSON NULL")
         yield db
 
 
@@ -105,6 +106,14 @@ def analyze(client, **kwargs):
 def count(connection, table):
     with connection.cursor() as cursor:
         cursor.execute(f"SELECT COUNT(*) AS count FROM `{table}`")
+        return cursor.fetchone()["count"]
+
+
+def count_payloads(connection):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) AS count FROM slides_feedback_result WHERE feedback_result IS NOT NULL"
+        )
         return cursor.fetchone()["count"]
 
 
@@ -178,13 +187,33 @@ def test_material_only_result_without_script_fields_is_saved(client, monkeypatch
     assert stored["slides"][0]["script_connection"] == ""
 
 
-def test_multiple_presentations_can_each_save_slide_one(client, connection):
+def test_multiple_presentations_store_complete_json(client, connection):
     login(client)
     first = analyze(client)
     second = analyze(client)
     assert first.status_code == second.status_code == 200
     assert first.json()["result_id"] != second.json()["result_id"]
-    assert count(connection, "slide_feedback") == 2
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT feedback_result FROM slides_feedback_result ORDER BY slides_result_id")
+        assert [json.loads(row["feedback_result"]) for row in cursor.fetchall()] == [RESULT, RESULT]
+
+
+def test_feedback_json_is_nullable_and_pending_jobs_are_not_listed(client, connection):
+    user = login(client)
+    with connection.cursor() as cursor:
+        cursor.execute("SHOW COLUMNS FROM slides_feedback_result LIKE 'feedback_result'")
+        column = cursor.fetchone()
+        assert column["Type"] == "json" and column["Null"] == "YES"
+        cursor.execute(
+            "INSERT INTO slides_feedback_result (user_id, title, status) VALUES (%s, 'waiting', 'pending')",
+            (user["user_id"],),
+        )
+        result_id = cursor.lastrowid
+        cursor.execute("SELECT feedback_result FROM slides_feedback_result WHERE slides_result_id=%s", (result_id,))
+        assert cursor.fetchone()["feedback_result"] is None
+    connection.commit()
+    assert client.get("/feedback").json()["items"] == []
+    assert client.get(f"/feedback/{result_id}").json() == {"saved_result_id": result_id, "status": "pending"}
 
 
 def test_other_user_and_guest_cannot_read_saved_result(client):
@@ -415,26 +444,28 @@ def test_model_error_marks_job_failed(client, connection, monkeypatch):
     assert body["status"] == "failed"
     assert "사용량" in body["error_message"]
     assert "private detail" not in str(body)
-    assert count(connection, "entire_result") == 0
+    assert count_payloads(connection) == 0
 
 
 def test_partial_save_rolls_back_and_marks_job_failed(client, connection):
     login(client)
     with connection.cursor() as cursor:
         cursor.execute(
-            "ALTER TABLE entire_improvements RENAME COLUMN issue TO unavailable_issue"
+            "ALTER TABLE slides_feedback_result RENAME COLUMN feedback_result TO unavailable_feedback_result"
         )
     try:
         response = analyze(client)
         assert response.status_code == 200
         job = status_of(connection, response.json()["result_id"])
         assert job["status"] == "failed"
-        assert count(connection, "entire_result") == 0
-        assert "unavailable_issue" not in str(job)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT unavailable_feedback_result FROM slides_feedback_result")
+            assert cursor.fetchone()["unavailable_feedback_result"] is None
+        assert "unavailable_feedback_result" not in str(job)
     finally:
         with connection.cursor() as cursor:
             cursor.execute(
-                "ALTER TABLE entire_improvements RENAME COLUMN unavailable_issue TO issue"
+                "ALTER TABLE slides_feedback_result RENAME COLUMN unavailable_feedback_result TO feedback_result"
             )
         connection.commit()
 
@@ -480,7 +511,7 @@ def test_unexpected_model_format_marks_job_failed(client, connection, monkeypatc
     assert response.status_code == 200
     job = status_of(connection, response.json()["result_id"])
     assert job["status"] == "failed"
-    assert count(connection, "entire_result") == 0
+    assert count_payloads(connection) == 0
 
 
 def test_unparsed_model_text_is_returned_as_raw_output(monkeypatch):

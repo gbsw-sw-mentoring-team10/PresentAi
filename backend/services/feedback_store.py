@@ -50,56 +50,17 @@ def set_feedback_status(
 def complete_feedback(
     connection: Connection, result_id: int, result: FeedbackPayload
 ) -> None:
-    # 전체 결과, 하위 피드백, completed 상태를 하나의 트랜잭션으로 저장한다.
+    # 피드백 JSON과 완료 상태를 같은 UPDATE로 저장한다.
+    payload = json.dumps(result.model_dump(mode="json"), ensure_ascii=False, allow_nan=False)
     try:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO entire_result
-                    (slices_result_id, score, feedback, strengths, revised_script)
-                VALUES (%s, %s, %s, %s, %s)
+                UPDATE slides_feedback_result
+                SET feedback_result=%s, status='completed', error_message=NULL
+                WHERE slides_result_id=%s
                 """,
-                (
-                    result_id,
-                    result.score,
-                    result.feedback,
-                    json.dumps(result.strengths, ensure_ascii=False),
-                    result.revised_script,
-                ),
-            )
-            for item in result.improvements:
-                cursor.execute(
-                    """
-                    INSERT INTO entire_improvements
-                        (slides_result_id, issue, deduction, solution)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (result_id, item.issue, item.deduction, item.solution),
-                )
-            for slide in result.slides:
-                cursor.execute(
-                    """
-                    INSERT INTO slide_feedback
-                        (slides_result_id, slide_number, summary, good_points,
-                         issues, script_connection)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        result_id,
-                        slide.slide_number,
-                        slide.summary,
-                        json.dumps(slide.good_points, ensure_ascii=False),
-                        json.dumps(
-                            [issue.model_dump() for issue in slide.issues],
-                            ensure_ascii=False,
-                        ),
-                        slide.script_connection,
-                    ),
-                )
-            cursor.execute(
-                "UPDATE slides_feedback_result SET status='completed', "
-                "error_message=NULL WHERE slides_result_id=%s",
-                (result_id,),
+                (payload, result_id),
             )
         connection.commit()
     except Exception:
@@ -122,8 +83,8 @@ def list_feedback(
             """
             SELECT COUNT(*) AS total
             FROM slides_feedback_result AS r
-            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
-            WHERE r.user_id = %s
+            WHERE r.user_id = %s AND r.status = 'completed'
+              AND r.feedback_result IS NOT NULL
             """,
             (user_id,),
         )
@@ -131,10 +92,10 @@ def list_feedback(
         cursor.execute(
             """
             SELECT r.slides_result_id AS saved_result_id, r.title, r.created_at,
-                   e.score
+                   CAST(JSON_UNQUOTE(JSON_EXTRACT(r.feedback_result, '$.score')) AS UNSIGNED) AS score
             FROM slides_feedback_result AS r
-            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
-            WHERE r.user_id = %s
+            WHERE r.user_id = %s AND r.status = 'completed'
+              AND r.feedback_result IS NOT NULL
             ORDER BY r.created_at DESC, r.slides_result_id DESC
             LIMIT %s OFFSET %s
             """,
@@ -148,58 +109,31 @@ def read_feedback(connection: Connection, user_id: int, result_id: int) -> dict:
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT status, error_message FROM slides_feedback_result
+            SELECT slides_result_id, title, created_at, status, error_message,
+                   feedback_result
+            FROM slides_feedback_result
             WHERE slides_result_id = %s AND user_id = %s
             """,
             (result_id, user_id),
         )
-        job = cursor.fetchone()
-        if job is None:
-            raise HTTPException(
-                status_code=404, detail="저장된 결과를 찾을 수 없습니다."
-            )
-        if job["status"] != "completed":
-            # 분석 중이거나 실패한 요청은 상태만 알려 준다.
-            body = {"saved_result_id": result_id, "status": job["status"]}
-            if job["status"] == "failed":
-                body["error_message"] = job["error_message"]
-            return body
-        cursor.execute(
-            """
-            SELECT r.slides_result_id, r.title, r.created_at,
-                   e.score, e.feedback, e.strengths, e.revised_script
-            FROM slides_feedback_result AS r
-            JOIN entire_result AS e ON e.slices_result_id = r.slides_result_id
-            WHERE r.slides_result_id = %s AND r.user_id = %s
-            """,
-            (result_id, user_id),
-        )
-        result = cursor.fetchone()
-        if result is None:
-            raise HTTPException(
-                status_code=404, detail="저장된 결과를 찾을 수 없습니다."
-            )
-        result["strengths"] = json.loads(result["strengths"])
-        cursor.execute(
-            """
-            SELECT issue, deduction, solution FROM entire_improvements
-            WHERE slides_result_id = %s ORDER BY entire_improvements_id
-            """,
-            (result_id,),
-        )
-        result["improvements"] = cursor.fetchall()
-        cursor.execute(
-            """
-            SELECT slide_number, summary, good_points, issues, script_connection
-            FROM slide_feedback WHERE slides_result_id = %s ORDER BY slide_number
-            """,
-            (result_id,),
-        )
-        slides = cursor.fetchall()
-        for slide in slides:
-            slide["good_points"] = json.loads(slide["good_points"] or "[]")
-            slide["issues"] = json.loads(slide["issues"] or "[]")
-        result["slides"] = slides
-        result["saved_result_id"] = result.pop("slides_result_id")
-        result["status"] = "completed"
-        return result
+        row = cursor.fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="저장된 결과를 찾을 수 없습니다.")
+    if row["status"] != "completed":
+        body = {"saved_result_id": result_id, "status": row["status"]}
+        if row["status"] == "failed":
+            body["error_message"] = row["error_message"]
+        return body
+    stored = row["feedback_result"]
+    payload = json.loads(stored) if isinstance(stored, (str, bytes, bytearray)) else stored
+    if payload is None:
+        raise HTTPException(status_code=404, detail="저장된 결과를 찾을 수 없습니다.")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=500, detail="저장된 결과 형식을 확인할 수 없습니다.")
+    return {
+        **payload,
+        "saved_result_id": row["slides_result_id"],
+        "title": row["title"],
+        "created_at": row["created_at"],
+        "status": "completed",
+    }

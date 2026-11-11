@@ -1,7 +1,8 @@
 # 저장한 피드백 조회 API
 
 `POST /upload/`로 저장한 결과를 로그인한 사용자별로 조회합니다.
-MySQL의 피드백 테이블을 사용하며 S3 인증 없이 조회할 수 있습니다.
+`slides_feedback_result.feedback_result`의 JSON 본문을 사용하며 S3 인증 없이 조회할 수 있습니다.
+분석 전·실패한 요청의 JSON은 SQL NULL이며 완료 시 본문 전체를 한 번에 저장합니다.
 화면은 목록을 조회한 뒤, 선택한 항목의 `saved_result_id`로 상세 내용을 요청하면 됩니다.
 
 로그인한 사용자의 새 분석은 `POST /upload/`에서
