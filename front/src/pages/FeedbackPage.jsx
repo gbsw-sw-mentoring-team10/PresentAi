@@ -1,6 +1,8 @@
 import SubmissionNotice from '../features/feedback/SubmissionNotice.jsx'
 import FeedbackFormGuide from '../features/feedback/FeedbackFormGuide.jsx'
 import AudioUpload from '../features/feedback/AudioUpload.jsx'
+import SpeechModeSelect from '../features/feedback/SpeechModeSelect.jsx'
+import { DEFAULT_SPEECH_MODE } from '../features/feedback/speechModes.js'
 import ScriptInput from '../features/feedback/ScriptInput.jsx'
 import MaterialUpload from '../features/feedback/MaterialUpload.jsx'
 import PresentationFields from '../features/feedback/PresentationFields.jsx'
@@ -91,6 +93,13 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
               error={errors.audio}
               onFile={(file) => updateField('audio', file)}
               onError={(message) => setFieldError('audio', message)}
+            />
+          )}
+          {speech && (
+            <SpeechModeSelect
+              stepNumber="04"
+              value={form.engine || DEFAULT_SPEECH_MODE}
+              onChange={(engine) => updateField('engine', engine)}
             />
           )}
           <SubmissionNotice speech={speech} isExample={example} />

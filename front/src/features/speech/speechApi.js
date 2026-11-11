@@ -84,10 +84,11 @@ function normalizePronunciation(data) {
 }
 
 // 서버가 음성을 텍스트로 인식하고 발음까지 평가해 한 번에 돌려줍니다.
-export async function analyzeSpeech(file, { signal, mock = false } = {}) {
+// mode: 'accurate'(Whisper로 받아 적고 Azure로 발음 평가) | 'fast'(Azure가 한 번에 처리)
+export async function analyzeSpeech(file, { signal, mock = false, mode = 'accurate' } = {}) {
   const data = await postAudio(
     mock ? '/mock/speech/' : '/speech/',
-    {},
+    { mode },
     file,
     signal,
     '음성을 분석하지 못했어요. 다시 시도해 주세요.',

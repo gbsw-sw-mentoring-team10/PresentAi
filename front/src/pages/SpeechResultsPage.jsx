@@ -10,7 +10,7 @@ import {
 import '../styles/speech-results.css'
 
 export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
-  const { stt, mock, audioName, script, pronunciation, review } = speech
+  const { stt, mock, engine, audioName, script, pronunciation, review } = speech
   if (!stt) {
     return (
       <div className="state-page">
@@ -49,6 +49,10 @@ export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
             <Icon name="mic" size={16} />
             {audioName || '리허설 음성'}
           </span>
+        </div>
+        <div>
+          <small>분석 방식</small>
+          <span>{engine === 'fast' ? '빠른 분석' : '정확한 분석'}</span>
         </div>
       </div>
       <div className="speech-results">

@@ -102,6 +102,20 @@ test('sample audio uses the mock endpoints with a placeholder file', async () =>
   ])
 })
 
+test('the chosen analysis mode reaches the server call and defaults to accurate', async () => {
+  const modes = []
+  const states = []
+  const manager = createSpeechRequest((state) => states.push(state), {
+    analyze: async (file, options) => (modes.push(options.mode), analysis),
+    review: async () => review,
+  })
+  await manager.run({ audio, script: '' })
+  await manager.run({ audio, script: '', engine: 'fast' })
+  await manager.run({ audio, script: '', engine: 'unknown' })
+  assert.deepEqual(modes, ['accurate', 'fast', 'accurate'])
+  assert.equal(states.find((s) => s.engine === 'fast').status, 'transcribing')
+})
+
 test('cancel aborts the work and ignores late results', async () => {
   const { states, onChange } = collect()
   let release
@@ -141,6 +155,9 @@ test('analysis posts the audio once and normalizes speech and pronunciation', as
   assert.equal(calls[0].url, '/api/presentation/speech/')
   assert.ok(calls[0].body.get('file'))
   assert.equal(calls[0].body.get('reference_text'), null) // 기준 문장은 보내지 않는다
+  assert.equal(calls[0].body.get('mode'), 'accurate')
+  await analyzeSpeech(audio, { mode: 'fast' })
+  assert.equal(calls[1].body.get('mode'), 'fast')
   assert.equal(stt.text, '안녕하세요')
   assert.equal(stt.chunks[0].end, 2.5)
   assert.equal(stt.pauses.length, 1)

@@ -8,6 +8,7 @@ export const EMPTY_SPEECH = {
   // transcribing은 분석 화면에서, ready부터 결과 화면에서 보여 줍니다.
   status: 'idle',
   mock: false,
+  engine: 'accurate',
   audioName: '',
   script: '',
   stt: null,
@@ -67,7 +68,7 @@ export function createSpeechRequest(
 
   async function analyzeAndReview(task) {
     try {
-      const result = await analyze(task.file, options(task))
+      const result = await analyze(task.file, { ...options(task), mode: task.engine })
       task.stt = result.stt
       task.pronunciationResult = result.pronunciation
     } catch (error) {
@@ -100,12 +101,14 @@ export function createSpeechRequest(
     const mock = isSampleFile(form.audio)
     // 예시 음성은 실제 바이트가 없어 샘플 API에 내용 없는 파일을 보냅니다.
     const file = mock ? new File(['sample'], form.audio.name || 'sample.wav') : form.audio
-    const task = { controller: new AbortController(), mock, file, stt: null }
+    const engine = form.engine === 'fast' ? 'fast' : 'accurate'
+    const task = { controller: new AbortController(), mock, file, engine, stt: null }
     active = task
     state = {
       ...EMPTY_SPEECH,
       status: 'transcribing',
       mock,
+      engine,
       audioName: form.audio?.name || '',
       script: form.script || '',
     }

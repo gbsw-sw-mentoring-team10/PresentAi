@@ -20,7 +20,8 @@ const WAIT_MESSAGES = [
 const REQUEST_STEPS = { success: 3, loading: 1 }
 
 // 인식과 발음 평가를 한 번에 처리해 원본 길이의 약 0.13배가 걸려서, 그보다 조금 여유 있게 막대가 차오르게 합니다.
-const SPEECH_TIME_RATIO = 0.18
+// 정확한 분석은 Whisper가 더해져 약 0.4배, 빠른 분석은 약 0.13배가 걸려요.
+const SPEECH_TIME_RATIO = { accurate: 0.5, fast: 0.18 }
 const SPEECH_BASE_SECONDS = 4
 const UNKNOWN_SPEECH_SECONDS = 30
 
@@ -59,7 +60,8 @@ export default function AnalysisPage({
   const expectedSeconds =
     audioSeconds == null
       ? UNKNOWN_SPEECH_SECONDS
-      : SPEECH_BASE_SECONDS + audioSeconds * SPEECH_TIME_RATIO
+      : SPEECH_BASE_SECONDS +
+        audioSeconds * SPEECH_TIME_RATIO[form.engine === 'fast' ? 'fast' : 'accurate']
   // 예상 시간쯤에 약 90%가 되고, 그 뒤로는 멈추지 않고 아주 천천히 100%에 다가갑니다.
   const rise = speech ? expectedSeconds / 2.3 : 8
   const percent =
