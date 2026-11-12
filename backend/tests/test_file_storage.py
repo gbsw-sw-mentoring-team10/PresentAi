@@ -158,3 +158,42 @@ def test_connection_probe_uploads_reads_and_deletes(s3):
     s3.add_response("get_object", {"Body": StreamingBody(BytesIO(body), len(body))})
     s3.add_response("delete_object", {})
     check_connection(s3.client, config.S3_BUCKET_NAME)
+
+
+def stored_pdf_row(**changes):
+    return {"file_id": 37, "file_name": "발표.pdf", "s3_key": "presentai/users/12/a.pdf", "content_type": "application/pdf", **changes}
+
+
+def test_pdf_content_is_streamed_from_s3_for_the_owner(s3):
+    body = b"%PDF-1.4 synthetic"
+    s3.add_response(
+        "get_object",
+        {"Body": StreamingBody(BytesIO(body), len(body)), "ContentLength": len(body)},
+        {"Bucket": config.S3_BUCKET_NAME, "Key": "presentai/users/12/a.pdf"},
+    )
+    db = Database(row=stored_pdf_row())
+    result = file_storage.material_content(db, 12, 37)
+    assert result["body"].read() == body and result["length"] == len(body)
+    assert db.queries[0][1] == (37, 12)  # 내 파일만 조회한다
+
+
+@pytest.mark.parametrize("row", [None, stored_pdf_row(s3_key="presentai/users/99/a.pdf")])
+def test_pdf_content_hides_other_users_and_missing_files(row, monkeypatch):
+    monkeypatch.setattr(file_storage, "get_s3_client", lambda: pytest.fail("S3를 부르면 안 된다"))
+    with pytest.raises(HTTPException) as exc:
+        file_storage.material_content(Database(row=row), 12, 37)
+    assert exc.value.status_code == 404
+
+
+def test_only_pdf_originals_are_served_inline(monkeypatch):
+    monkeypatch.setattr(file_storage, "get_s3_client", lambda: pytest.fail("S3를 부르면 안 된다"))
+    with pytest.raises(HTTPException) as exc:
+        file_storage.material_content(Database(row=stored_pdf_row(content_type="text/html")), 12, 37)
+    assert exc.value.status_code == 415
+
+
+def test_a_file_missing_in_s3_is_reported_as_not_found(s3):
+    s3.add_client_error("get_object", service_error_code="NoSuchKey")
+    with pytest.raises(HTTPException) as exc:
+        file_storage.material_content(Database(row=stored_pdf_row()), 12, 37)
+    assert exc.value.status_code == 404

@@ -249,3 +249,35 @@ def delete_s3_keys(keys: list[str]) -> None:
             client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=key)
         except (BotoCoreError, ClientError) as exc:
             logger.error("계정 삭제 후 S3 정리 필요: %s, key=%s", type(exc).__name__, key)
+
+
+def material_content(connection: Connection, user_id: int, file_id: int) -> dict:
+    """내 PDF 원본을 S3에서 읽어 스트림으로 돌려준다 (기록 화면의 슬라이드 미리보기용).
+
+    브라우저가 S3 주소를 직접 읽으려면 버킷 CORS 설정이 필요해서, 서버가 대신 전달한다.
+    저장된 HTML 등을 이 서버 주소로 그대로 내려주면 위험하므로 PDF만 허용한다.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT file_id, file_name, s3_key, content_type FROM input_files
+            WHERE file_id = %s AND user_id = %s
+            """,
+            (file_id, user_id),
+        )
+        row = cursor.fetchone()
+    if row is None or not row["s3_key"].startswith(f"presentai/users/{user_id}/"):
+        raise HTTPException(status_code=404, detail="저장된 파일을 찾을 수 없습니다.")
+    if row["content_type"] != "application/pdf":
+        raise HTTPException(status_code=415, detail="PDF 원본만 미리 볼 수 있습니다.")
+    try:
+        stored = get_s3_client().get_object(Bucket=config.S3_BUCKET_NAME, Key=row["s3_key"])
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            raise HTTPException(status_code=404, detail="저장된 파일을 찾을 수 없습니다.") from exc
+        raise
+    return {
+        "body": stored["Body"],
+        "length": stored.get("ContentLength"),
+        "file_name": row["file_name"],
+    }
