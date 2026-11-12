@@ -69,11 +69,12 @@ test('logged-in history reads the saved list and JSON detail through the real AP
     expect(options.credentials, url).toBe('include')
 })
 
-test('saved S3 originals expose a download button and the actual file name in history', async () => {
-  server({
+test('saved S3 originals expose a download button and load the PDF when the slides tab opens', async () => {
+  const fetch = server({
     ...detail,
     saved_file_id: 37,
     file_name: '저장한 발표.pdf',
+    file_content_type: 'application/pdf',
     file_storage_status: 'saved',
   })
   window.history.replaceState(null, '', '/#/history/321')
@@ -81,9 +82,23 @@ test('saved S3 originals expose a download button and the actual file name in hi
   render(<App />)
   expect(await screen.findByRole('button', { name: '원본 자료 받기' })).toBeTruthy()
   expect(screen.getByText('저장한 발표.pdf')).toBeTruthy()
+  // 슬라이드 탭을 열기 전에는 원본을 내려받지 않습니다.
+  expect(fetch.mock.calls.some(([url]) => url.includes('/files/37/content'))).toBe(false)
   await events.click(screen.getByRole('tab', { name: '슬라이드별 피드백' }))
   expect(screen.queryByText(/원본 슬라이드가 저장되지 않아/)).toBeNull()
-  expect(screen.getByText(/원본은 위의/)).toBeTruthy()
+  expect(screen.getByText(/저장된 원본 슬라이드와 함께/)).toBeTruthy()
+  await waitFor(() =>
+    expect(fetch.mock.calls.some(([url]) => url.includes('/files/37/content'))).toBe(true),
+  )
+})
+
+test('records without a stored original say that only the feedback is available', async () => {
+  server()
+  window.history.replaceState(null, '', '/#/history/321')
+  const events = userEvent.setup()
+  render(<App />)
+  await events.click(await screen.findByRole('tab', { name: '슬라이드별 피드백' }))
+  expect(screen.getByText(/원본 슬라이드가 저장되지 않아/)).toBeTruthy()
 })
 
 test('my page uses saved feedback counts and average instead of sample records', async () => {
