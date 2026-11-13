@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import HistoryListItem from '../features/history/HistoryListItem.jsx'
@@ -18,10 +18,19 @@ export default function HistoryPage({ navigate, user, onLogin }) {
   const [removed, setRemoved] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [deleteError, setDeleteError] = useState('')
-  const items = (request.data || []).filter((item) => !removed.includes(item.id))
   const [filter, setFilter] = useState('all')
-  const visible = filter === 'all' ? items : items.filter((item) => item.type === filter)
-  const count = (id) => (id === 'all' ? items.length : items.filter((i) => i.type === id).length)
+  const groups = useMemo(() => {
+    const grouped = { all: [], material: [], speech: [] }
+    const removedIds = new Set(removed)
+    for (const item of request.data || []) {
+      if (removedIds.has(item.id)) continue
+      grouped.all.push(item)
+      if (item.type === 'material' || item.type === 'speech') grouped[item.type].push(item)
+    }
+    return grouped
+  }, [request.data, removed])
+  const items = groups.all
+  const visible = groups[filter]
 
   async function handleDelete(item) {
     if (
@@ -68,7 +77,7 @@ export default function HistoryPage({ navigate, user, onLogin }) {
                     onClick={() => setFilter(item.id)}
                   >
                     {item.name}
-                    <span>{count(item.id)}</span>
+                    <span>{groups[item.id].length}</span>
                   </button>
                 ))}
               </div>

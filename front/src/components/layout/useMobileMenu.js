@@ -7,11 +7,6 @@ export default function useMobileMenu() {
   const close = useCallback(() => setOpen(false), [])
 
   useEffect(() => {
-    window.addEventListener('hashchange', close)
-    return () => window.removeEventListener('hashchange', close)
-  }, [close])
-
-  useEffect(() => {
     if (!isOpen) return
 
     function closeOutside(event) {
@@ -29,11 +24,13 @@ export default function useMobileMenu() {
     }
 
     const desktop = window.matchMedia('(min-width: 801px)')
+    window.addEventListener('hashchange', close)
     document.addEventListener('pointerdown', closeOutside)
     document.addEventListener('keydown', closeEscape)
     desktop.addEventListener('change', closeDesktop)
 
     return () => {
+      window.removeEventListener('hashchange', close)
       document.removeEventListener('pointerdown', closeOutside)
       document.removeEventListener('keydown', closeEscape)
       desktop.removeEventListener('change', closeDesktop)

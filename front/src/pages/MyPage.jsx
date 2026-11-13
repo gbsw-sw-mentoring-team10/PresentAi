@@ -121,12 +121,7 @@ function AccountView({ user, navigate, onLogin, onAccountDeleted }) {
         ) : history.status !== 'success' ? (
           <HistoryLoadState request={history} onLogin={onLogin} />
         ) : (
-          <RecordPanel
-            summary={summary}
-            profile={profile}
-            loading={loading}
-            onViewHistory={() => navigate('/history')}
-          />
+          <RecordPanel summary={summary} profile={profile} loading={loading} navigate={navigate} />
         )}
       </section>
       {toast && (

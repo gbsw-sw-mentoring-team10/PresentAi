@@ -22,7 +22,8 @@ export default function useAccountAction() {
     setBusy(true)
     setMessage('')
     try {
-      return { value: await action(current.signal) }
+      const value = await action(current.signal)
+      return current.signal.aborted ? null : { value }
     } catch (error) {
       if (!current.signal.aborted) setMessage(describeFailure(error))
       return null

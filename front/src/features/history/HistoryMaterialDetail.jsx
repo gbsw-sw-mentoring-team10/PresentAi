@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../../components/ui/Icon.jsx'
 import FeedbackResultTabs from '../results/FeedbackResultTabs.jsx'
 import FeedbackSummary from '../results/FeedbackSummary.jsx'
@@ -9,10 +9,8 @@ import PrioritySlideIssues from '../results/PrioritySlideIssues.jsx'
 import RevisedScript from '../results/RevisedScript.jsx'
 import SlideWorkspace from '../slides/SlideWorkspace.jsx'
 import useSlideReview from '../slides/useSlideReview.js'
-import { mergeDocumentSlides } from '../slides/slideFeedback.js'
+import { getPrioritySlideIssues, mergeDocumentSlides } from '../slides/slideFeedback.js'
 import useSavedOriginal from './useSavedOriginal.js'
-
-const PRIORITY_ORDER = ['high', 'medium', 'low']
 
 // 실제 결과 화면과 같은 구성 요소로 저장된 피드백을 보여 줍니다.
 export default function HistoryMaterialDetail({ result, tab, setTab, onNotify }) {
@@ -24,17 +22,18 @@ export default function HistoryMaterialDetail({ result, tab, setTab, onNotify })
     contentType: result.file_content_type,
     enabled: tab === 'slides',
   })
-  const slides = mergeDocumentSlides(result.slides || [], preview.document?.numPages)
+  const pageCount = preview.document?.numPages
+  const slides = useMemo(
+    () => mergeDocumentSlides(result.slides || [], pageCount),
+    [result.slides, pageCount],
+  )
   const {
     navigation: slideNavigation,
     feedback: slideFeedback,
     progress: slideProgress,
     showSlide,
   } = useSlideReview(slides)
-  const slidePriorities = slides
-    .flatMap((slide) => slide.issues.map((issue) => ({ ...issue, page: slide.id })))
-    .sort((a, b) => PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority))
-    .slice(0, 3)
+  const slidePriorities = useMemo(() => getPrioritySlideIssues(slides), [slides])
   const hasSlides = !!result.slides?.length
   const tabsRef = useRef(null)
 

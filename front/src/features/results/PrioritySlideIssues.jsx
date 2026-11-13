@@ -17,36 +17,35 @@ export default function PrioritySlideIssues({
         </button>
       </div>
       <div className="priority-list">
-        {slidePriorities.map((issue) => (
-          <article key={issue.id} className={reviewed.includes(issue.id) ? 'resolved' : ''}>
-            <button
-              className="resolve-check"
-              aria-label={`${issue.title} 확인 완료 표시`}
-              aria-pressed={reviewed.includes(issue.id)}
-              onClick={() => toggleSlideIssue(issue.id)}
-            >
-              {reviewed.includes(issue.id) ? (
-                <Icon name="check" size={16} />
-              ) : (
-                String(issue.page).padStart(2, '0')
-              )}
-            </button>
-            <div>
-              <span className="priority-label">
-                SLIDE {String(issue.page).padStart(2, '0')} · {issue.category}
-              </span>
-              <h3>{issue.title}</h3>
-              {issue.target && <p>{issue.target}</p>}
-            </div>
-            <button
-              className="icon-button"
-              aria-label={`${issue.page}번 슬라이드 ${issue.title} 보기`}
-              onClick={() => openSlide(issue.page, issue.id)}
-            >
-              <Icon name="arrow" />
-            </button>
-          </article>
-        ))}
+        {slidePriorities.map((issue) => {
+          const checked = reviewed.includes(issue.id)
+          return (
+            <article key={issue.id} className={checked ? 'resolved' : ''}>
+              <button
+                className="resolve-check"
+                aria-label={`${issue.title} 확인 완료 표시`}
+                aria-pressed={checked}
+                onClick={() => toggleSlideIssue(issue.id)}
+              >
+                {checked ? <Icon name="check" size={16} /> : String(issue.page).padStart(2, '0')}
+              </button>
+              <div>
+                <span className="priority-label">
+                  SLIDE {String(issue.page).padStart(2, '0')} · {issue.category}
+                </span>
+                <h3>{issue.title}</h3>
+                {issue.target && <p>{issue.target}</p>}
+              </div>
+              <button
+                className="icon-button"
+                aria-label={`${issue.page}번 슬라이드 ${issue.title} 보기`}
+                onClick={() => openSlide(issue.page, issue.id)}
+              >
+                <Icon name="arrow" />
+              </button>
+            </article>
+          )
+        })}
       </div>
     </section>
   )

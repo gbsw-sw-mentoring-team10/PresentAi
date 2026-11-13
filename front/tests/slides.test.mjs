@@ -7,10 +7,52 @@ import {
   initialSlide,
   mergeDocumentSlides,
   slideStatus,
+  getPrioritySlideIssues,
 } from '../src/features/slides/slideFeedback.js'
 import { exampleSlides } from '../src/data/exampleSlides.js'
 import { priorities, example } from '../src/data/examplePresentation.js'
 import { buildApiReport, buildExampleReport } from '../src/features/results/feedbackReport.js'
+
+test('priority summary keeps the first three urgent issues in page order without changing slides', () => {
+  const pages = normalizeSlides([
+    {
+      page: 2,
+      issues: [
+        { title: 'Low', priority: 'low' },
+        { title: 'Medium', priority: 'medium' },
+      ],
+    },
+    {
+      page: 5,
+      issues: [
+        { title: 'First', priority: 'high' },
+        { title: 'Second', priority: 'high' },
+      ],
+    },
+    {
+      page: 9,
+      issues: [
+        { title: 'Third', priority: 'high' },
+        { title: 'Fourth', priority: 'high' },
+      ],
+    },
+  ])
+  const before = structuredClone(pages)
+  assert.deepEqual(
+    getPrioritySlideIssues(pages).map(({ title, page }) => ({ title, page })),
+    [
+      { title: 'First', page: 5 },
+      { title: 'Second', page: 5 },
+      { title: 'Third', page: 9 },
+    ],
+  )
+  assert.deepEqual(
+    getPrioritySlideIssues(pages.slice(0, 1)).map((issue) => issue.title),
+    ['Medium', 'Low'],
+  )
+  assert.deepEqual(getPrioritySlideIssues([]), [])
+  assert.deepEqual(pages, before)
+})
 
 test('review navigation uses filtered page order, including nonconsecutive page numbers', () => {
   const pages = normalizeSlides([

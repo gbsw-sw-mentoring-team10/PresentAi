@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import Icon from '../../components/ui/Icon.jsx'
 
 import { slideStatus } from './slideFeedback.js'
@@ -16,6 +16,7 @@ export default function SlideSidebar({
 }) {
   const pad = (value) => String(value).padStart(2, '0')
   const listRef = useRef(null)
+  const reviewedIds = useMemo(() => new Set(reviewed), [reviewed])
   useLayoutEffect(() => {
     const list = listRef.current
     const item = list?.querySelector('[aria-current="true"]')
@@ -69,7 +70,7 @@ export default function SlideSidebar({
         {visibleSlides.map((item) => {
           const status = slideStatus(item)
           const complete =
-            item.issues.length > 0 && item.issues.every((issue) => reviewed.includes(issue.id))
+            item.issues.length > 0 && item.issues.every((issue) => reviewedIds.has(issue.id))
           return (
             <button
               key={item.id}

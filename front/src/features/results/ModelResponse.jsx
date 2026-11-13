@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react'
+
 export function StorageNotice({ result }) {
   const message =
     result.storage_status === 'failed'
@@ -17,19 +19,33 @@ export function StorageNotice({ result }) {
 }
 
 export function ModelResponse({ value, expanded = false }) {
+  const [hasOpened, setHasOpened] = useState(expanded)
+  const showContent = expanded || hasOpened
+  const content = useMemo(
+    () => (showContent ? (typeof value === 'string' ? value : JSON.stringify(value, null, 2)) : ''),
+    [showContent, value],
+  )
   return (
-    <details open={expanded} className="model-response">
+    <details
+      open={expanded}
+      className="model-response"
+      onToggle={(event) => {
+        if (event.currentTarget.open) setHasOpened(true)
+      }}
+    >
       <summary>모델 응답 원문 보기</summary>
-      <pre
-        style={{
-          whiteSpace: 'pre-wrap',
-          overflowWrap: 'anywhere',
-          maxHeight: '60vh',
-          overflow: 'auto',
-        }}
-      >
-        {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-      </pre>
+      {showContent && (
+        <pre
+          style={{
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere',
+            maxHeight: '60vh',
+            overflow: 'auto',
+          }}
+        >
+          {content}
+        </pre>
+      )}
     </details>
   )
 }

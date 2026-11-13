@@ -3,9 +3,7 @@ import Icon from '../../components/ui/Icon.jsx'
 import { describeDate } from './accountRecord.js'
 import ScoreGauge from './ScoreGauge.jsx'
 
-export default function RecordPanel({ summary, profile, loading, onViewHistory }) {
-  const average = summary.average ?? 0
-
+export default function RecordPanel({ summary, profile, loading, navigate }) {
   return (
     <div className="mypage-record">
       <section className="mypage-card mypage-grade" aria-labelledby="mypage-grade-title">
@@ -14,7 +12,7 @@ export default function RecordPanel({ summary, profile, loading, onViewHistory }
           <h2 id="mypage-grade-title">나의 발표 등급</h2>
         </div>
         <ScoreGauge
-          value={average}
+          value={summary.average ?? 0}
           label="전체 발표 점수"
           description={
             summary.average === null
@@ -54,9 +52,11 @@ export default function RecordPanel({ summary, profile, loading, onViewHistory }
             </strong>
           </li>
         </ul>
-        <Button variant="outline" icon="list" onClick={onViewHistory}>
-          내 피드백 보기
-        </Button>
+        <div className="mypage-feedback-actions">
+          <Button variant="outline" icon="list" onClick={() => navigate('/history')}>
+            내 피드백 보기
+          </Button>
+        </div>
       </section>
       <section className="mypage-card" aria-labelledby="mypage-history-title">
         <div className="card-label">

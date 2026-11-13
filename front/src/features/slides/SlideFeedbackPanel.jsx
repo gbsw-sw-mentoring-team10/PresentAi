@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import SlideIssueCard from './SlideIssueCard.jsx'
 
 import Icon from '../../components/ui/Icon.jsx'
@@ -13,6 +13,7 @@ export default function SlideFeedbackPanel({
   copySuggestion,
 }) {
   const feedbackRef = useRef(null)
+  const reviewedIds = useMemo(() => new Set(reviewed), [reviewed])
   useLayoutEffect(() => {
     if (feedbackRef.current) feedbackRef.current.scrollTop = 0
   }, [slide?.id])
@@ -36,7 +37,7 @@ export default function SlideFeedbackPanel({
       <div ref={feedbackRef} className="deck-feedback-scroll">
         {slide.issues.map((issue, number) => {
           const open = currentIssueId === issue.id
-          const checked = reviewed.includes(issue.id)
+          const checked = reviewedIds.has(issue.id)
           return (
             <SlideIssueCard
               key={issue.id}

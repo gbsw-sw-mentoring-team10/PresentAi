@@ -33,6 +33,7 @@ export default function AudioUpload({ stepNumber, file, error, onFile, onError }
       {hasAudio && (
         <audio
           controls
+          preload="metadata"
           ref={audioRef}
           className="audio-player"
           aria-label="선택한 리허설 음성 재생"

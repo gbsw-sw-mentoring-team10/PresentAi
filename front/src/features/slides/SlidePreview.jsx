@@ -18,7 +18,12 @@ export default function SlidePreview({ slide, pdf, small = false, expanded = fal
     )
   if (slide.imageUrl)
     return (
-      <SlideImage key={slide.imageUrl} src={slide.imageUrl} title={`${slide.id}번 원본 슬라이드`} />
+      <SlideImage
+        key={slide.imageUrl}
+        src={slide.imageUrl}
+        title={`${slide.id}번 원본 슬라이드`}
+        small={small}
+      />
     )
   return (
     <div className="deck-preview-missing">

@@ -126,8 +126,9 @@ test('the grade gauge displays the saved average with a link to the feedback lis
 
   expect(meter.firstElementChild.style.width).toBe(`${average}%`)
   expect(screen.queryByLabelText('점수 미리보기')).toBeNull()
+  expect(screen.queryByRole('spinbutton')).toBeNull()
   await events.click(screen.getByRole('button', { name: '내 피드백 보기' }))
-  expect(navigate).toHaveBeenCalledWith('/history')
+  expect(navigate).toHaveBeenCalledExactlyOnceWith('/history')
 })
 
 test('empty saved records show zero counts and no sample average', async () => {

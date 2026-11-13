@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Icon from '../../components/ui/Icon.jsx'
 
-export default function SlideImage({ src, title }) {
+export default function SlideImage({ src, title, small = false }) {
   const [failed, setFailed] = useState(false)
   return failed ? (
     <div className="deck-preview-missing">
@@ -13,6 +13,8 @@ export default function SlideImage({ src, title }) {
       className="deck-original-image"
       src={src}
       alt={title}
+      loading={small ? 'lazy' : 'eager'}
+      decoding="async"
       onError={() => setFailed(true)}
       referrerPolicy="no-referrer"
     />

@@ -5,7 +5,7 @@ import PresentationStrengths from '../features/results/PresentationStrengths.jsx
 import PrioritySlideIssues from '../features/results/PrioritySlideIssues.jsx'
 import PresentationScore from '../features/results/PresentationScore.jsx'
 import FeedbackSummary from '../features/results/FeedbackSummary.jsx'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
@@ -14,7 +14,7 @@ import useToastMessage from '../hooks/useToastMessage.js'
 import SlideWorkspace from '../features/slides/SlideWorkspace.jsx'
 import useSlideReview from '../features/slides/useSlideReview.js'
 import usePdfDocument from '../features/slides/usePdfDocument.js'
-import { mergeDocumentSlides } from '../features/slides/slideFeedback.js'
+import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/slideFeedback.js'
 import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 
@@ -37,21 +37,21 @@ function StructuredResults({ request, navigate }) {
   const [resolved, setResolved] = useState([])
   const [tab, setTab] = useState('overview')
   const preview = usePdfDocument(submission.file)
-  const slides = mergeDocumentSlides(result.slides || [], preview.document?.numPages)
+  const pageCount = preview.document?.numPages
+  const slides = useMemo(
+    () => mergeDocumentSlides(result.slides || [], pageCount),
+    [result.slides, pageCount],
+  )
   const {
     navigation: slideNavigation,
     feedback: slideFeedback,
     progress: slideProgress,
     showSlide,
   } = useSlideReview(slides)
-  const slidePriorities = (result.slides || [])
-    .flatMap((slide) => slide.issues.map((issue) => ({ ...issue, page: slide.id })))
-    .sort(
-      (a, b) =>
-        ['high', 'medium', 'low'].indexOf(a.priority) -
-        ['high', 'medium', 'low'].indexOf(b.priority),
-    )
-    .slice(0, 3)
+  const slidePriorities = useMemo(
+    () => getPrioritySlideIssues(result.slides || []),
+    [result.slides],
+  )
   function openSlide(id, issueId) {
     showSlide(id, issueId)
     setTab('slides')

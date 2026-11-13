@@ -11,17 +11,33 @@ export function slideStatus(slide) {
 }
 
 export function filterSlides(slides, filter, reviewed) {
-  return slides.filter((slide) => {
-    if (filter === 'review') return slide.issues.some((issue) => issue.priority !== 'low')
-    if (filter === 'unread') return slide.issues.some((issue) => !reviewed.includes(issue.id))
-    return true
-  })
+  if (filter === 'review')
+    return slides.filter((slide) => slide.issues.some((issue) => issue.priority !== 'low'))
+  if (filter === 'unread') {
+    const reviewedIds = new Set(reviewed)
+    return slides.filter((slide) => slide.issues.some((issue) => !reviewedIds.has(issue.id)))
+  }
+  return slides
 }
 
 export function initialSlide(slides) {
   return (
     slides.find((slide) => slide.issues.some((issue) => issue.priority === 'high')) || slides[0]
   )
+}
+
+export function getPrioritySlideIssues(slides) {
+  const selected = []
+  for (const priority of priorities) {
+    for (const slide of slides) {
+      for (const issue of slide.issues) {
+        if (issue.priority !== priority) continue
+        selected.push({ ...issue, page: slide.id })
+        if (selected.length === 3) return selected
+      }
+    }
+  }
+  return selected
 }
 
 // Optional API extension: page numbers are explicit, never inferred from prose or array order.

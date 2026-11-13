@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { filterSlides, initialSlide } from './slideFeedback.js'
 
 // 예시/실제 결과가 같은 선택·필터·확인 규칙을 사용합니다.
@@ -9,15 +9,28 @@ export default function useSlideReview(slides) {
   const [filter, setFilter] = useState('all')
   const [reviewedIssueIds, setReviewedIssueIds] = useState([])
 
-  const visibleSlides = filterSlides(slides, filter, reviewedIssueIds)
+  const visibleSlides = useMemo(
+    () => filterSlides(slides, filter, reviewedIssueIds),
+    [slides, filter, reviewedIssueIds],
+  )
   const slide = visibleSlides.find((item) => item.id === selectedSlideId) || visibleSlides[0]
   const slideIndex = visibleSlides.findIndex((item) => item.id === slide?.id)
   const currentIssue =
     activeIssueId === '__none__'
       ? null
       : slide?.issues.find((issue) => issue.id === activeIssueId) || slide?.issues[0]
-  const totalIssues = slides.flatMap((item) => item.issues)
-  const reviewedCount = totalIssues.filter((issue) => reviewedIssueIds.includes(issue.id)).length
+  const progress = useMemo(() => {
+    const reviewedIds = new Set(reviewedIssueIds)
+    let totalCount = 0
+    let reviewedCount = 0
+    for (const item of slides) {
+      totalCount += item.issues.length
+      for (const issue of item.issues) {
+        if (reviewedIds.has(issue.id)) reviewedCount += 1
+      }
+    }
+    return { reviewedCount, totalCount }
+  }, [slides, reviewedIssueIds])
 
   function selectSlide(slideId, issueId = null) {
     setSelectedSlideId(slideId)
@@ -73,10 +86,7 @@ export default function useSlideReview(slides) {
       selectIssue: setActiveIssueId,
       toggleIssue,
     },
-    progress: {
-      reviewedCount,
-      totalCount: totalIssues.length,
-    },
+    progress,
     // 요약에서 상세로 진입하는 동작은 페이지에서만 사용합니다.
     showSlide,
   }

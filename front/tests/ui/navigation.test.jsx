@@ -71,6 +71,75 @@ const nav = () => screen.getByRole('navigation', { name: '주 메뉴' })
 const myPageAction = () =>
   screen.getAllByRole('button', { name: '마이페이지' }).find((b) => !nav().contains(b))
 
+test.each([
+  ['banner', 'PresentAi 홈', '/', /전하고 싶은 생각/],
+  ['contentinfo', 'PresentAi', '/', /전하고 싶은 생각/],
+  ['banner', '발표자료 피드백', '/materials', '어떤 발표를 준비하고 있나요?'],
+  ['contentinfo', '자료 피드백', '/materials', '어떤 발표를 준비하고 있나요?'],
+  ['banner', '시작하기', '/materials', '어떤 발표를 준비하고 있나요?'],
+  ['banner', '발표 피드백', '/speech', '말에 자신감을 더해 보세요.'],
+  ['contentinfo', '발표 피드백', '/speech', '말에 자신감을 더해 보세요.'],
+])('%s: %s opens its named destination from My Page', async (role, name, path, heading) => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp('/mypage')
+  await screen.findByRole('heading', { level: 1, name: account.email })
+  await user.click(within(screen.getByRole(role)).getByRole('button', { name, exact: true }))
+  await waitFor(() => expect(window.location.hash).toBe(`#${path}`))
+  expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy()
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test.each(['banner', 'contentinfo'])(
+  '%s: How It Works opens the home section from another page',
+  async (role) => {
+    const originalScroll = HTMLElement.prototype.scrollIntoView
+    const targets = []
+    HTMLElement.prototype.scrollIntoView = function () {
+      targets.push(this.id)
+    }
+    try {
+      stubServer({ loggedIn: true })
+      const user = await renderApp('/history')
+      await screen.findByRole('heading', { level: 1, name: /내 피드백/ })
+      await user.click(within(screen.getByRole(role)).getByRole('button', { name: '이용 방법' }))
+      await waitFor(() => expect(window.location.hash).toBe('#/'))
+      await screen.findByRole('heading', { name: /복잡한 준비는 덜고/ })
+      expect(targets.at(-1)).toBe('how')
+    } finally {
+      if (originalScroll) HTMLElement.prototype.scrollIntoView = originalScroll
+      else delete HTMLElement.prototype.scrollIntoView
+    }
+  },
+)
+
+test('My Page feedback button opens the list, saved details and the list again', async () => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp('/mypage')
+  await user.click(await screen.findByRole('tab', { name: '기록' }))
+  await user.click(await screen.findByRole('button', { name: '내 피드백 보기' }))
+  await screen.findByRole('heading', { level: 1, name: /내 피드백/ })
+  expect(window.location.hash).toBe('#/history')
+
+  for (const type of ['material', 'speech']) {
+    const item = feedbackHistory.find((entry) => entry.type === type)
+    await user.click(await screen.findByRole('link', { name: new RegExp(item.title) }))
+    await screen.findByRole('heading', { level: 1, name: item.title })
+    expect(window.location.hash).toBe(`#/history/${item.id}`)
+    await user.click(screen.getByRole('button', { name: '목록으로' }))
+    await screen.findByRole('heading', { level: 1, name: /내 피드백/ })
+    expect(window.location.hash).toBe('#/history')
+  }
+})
+
+test('an unknown route recovers to home through its return button', async () => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp('/missing-route')
+  await screen.findByRole('heading', { name: '이 페이지는 아직 비어 있어요.' })
+  await user.click(screen.getByRole('button', { name: '홈으로 돌아가기' }))
+  await screen.findByRole('heading', { level: 1, name: /전하고 싶은 생각/ })
+  expect(window.location.hash).toBe('#/')
+})
+
 test('logged-out header entries show the login notice instead of navigating', async () => {
   stubServer()
   const user = await renderApp('/materials')

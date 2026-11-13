@@ -134,14 +134,29 @@
 /* 기록 */
 .mypage-record {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
+}
+.mypage-record > .mypage-card {
+  display: flex;
+  flex-direction: column;
 }
 .mypage-grade {
-  grid-row: span 2;
   background: #fffef4;
   border-color: #f0e8b2;
+}
+.mypage-grade .score-gauge {
+  margin-block: auto;
+}
+.mypage-feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 24px;
+}
+.mypage-history {
+  grid-column: 1 / -1;
 }
 .mypage-stats {
   list-style: none;
@@ -180,18 +195,26 @@
   margin-left: 3px;
 }
 .mypage-dates {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 .mypage-dates > div {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  padding: 13px 0;
-  border-top: 1px solid var(--line);
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 24px;
+  border-left: 1px solid var(--line);
+}
+.mypage-dates > div:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 .mypage-dates > div:last-child {
-  padding-bottom: 0;
+  padding-right: 0;
 }
 .mypage-dates dt {
   font-size: 12px;
@@ -201,7 +224,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 /* 점수 게이지 */
@@ -271,53 +294,6 @@
   color: #625f50;
   margin-top: 14px;
 }
-.score-preview {
-  margin-top: 24px;
-  padding: 18px;
-  border: 1px dashed #e3d56d;
-  border-radius: 12px;
-  background: #fff;
-}
-.score-preview-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.score-preview-head label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.score-preview-controls {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 12px;
-}
-.score-preview-controls input {
-  width: 120px;
-  min-width: 0;
-  background: #fff;
-  border: 1px solid #d8d8cf;
-  border-radius: 9px;
-  padding: 10px 13px;
-  font-size: 14px;
-  color: var(--ink);
-}
-.score-preview-controls input:focus {
-  outline: 2px solid #ffe50055;
-  outline-offset: 0;
-  border-color: #cfb900;
-}
-.score-preview-controls input[aria-invalid='true'] {
-  border-color: #c65f43;
-}
-.score-preview-controls .text-button {
-  font-size: 12px;
-}
-.score-preview .field-help {
-  line-height: 1.7;
-}
-
 /* 계정 팝업 */
 .account-modal form {
   margin-top: 4px;
@@ -384,26 +360,16 @@
   gap: 10px;
 }
 
-@media (max-width: 1100px) {
-  .mypage-record {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .mypage-grade {
-    grid-row: auto;
-  }
-}
 @media (max-width: 800px) {
   .mypage {
     padding: 28px 0 60px;
   }
-  .mypage-grid {
+  .mypage-grid,
+  .mypage-record {
     grid-template-columns: minmax(0, 1fr);
   }
   .mypage-name {
     font-size: 26px;
-  }
-  .score-preview-controls input {
-    font-size: 16px;
   }
 }
 @media (max-width: 600px) {
@@ -446,21 +412,21 @@
   .score-gauge-value {
     font-size: 42px;
   }
-  .score-preview {
-    padding: 15px;
-  }
-  .score-preview-controls {
-    flex-wrap: wrap;
-  }
-  .score-preview-controls input {
+  .mypage-feedback-actions .button {
     width: 100%;
   }
-  .mypage-dates > div {
-    flex-direction: column;
-    gap: 4px;
+  .mypage-dates {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 0;
   }
-  .mypage-dates dd {
-    text-align: left;
+  .mypage-dates > div {
+    padding: 16px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .mypage-dates > div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
   .mypage-load-error {
     flex-direction: column;
