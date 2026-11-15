@@ -53,7 +53,7 @@ export default function ScriptInput({
             rows={6}
             value={script}
             onChange={(e) => onScriptChange(e.target.value)}
-            placeholder="안녕하세요. 오늘은…"
+            placeholder="예: 안녕하세요. 오늘은 지속 가능한 부동산 투자 전략을 말씀드리겠습니다…"
           />
           <span>{script.length.toLocaleString()} / 50,000자</span>
           {error && (

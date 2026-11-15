@@ -12,7 +12,7 @@ import {
   shouldResetForm,
 } from './features/feedback/exampleForm.js'
 import useAuth from './features/auth/useAuth.js'
-import { LoginRequiredModal, LoginRequiredPage } from './features/auth/LoginRequired.jsx'
+import { LoginRequiredPage } from './features/auth/LoginRequired.jsx'
 import useHashRoute, { historyRouteId } from './hooks/useHashRoute.js'
 import './styles/app.css'
 import './styles/responsive.css'
@@ -36,8 +36,6 @@ export default function App() {
   const [mode, setMode] = useState('material')
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
-  const [loginNotice, setLoginNotice] = useState(false)
-  const [afterLogin, setAfterLogin] = useState(null)
   const account = useAuth()
   const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
   const {
@@ -61,14 +59,7 @@ export default function App() {
     if (route !== '/analysis' && route !== '/speech-results') cancelSpeech()
   }, [route, cancelFeedback, cancelSpeech])
 
-  const closeAuth = useCallback(() => {
-    setAuth(false)
-    setAfterLogin(null)
-  }, [])
-  const closeLoginNotice = useCallback(() => {
-    setLoginNotice(false)
-    setAfterLogin(null)
-  }, [])
+  const closeAuth = useCallback(() => setAuth(false), [])
   const navigate = useCallback(
     (path) => {
       if (path !== '/analysis') cancelFeedback()
@@ -87,26 +78,6 @@ export default function App() {
     if (nextMode === 'speech') runSpeech(submitted)
     else runFeedback(submitted)
     navigate('/analysis')
-  }
-
-  // 로그인이 필요한 화면은 로그인 전이면 이동하지 않고 안내 팝업을 띄웁니다.
-  function openMember(path) {
-    if (account.user || account.busy) {
-      navigate(path)
-      return
-    }
-    setAfterLogin(path)
-    setLoginNotice(true)
-  }
-
-  function loginFromNotice() {
-    setLoginNotice(false)
-    setAuth(true)
-  }
-
-  async function authenticate(...credentials) {
-    await account.authenticate(...credentials)
-    if (afterLogin) navigate(afterLogin)
   }
 
   function resetSession() {
@@ -162,6 +133,8 @@ export default function App() {
             setForm={setForm}
             navigate={navigate}
             start={start}
+            signedOut={!account.user && !account.busy}
+            onLogin={() => setAuth(true)}
           />
         )
       case '/analysis':
@@ -243,7 +216,6 @@ export default function App() {
         activeSection={activeSection}
         mode={mode}
         navigate={navigate}
-        openMember={openMember}
         scrollSection={scrollSection}
         onLogin={() => setAuth(true)}
         user={account.user}
@@ -272,11 +244,10 @@ export default function App() {
       {auth && (
         <PageErrorBoundary key="auth">
           <Suspense fallback={null}>
-            <AuthModal onClose={closeAuth} onAuthenticate={authenticate} />
+            <AuthModal onClose={closeAuth} onAuthenticate={account.authenticate} />
           </Suspense>
         </PageErrorBoundary>
       )}
-      {loginNotice && <LoginRequiredModal onClose={closeLoginNotice} onLogin={loginFromNotice} />}
     </>
   )
 }

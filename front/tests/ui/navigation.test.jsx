@@ -140,19 +140,14 @@ test('an unknown route recovers to home through its return button', async () => 
   expect(window.location.hash).toBe('#/')
 })
 
-test('logged-out header entries show the login notice instead of navigating', async () => {
+test('logged-out header shows only public entries until the user logs in', async () => {
   stubServer()
   const user = await renderApp('/materials')
   expect(
     within(screen.getByRole('banner')).queryAllByRole('button', { name: '마이페이지' }),
   ).toHaveLength(0)
-
-  await user.click(within(nav()).getByRole('button', { name: '내 피드백' }))
-  const notice = await screen.findByRole('dialog', { name: '로그인 안내' })
-  expect(within(notice).getByText(NOTICE)).toBeTruthy()
-  expect(window.location.hash).toBe('#/materials')
-  await user.click(within(notice).getByText('닫기', { selector: '.button' }))
-  expect(screen.queryByRole('dialog', { name: '로그인 안내' })).toBeNull()
+  // 내 피드백은 마이페이지에서 들어가므로 상단 메뉴에는 없습니다.
+  expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
 
   await user.click(
     within(screen.getByRole('banner')).getByRole('button', { name: '로그인', exact: true }),
@@ -191,21 +186,25 @@ test('opening gated routes directly while logged out shows the gate page', async
   expect(window.location.hash).toBe('#/mypage')
 })
 
-test('logged-in users browse history list and detail from the header tab', async () => {
+test('logged-in users browse history list and detail from My Page', async () => {
   stubServer({ loggedIn: true })
   const user = await renderApp('/materials')
-  await user.click(within(nav()).getByRole('button', { name: '내 피드백' }))
+  expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
+  await user.click(myPageAction())
+  await user.click(await screen.findByRole('tab', { name: '기록' }))
+  await user.click(await screen.findByRole('button', { name: '내 피드백 보기' }))
   await waitFor(() => expect(window.location.hash).toBe('#/history'))
   expect(await screen.findByRole('heading', { level: 1, name: /내 피드백/ })).toBeTruthy()
   expect(document.title).toBe('내 피드백 | PresentAi')
-  expect(within(nav()).getByRole('button', { name: '내 피드백' }).className).toBe('active')
+  // 기록 화면은 상단 메뉴의 어떤 항목도 강조하지 않습니다.
+  expect(within(nav()).queryByRole('button', { current: 'page' })).toBeNull()
 
   const first = feedbackHistory[0]
   await user.click(await screen.findByText(first.title))
   await waitFor(() => expect(window.location.hash).toBe(`#/history/${first.id}`))
   expect(await screen.findByRole('heading', { level: 1, name: first.title })).toBeTruthy()
   expect(document.title).toBe('피드백 상세 | PresentAi')
-  expect(within(nav()).getByRole('button', { name: '내 피드백' }).className).toBe('active')
+  expect(within(nav()).queryByRole('button', { current: 'page' })).toBeNull()
 })
 
 test.each([false, true])(
@@ -219,10 +218,13 @@ test.each([false, true])(
     expect(
       within(menu)
         .getAllByRole('button')
+        .filter((button) => !button.classList.contains('nav-mobile-only'))
         .map((button) => button.textContent),
     ).toEqual(['발표자료 피드백', '발표 피드백', '이용 방법'])
-    // 홈 헤더에도 로그인 상태에 맞는 계정 버튼이 보입니다.
-    expect(!!within(header).queryByRole('button', { name: '마이페이지' })).toBe(loggedIn)
+    // 홈 헤더에도 로그인 상태에 맞는 계정 버튼과 모바일 메뉴의 마이페이지가 보입니다.
+    expect(within(header).queryAllByRole('button', { name: '마이페이지' })).toHaveLength(
+      loggedIn ? 2 : 0,
+    )
     expect(!!within(header).queryByRole('button', { name: '로그아웃' })).toBe(loggedIn)
     expect(!!within(header).queryByRole('button', { name: '로그인', exact: true })).toBe(!loggedIn)
     expect(screen.queryByRole('button', { name: '예시 결과 둘러보기' })).toBeNull()
@@ -248,10 +250,10 @@ test.each([false, true])(
 test('the example form is cleared after visiting history and coming back', async () => {
   stubServer({ loggedIn: true })
   const user = await renderApp('/materials')
-  await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기', exact: true }))
+  await user.click(await screen.findByRole('button', { name: /예시 자료로 시작하기/ }))
   expect(screen.getByRole('textbox', { name: /발표 목적/ }).value).toBe(example.purpose)
 
-  await user.click(within(nav()).getByRole('button', { name: '내 피드백' }))
+  await goTo('/history')
   await screen.findByRole('heading', { level: 1, name: /내 피드백/ })
   await goTo('/materials')
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')

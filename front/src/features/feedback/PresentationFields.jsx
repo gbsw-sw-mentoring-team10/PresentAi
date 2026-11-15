@@ -18,7 +18,7 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           maxLength={300}
           value={form.purpose}
           onChange={(e) => onChange('purpose', e.target.value)}
-          placeholder="예: 신입 사원에게 하반기 로드맵을 10분 안에 소개"
+          placeholder="예: 기관 투자자에게 ESG 부동산 투자 전략을 10분 안에 제안"
           aria-required="true"
           aria-invalid={!!purposeError}
           aria-describedby={purposeError ? 'purpose-error' : 'purpose-help'}
@@ -42,7 +42,7 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           maxLength={120}
           value={form.title}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="발표의 이름을 적어 주세요"
+          placeholder="예: 그린 호라이즌 투자 제안서"
         />
       </div>
       <div className="field">
@@ -55,7 +55,7 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           maxLength={3000}
           value={form.description}
           onChange={(e) => onChange('description', e.target.value)}
-          placeholder="발표 장소, 청중의 배경, 특히 신경 쓰이는 부분이 있나요?"
+          placeholder="예: 투자 설명회에서 발표해요. 수치의 근거가 충분한지 봐 주세요."
         />
       </div>
     </section>

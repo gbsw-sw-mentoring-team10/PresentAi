@@ -134,15 +134,15 @@ test('overview links and checks refer to the same issue IDs as the detailed exam
     const slide = exampleSlides.find((item) => item.id === priority.slide)
     assert.ok(slide.issues.some((issue) => issue.id === priority.id))
   }
-  assert.equal(exampleSlides[2].issues.length, 2)
-  assert.equal(new Set(exampleSlides.flatMap((s) => s.issues.map((i) => i.id))).size, 7)
+  assert.equal(exampleSlides[3].issues.length, 2)
+  assert.equal(new Set(exampleSlides.flatMap((s) => s.issues.map((i) => i.id))).size, 8)
 })
 
 test('exported reports include each individual issue and rewrite without inventing page analysis', () => {
   const exampleReport = buildExampleReport(example, exampleSlides, false)
-  assert.match(exampleReport, /시장 수치의 출처가 빠져 있어요/)
-  assert.match(exampleReport, /처음 나오는 용어를 짧게 풀어 주세요/)
-  assert.match(exampleReport, /전체 시장\(TAM\)/)
+  assert.match(exampleReport, /성장률 11\.3%의 출처가 빠져 있어요/)
+  assert.match(exampleReport, /목표 시점이 발표일과 같은 달이에요/)
+  assert.match(exampleReport, /출처: \[발행기관\]/)
   const result = normalizeFeedback({
     score: 80,
     feedback: '전체',

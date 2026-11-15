@@ -10,11 +10,12 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import SampleFileWarning from '../features/feedback/SampleFileWarning.jsx'
+import UnsavedFeedbackWarning from '../features/feedback/UnsavedFeedbackWarning.jsx'
 import { isExampleForm } from '../features/feedback/exampleForm.js'
 
 import useFeedbackForm from '../features/feedback/useFeedbackForm.js'
 
-export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
+export default function FeedbackPage({ mode, form, setForm, navigate, start, signedOut, onLogin }) {
   const speech = mode === 'speech'
   const {
     errors,
@@ -32,7 +33,10 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
     closeSampleWarning,
     continueWithoutSample,
     reselectFile,
-  } = useFeedbackForm({ mode, form, setForm, start })
+    unsavedWarning,
+    closeUnsavedWarning,
+    continueWithoutSaving,
+  } = useFeedbackForm({ mode, form, setForm, start, signedOut })
   const example = isExampleForm(form, mode)
 
   return (
@@ -54,10 +58,6 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
               : '발표의 목적을 알려 주시면, 자료를 바라보는 기준이 생겨요.'}
           </p>
         </div>
-        <button className="text-button example-fill" onClick={fillExample}>
-          <Icon name="sparkle" size={16} />
-          예시 자료로 채우기
-        </button>
       </div>
       <div className="form-layout">
         <form onSubmit={handleSubmit} noValidate>
@@ -121,6 +121,16 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
           onReselect={reselectFile}
           onContinue={continueWithoutSample}
           onClose={closeSampleWarning}
+        />
+      )}
+      {unsavedWarning && (
+        <UnsavedFeedbackWarning
+          onLogin={() => {
+            closeUnsavedWarning()
+            onLogin()
+          }}
+          onContinue={continueWithoutSaving}
+          onClose={closeUnsavedWarning}
         />
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import HistoryListItem from '../features/history/HistoryListItem.jsx'
 import HistoryLoadState from '../features/history/HistoryLoadState.jsx'
@@ -17,6 +18,7 @@ export default function HistoryPage({ navigate, user, onLogin }) {
   const request = useHistoryRequest(loadFeedbackHistory, user)
   const [removed, setRemoved] = useState([])
   const [deletingId, setDeletingId] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [filter, setFilter] = useState('all')
   const groups = useMemo(() => {
@@ -32,13 +34,9 @@ export default function HistoryPage({ navigate, user, onLogin }) {
   const items = groups.all
   const visible = groups[filter]
 
-  async function handleDelete(item) {
-    if (
-      !window.confirm(
-        `"${item.title}" 기록과 저장된 원본 파일을 삭제할까요?\n삭제하면 되돌릴 수 없어요.`,
-      )
-    )
-      return
+  async function confirmDelete() {
+    const item = pendingDelete
+    setPendingDelete(null)
     setDeletingId(item.id)
     setDeleteError('')
     try {
@@ -98,7 +96,7 @@ export default function HistoryPage({ navigate, user, onLogin }) {
                   key={item.id}
                   item={item}
                   onOpen={(id) => navigate(`/history/${id}`)}
-                  onDelete={handleDelete}
+                  onDelete={setPendingDelete}
                   deleting={deletingId === item.id}
                 />
               ))}
@@ -126,6 +124,28 @@ export default function HistoryPage({ navigate, user, onLogin }) {
             </div>
           )}
         </>
+      )}
+      {pendingDelete && (
+        <ConfirmDialog
+          title="피드백 삭제"
+          heading="이 피드백을 삭제할까요?"
+          icon="trash"
+          detail={
+            <div className="confirm-dialog-item">
+              <Icon name={pendingDelete.type === 'speech' ? 'mic' : 'file'} size={20} />
+              <span>{pendingDelete.title}</span>
+            </div>
+          }
+          question="삭제하면 되돌릴 수 없어요."
+          cancelLabel="취소"
+          confirmLabel="삭제하기"
+          confirmVariant="danger"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+          onClose={() => setPendingDelete(null)}
+        >
+          저장된 원본 파일이 있다면 함께 지워져요.
+        </ConfirmDialog>
       )}
     </div>
   )

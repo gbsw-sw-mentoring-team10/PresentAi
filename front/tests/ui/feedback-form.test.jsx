@@ -37,7 +37,7 @@ async function openExampleForm(mode) {
   const user = userEvent.setup()
   const onStart = vi.fn()
   render(<FeedbackFormHarness onStart={onStart} mode={mode} />)
-  await user.click(screen.getByRole('button', { name: '예시 자료로 채우기', exact: true }))
+  await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
   return { user, onStart }
 }
 
@@ -153,14 +153,14 @@ test('edited data with the sample PDF warns first and can go back to choose a fi
   await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), ' 수정')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
   const dialog = screen.getByRole('dialog', { name: '예시 파일 안내' })
-  expect(dialog.textContent).toContain('2026_서비스_로드맵.pdf')
+  expect(dialog.textContent).toContain('그린_호라이즌_투자제안서.pdf')
   expect(dialog.textContent).toContain('분석에 포함되지 않아요')
   expect(onStart).not.toHaveBeenCalled()
 
   await user.click(within(dialog).getByRole('button', { name: /파일 다시 선택/ }))
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(onStart).not.toHaveBeenCalled()
-  expect(screen.queryByText('2026_서비스_로드맵.pdf')).toBeNull()
+  expect(screen.queryByText('그린_호라이즌_투자제안서.pdf')).toBeNull()
   expect(screen.getByLabelText('발표자료 파일 선택')).toBeTruthy()
 })
 
@@ -171,7 +171,7 @@ test('closing the warning keeps the form and continuing submits it as user data'
   await user.click(screen.getByRole('button', { name: '닫기' }))
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(onStart).not.toHaveBeenCalled()
-  expect(screen.getByText('2026_서비스_로드맵.pdf')).toBeTruthy()
+  expect(screen.getByText('그린_호라이즌_투자제안서.pdf')).toBeTruthy()
 
   await startWithSampleFile(user)
   expect(onStart).toHaveBeenCalledExactlyOnceWith({
@@ -203,7 +203,7 @@ test('speech mode warns about the sample audio before continuing to the preview'
   await user.type(screen.getByRole('textbox', { name: /발표 제목/ }), ' 2차')
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   const dialog = screen.getByRole('dialog', { name: '예시 음성 안내' })
-  expect(dialog.textContent).toContain('리허설_1차.m4a')
+  expect(dialog.textContent).toContain('투자제안_리허설_1차.m4a')
   await user.click(within(dialog).getByRole('button', { name: '그대로 진행' }))
   expect(onStart).toHaveBeenCalledTimes(2)
   expect(onStart.mock.calls[1][0].mode).toBe('speech')

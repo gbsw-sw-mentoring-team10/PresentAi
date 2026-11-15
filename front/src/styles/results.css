@@ -448,35 +448,6 @@
   flex: 1;
   min-width: 0;
 }
-.slides-list .slide-art {
-  padding: 10px 11px;
-  border-radius: 4px;
-}
-.slides-list .slide-art h3 {
-  font-size: 10px;
-}
-.slides-list .slide-art p {
-  font-size: 4px;
-}
-.slides-list .slide-art-top,
-.slides-list .slide-art-footer {
-  font-size: 3px;
-  letter-spacing: 0.3px;
-}
-.slides-list .slide-kicker {
-  font-size: 3px;
-}
-.slides-list .orbit-art {
-  width: 42px;
-  height: 42px;
-}
-.slides-list .orbit-art i {
-  border-width: 3px;
-}
-.slides-list .orbit-art b {
-  width: 8px;
-  height: 8px;
-}
 .slides-list > button > div > b {
   display: block;
   font-size: 10px;
@@ -507,9 +478,6 @@
   font-size: 20px;
   letter-spacing: -0.5px;
   color: var(--ink);
-}
-.slide-detail > .slide-art {
-  aspect-ratio: 1.95;
 }
 .slide-summary {
   font-size: 11px;

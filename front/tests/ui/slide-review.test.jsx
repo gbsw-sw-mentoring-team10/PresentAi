@@ -31,10 +31,12 @@ test('example overview and slide detail share review checks in both directions',
   const user = userEvent.setup()
   render(<ExampleResultsPage navigate={() => {}} />)
   await user.click(
-    screen.getByRole('button', { name: '시장 수치에 근거를 더해 주세요 확인 완료 표시' }),
+    screen.getByRole('button', { name: '성장률 수치에 근거를 더해 주세요 확인 완료 표시' }),
   )
-  await user.click(screen.getByRole('button', { name: '3번 슬라이드 피드백 보기' }))
-  expect(selectedSlide().getAttribute('aria-label')).toMatch(/^3번/)
+  await user.click(
+    screen.getByRole('button', { name: '4번 슬라이드 성장률 수치에 근거를 더해 주세요 보기' }),
+  )
+  expect(selectedSlide().getAttribute('aria-label')).toMatch(/^4번/)
   expect(
     screen.getByRole('button', { name: '확인 완료', exact: true }).getAttribute('aria-pressed'),
   ).toBe('true')
@@ -44,7 +46,7 @@ test('example overview and slide detail share review checks in both directions',
   await user.click(screen.getByRole('tab', { name: '전체 요약' }))
   expect(
     screen
-      .getByRole('button', { name: '시장 수치에 근거를 더해 주세요 확인 완료 표시' })
+      .getByRole('button', { name: '성장률 수치에 근거를 더해 주세요 확인 완료 표시' })
       .getAttribute('aria-pressed'),
   ).toBe('false')
 })

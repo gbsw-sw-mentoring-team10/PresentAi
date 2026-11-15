@@ -93,6 +93,11 @@ export async function analyzeSpeech(file, { signal, mock = false, mode = 'accura
     signal,
     '음성을 분석하지 못했어요. 다시 시도해 주세요.',
   )
+  return parseSpeechResponse(data)
+}
+
+// 음성 분석 응답을 화면에서 쓰는 형식으로 바꿉니다. 예시 음성 결과도 같은 길을 거쳐요.
+export function parseSpeechResponse(data) {
   if (typeof data?.text !== 'string')
     throw new FeedbackApiError('음성 분석 결과의 형식을 확인할 수 없어요.')
   if (!data.text.trim())
@@ -110,6 +115,11 @@ export async function reviewSpeech(speech, pronunciation, { signal, mock = false
     'AI 리뷰를 만들지 못했어요. 다시 시도해 주세요.',
     { 'Content-Type': 'application/json' },
   )
+  return parseSpeechReview(data)
+}
+
+// AI 리뷰 응답에서 빈 항목을 걸러 냅니다.
+export function parseSpeechReview(data) {
   const text = (value) => (typeof value === 'string' ? value.trim() : '')
   const list = (value) => (Array.isArray(value) ? value : [])
   const review = {

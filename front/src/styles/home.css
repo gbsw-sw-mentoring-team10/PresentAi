@@ -145,7 +145,6 @@
 .showcase-main > .slide-art {
   border-radius: 0;
   border: 0;
-  min-height: 300px;
 }
 .showcase-left {
   position: absolute;
@@ -190,46 +189,14 @@
   color: #aaa;
 }
 .mini-slide-row .slide-art.small {
-  flex: 1;
+  flex: 0 1 132px;
+  width: 132px;
   min-width: 0;
-  width: auto;
-  height: 74px;
-  min-height: 0;
-  aspect-ratio: auto;
   border-radius: 4px;
-  padding: 10px 8px;
 }
 .mini-slide-row.active .slide-art {
   outline: 2px solid var(--yellow);
   outline-offset: 3px;
-}
-.mini-slide-row .slide-art.small .slide-art-body {
-  gap: 6px;
-}
-.mini-slide-row .slide-art.small h3 {
-  font-size: 9px;
-  line-height: 1.45;
-  letter-spacing: -0.2px;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-/* 작은 썸네일은 제목 중심으로 표시해 장식과 작은 글자가 겹치지 않게 합니다. */
-.mini-slide-row .slide-art.small p,
-.mini-slide-row .slide-art.small .slide-kicker,
-.mini-slide-row .slide-art.small .slide-art-top,
-.mini-slide-row .slide-art.small .slide-art-footer {
-  display: none;
-}
-.mini-slide-row .slide-art.small .orbit-art {
-  width: 28px;
-  height: 28px;
-}
-.mini-slide-row .slide-art.small .orbit-art i {
-  border-width: 2px;
-}
-.mini-slide-row .slide-art.small .orbit-art b {
-  width: 6px;
-  height: 6px;
 }
 .showcase-label {
   font-size: 12px;

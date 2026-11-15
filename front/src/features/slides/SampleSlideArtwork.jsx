@@ -1,27 +1,16 @@
-export default function SampleSlideArtwork({ slide, small = false }) {
+// 홈 쇼케이스와 예시 요약에 쓰는 예시 발표자료 썸네일입니다.
+// 옆에 제목이 함께 보이는 곳에서는 decorative로 대체 텍스트를 비워 같은 제목을 두 번 읽지 않게 해요.
+export default function SampleSlideArtwork({ slide, small = false, decorative = false }) {
   return (
-    <div className={`slide-art slide-${slide.theme} ${small ? 'small' : ''}`}>
-      <div className="slide-art-top">
-        <span>OUR NEXT CHAPTER</span>
-        <span>2026 / H2</span>
-      </div>
-      <div className="slide-art-body">
-        <div>
-          <span className="slide-kicker">{slide.category || 'THE NEXT CHAPTER'}</span>
-          <h3>{slide.title}</h3>
-          <p>{slide.subtitle}</p>
-        </div>
-        <div className="orbit-art" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <b />
-        </div>
-      </div>
-      <div className="slide-art-footer">
-        <span>make an impact.</span>
-        <span>{String(slide.id || 1).padStart(2, '0')} — 06</span>
-      </div>
+    <div className={`slide-art ${small ? 'small' : ''}`}>
+      <img
+        src={slide.image}
+        alt={decorative ? '' : `${slide.id}번 예시 슬라이드: ${slide.title}`}
+        width={1920}
+        height={1080}
+        loading={small ? 'lazy' : 'eager'}
+        decoding="async"
+      />
     </div>
   )
 }

@@ -98,7 +98,7 @@ export function getPresentationTitle(form) {
   return form.title.trim() || form.file?.name?.replace(/\.[^.]+$/, '') || '제목 없는 발표'
 }
 
-function waitForNextPoll(interval, signal) {
+export function waitForNextPoll(interval, signal) {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
       clearTimeout(timer)

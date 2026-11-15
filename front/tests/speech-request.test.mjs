@@ -95,7 +95,7 @@ test('sample audio uses the mock endpoints with a placeholder file', async () =>
     ),
     review: async (speech, pronunciation, options) => (seen.push(['review', options.mock]), review),
   })
-  await manager.run({ audio: { name: '리허설_1차.m4a', sample: true }, script: '' })
+  await manager.run({ audio: { name: '투자제안_리허설_1차.m4a', sample: true }, script: '' })
   assert.deepEqual(seen, [
     ['analyze', true, true],
     ['review', true],

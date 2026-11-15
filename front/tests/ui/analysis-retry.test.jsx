@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
 import App from '../../src/App.jsx'
@@ -25,9 +25,17 @@ test('a server error can be retried from the UI without losing input, then opens
   window.history.replaceState(null, '', '/#/materials')
   const user = userEvent.setup()
   render(<App />)
-  await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기', exact: true }))
+  // 예시 자료는 서버를 거치지 않으므로 직접 입력한 자료로 서버 오류를 재현합니다.
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육')
+  await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   const originalScript = screen.getByRole('textbox', { name: '발표 대본' }).value
-  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
+  await user.click(
+    within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
+      name: /그대로 진행/,
+    }),
+  )
   expect((await screen.findByRole('alert')).textContent).toContain('(500)')
   await user.click(screen.getByRole('button', { name: '다시 시도' }))
   await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
@@ -58,6 +66,12 @@ test('unexpected model output opens as raw text even when storage fails', async 
   await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육')
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
+  await user.click(
+    within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
+      name: /그대로 진행/,
+    }),
+  )
   await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('모델이 생성한 원문 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')

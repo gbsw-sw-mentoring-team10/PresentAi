@@ -8,7 +8,7 @@ export function buildApiReport({ result, submission, mock }) {
     .join('\n')
 
   let report = [
-    `PresentAi — ${mock ? '서버 샘플' : '발표'} 피드백 보고서`,
+    `PresentAi — ${mock ? '예시' : '발표'} 피드백 보고서`,
     `발표 제목: ${submission.title}\n발표 목적: ${submission.purpose}\n점수: ${result.score} / 100`,
     `종합 피드백\n${result.feedback}`,
     `장점\n${result.strengths.map((item) => `• ${item}`).join('\n')}`,
@@ -17,13 +17,13 @@ export function buildApiReport({ result, submission, mock }) {
 
   if (result.slides?.length) report += `\n\n슬라이드별 피드백\n${buildSlideReport(result.slides)}`
   if (result.revised_script) report += `\n\n수정된 대본\n${result.revised_script}`
-  if (mock) report += '\n\n이 보고서는 예시 자료에 대한 서버 샘플 응답입니다.'
+  if (mock) report += '\n\n이 보고서는 예시 자료에 대한 미리 준비된 예시 결과입니다.'
   return report
 }
 
 export function buildExampleReport(example, slides, speech) {
   const feedback = speech
-    ? '대본과 음성 비교는 준비 중인 기능입니다. 예시 개선 제안: 빠진 연결 문장을 확인하고, 긴 문장을 짧게 나눠 연습하세요.'
+    ? '대본과 음성 비교는 준비 중인 기능입니다. 예시 개선 제안: 리허설에서 빠진 목차 소개와 KPI 문장을 확인하고, 숫자가 나오는 문장은 끊어 읽을 곳을 표시해 연습하세요.'
     : buildSlideReport(slides)
 
   return [

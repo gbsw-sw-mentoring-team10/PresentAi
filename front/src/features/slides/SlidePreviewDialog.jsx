@@ -41,8 +41,8 @@ export default function SlidePreviewDialog({ slide, pdf, closePreview }) {
         </div>
       </div>
       <p className="deck-modal-hint">
-        {slide.example ? '설명용 예시 슬라이드입니다.' : '업로드한 자료의 원본입니다.'} · Esc 키로
-        닫을 수 있어요.
+        {slide.example ? '예시 발표자료의 원본 슬라이드입니다.' : '업로드한 자료의 원본입니다.'} ·
+        Esc 키로 닫을 수 있어요.
       </p>
     </Modal>
   )

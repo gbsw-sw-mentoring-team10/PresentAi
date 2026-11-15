@@ -136,7 +136,7 @@ test('reports retain structured penalties, solutions, revised scripts and sample
     },
   })
   for (const text of [
-    '서버 샘플',
+    '예시 피드백 보고서',
     '90 / 100',
     '[감점 0점]',
     '근거 보완',

@@ -1,5 +1,6 @@
 import { isSampleFile } from '../feedback/exampleForm.js'
 import { analyzeSpeech, reviewSpeech } from './speechApi.js'
+import { loadExampleSpeech, loadExampleSpeechReview } from './exampleSpeech.js'
 
 const IDLE_STEP = { status: 'idle', data: null, error: '' }
 
@@ -19,10 +20,16 @@ export const EMPTY_SPEECH = {
 
 const messageOf = (error, fallback) => error?.message || fallback
 
+// 예시 음성은 준비된 결과를, 실제 음성은 서버 분석 결과를 씁니다.
+const analyzeOrExample = (file, options) =>
+  options.mock ? loadExampleSpeech(options) : analyzeSpeech(file, options)
+const reviewOrExample = (speech, pronunciation, options) =>
+  options.mock ? loadExampleSpeechReview(options) : reviewSpeech(speech, pronunciation, options)
+
 // 음성 인식과 발음 평가를 한 번에 받아 결과를 보여 주고, AI 리뷰는 그 뒤에 따로 불러옵니다.
 export function createSpeechRequest(
   onChange,
-  { analyze = analyzeSpeech, review = reviewSpeech } = {},
+  { analyze = analyzeOrExample, review = reviewOrExample } = {},
 ) {
   let active = null
   let state = EMPTY_SPEECH
@@ -99,7 +106,7 @@ export function createSpeechRequest(
     if (active && !active.finished) return active.promise
     stop()
     const mock = isSampleFile(form.audio)
-    // 예시 음성은 실제 바이트가 없어 샘플 API에 내용 없는 파일을 보냅니다.
+    // 예시 음성은 실제 바이트가 없어 자리만 채우는 파일을 넘깁니다.
     const file = mock ? new File(['sample'], form.audio.name || 'sample.wav') : form.audio
     const engine = form.engine === 'fast' ? 'fast' : 'accurate'
     const task = { controller: new AbortController(), mock, file, engine, stt: null }

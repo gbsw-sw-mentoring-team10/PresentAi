@@ -13,24 +13,24 @@ export default function FeedbackShowcase() {
           <span className="tiny-dot" />
           나의 발표자료<span>06 slides</span>
         </div>
-        <div className="mini-slide-row">
-          <b>01</b>
-          <SampleSlideArtwork slide={slides[0]} small />
-        </div>
         <div className="mini-slide-row active">
+          <b>01</b>
+          <SampleSlideArtwork slide={slides[0]} small decorative />
+        </div>
+        <div className="mini-slide-row">
           <b>02</b>
-          <SampleSlideArtwork slide={slides[1]} small />
+          <SampleSlideArtwork slide={slides[1]} small decorative />
         </div>
         <div className="mini-slide-row">
           <b>03</b>
-          <SampleSlideArtwork slide={slides[2]} small />
+          <SampleSlideArtwork slide={slides[2]} small decorative />
         </div>
       </div>
       <div className="showcase-main">
         <div className="preview-toolbar">
           <span>
             <Icon name="slides" size={14} />
-            2026 하반기 서비스 로드맵
+            그린 호라이즌 투자 제안서
           </span>
           <span className="example-label">예시 자료</span>
         </div>
@@ -52,12 +52,14 @@ export default function FeedbackShowcase() {
           <span className="float-number">01</span>
         </div>
         <p>
-          핵심 메시지를 한 줄로
+          이 제안의 가치를
           <br />
-          <b>더 선명하게 전달해 보세요.</b>
+          <b>한 줄로 먼저 알려 주세요.</b>
         </p>
         <div className="suggestion-mini">
-          <span>이렇게 바꿔 보세요</span>“하반기, 우리가 함께 만들어 갈<br />세 가지 변화”
+          <span>이렇게 바꿔 보세요</span>“ESG로 높이는
+          <br />
+          부동산의 장기 가치”
         </div>
       </div>
       <div className="time-float">
@@ -68,7 +70,7 @@ export default function FeedbackShowcase() {
           <small>발표 시간도 균형 있게</small>
           <b>슬라이드별 권장 시간</b>
         </div>
-        <strong>01:30</strong>
+        <strong>00:30</strong>
       </div>
       <div className="showcase-sticker" aria-hidden="true">
         GOOD

@@ -11,7 +11,7 @@ export default function PresentationScore({ score }) {
         {score}
         <span> / 100</span>
       </h2>
-      <p>서버에서 반환한 발표 점수입니다.</p>
+      <p>발표자료를 종합적으로 평가한 점수입니다.</p>
     </section>
   )
 }

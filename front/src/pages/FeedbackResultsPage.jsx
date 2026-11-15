@@ -15,21 +15,39 @@ import SlideWorkspace from '../features/slides/SlideWorkspace.jsx'
 import useSlideReview from '../features/slides/useSlideReview.js'
 import usePdfDocument from '../features/slides/usePdfDocument.js'
 import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/slideFeedback.js'
-import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
+import { StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 
 export default function FeedbackResultsPage({ request, navigate }) {
-  if (request.result.raw_only)
-    return (
-      <div className="results-page section-wrap">
-        <h1>모델이 반환한 피드백</h1>
-        <p>화면 형식과 다른 응답이어서 원문을 그대로 표시합니다.</p>
-        {!request.mock && <StorageNotice result={request.result} />}
-        <ModelResponse value={request.result.raw_response} expanded />
-        <Button onClick={() => navigate('/materials')}>입력 화면으로 돌아가기</Button>
-      </div>
-    )
+  if (request.result.raw_only) return <UnformattedResult request={request} navigate={navigate} />
   return <StructuredResults request={request} navigate={navigate} />
+}
+
+// 화면 형식으로 정리하지 못한 응답: 읽을 수 있는 글이면 그대로 보여 주고, JSON 같은 데이터는 노출하지 않는다.
+function UnformattedResult({ request, navigate }) {
+  const raw = request.result.raw_response
+  const text = typeof raw === 'string' && !/^\s*(```|[{[])/.test(raw) ? raw.trim() : ''
+  return (
+    <div className="results-page section-wrap">
+      <div className="page-heading">
+        <div>
+          <h1>{text ? '모델이 정리한 피드백' : '피드백을 화면에 보여 드리지 못했어요'}</h1>
+          <p>
+            {text
+              ? '결과 화면 형식으로 정리하지 못해 받은 내용을 그대로 보여 드려요.'
+              : '분석은 끝났지만 응답 형식이 달라 결과를 정리하지 못했어요. 잠시 후 다시 시도해 주세요.'}
+          </p>
+        </div>
+      </div>
+      {!request.mock && <StorageNotice result={request.result} />}
+      {text && (
+        <section className="summary-card">
+          <p className="api-feedback-text">{text}</p>
+        </section>
+      )}
+      <Button onClick={() => navigate('/materials')}>입력 화면으로 돌아가기</Button>
+    </div>
+  )
 }
 
 function StructuredResults({ request, navigate }) {
@@ -102,9 +120,10 @@ function StructuredResults({ request, navigate }) {
       </div>
       {mock && (
         <div className="example-banner">
-          <span className="tag tag-yellow">서버 샘플 결과</span>
+          <span className="tag tag-yellow">예시 결과</span>
           <p>
-            예시 자료 체험용으로 서버가 반환한 샘플입니다. 입력한 내용의 실제 분석 결과가 아닙니다.
+            아래 내용은 <b>‘{submission.title}’</b> 예시 자료의 피드백입니다. 입력한 내용의 실제
+            분석 결과가 아닙니다.
           </p>
         </div>
       )}
@@ -173,7 +192,6 @@ function StructuredResults({ request, navigate }) {
           />
         </div>
       )}
-      {result.raw_response !== undefined && <ModelResponse value={result.raw_response} />}
       <div className="result-bottom-cta">
         <div>
           <span>한 번의 점검, 더 나은 한 번의 발표.</span>

@@ -10,7 +10,7 @@ import SlideWorkspace from '../features/slides/SlideWorkspace.jsx'
 import StoryFlowPanel from '../features/results/StoryFlowPanel.jsx'
 import FactCheckPanel from '../features/results/FactCheckPanel.jsx'
 import SpeechComparison from '../features/results/SpeechComparison.jsx'
-import { example } from '../data/examplePresentation.js'
+import { example, exampleAudio } from '../data/examplePresentation.js'
 import { exampleSlides as slides } from '../data/exampleSlides.js'
 import useSlideReview from '../features/slides/useSlideReview.js'
 
@@ -93,8 +93,8 @@ export default function ExampleResultsPage({ navigate, speech = false }) {
       <div className="example-banner">
         <span className="tag tag-yellow">예시 결과</span>
         <p>
-          아래 내용은 <b>‘2026 하반기 서비스 로드맵’</b> 예시 자료의 피드백입니다. 선택한 파일의
-          실제 분석 결과가 아닙니다.
+          아래 내용은 <b>‘{example.title}’</b> 예시 자료의 피드백입니다. 선택한 파일의 실제 분석
+          결과가 아닙니다.
         </p>
       </div>
       <div className="result-meta">
@@ -110,7 +110,7 @@ export default function ExampleResultsPage({ navigate, speech = false }) {
           <small>{speech ? '예시 음성' : '예시 자료'}</small>
           <span>
             <Icon name={speech ? 'mic' : 'file'} size={16} />
-            {speech ? '리허설_1차.m4a' : example.file.name}
+            {speech ? exampleAudio.name : example.file.name}
           </span>
         </div>
       </div>

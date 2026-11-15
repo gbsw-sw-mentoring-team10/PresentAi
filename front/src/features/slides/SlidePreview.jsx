@@ -5,7 +5,7 @@ import PdfPageCanvas from './PdfPageCanvas.jsx'
 import SlideImage from './SlideImage.jsx'
 
 export default function SlidePreview({ slide, pdf, small = false, expanded = false }) {
-  if (slide.example) return <ExampleSlide slide={slide} />
+  if (slide.example) return <ExampleSlide slide={slide} small={small} />
   if (pdf && slide.id <= pdf.numPages)
     return (
       <PdfPageCanvas

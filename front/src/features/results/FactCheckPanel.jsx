@@ -14,18 +14,19 @@ export default function FactCheckPanel({ resolved, toggle, openSlide }) {
             <Icon name="alert" size={14} />
             출처 확인 필요
           </span>
-          <span>SLIDE 03</span>
+          <span>SLIDE 04</span>
         </div>
-        <h3>시장 규모와 성장률의 출처를 확인해 주세요.</h3>
+        <h3>연평균 성장률 11.3%의 출처를 확인해 주세요.</h3>
         <p>
-          예시 슬라이드의 시장 수치에는 출처와 조사 시점이 표시되어 있지 않아요. 원문 자료에서
-          수치의 정의, 대상, 기준 연도를 확인한 뒤 각주를 추가해 보세요.
+          예시 슬라이드의 ‘2033년까지 연평균 11.3% 성장’ 전망에는 출처와 조사 시점이 표시되어 있지
+          않아요. 같은 수치가 슬라이드 4와 5에 반복되니, 원문 자료에서 수치의 정의와 대상 시장, 기준
+          연도를 확인한 뒤 각주를 추가해 보세요.
         </p>
         <div className="fact-checklist">
           {[
             '원문 보고서 또는 공식 자료 확인',
-            '조사 시점과 수치의 기준 확인',
-            '슬라이드에 출처·기준 연도 표시',
+            '대상 시장과 기준 연도 확인',
+            '슬라이드 4·5에 출처·기준 연도 표시',
           ].map((t, i) => (
             <label key={t}>
               <input
@@ -37,7 +38,7 @@ export default function FactCheckPanel({ resolved, toggle, openSlide }) {
             </label>
           ))}
         </div>
-        <button className="text-button" onClick={() => openSlide(3, 'source')}>
+        <button className="text-button" onClick={() => openSlide(4, 'source')}>
           해당 슬라이드 보기
           <Icon name="arrow" size={16} />
         </button>

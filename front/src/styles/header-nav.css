@@ -1,4 +1,4 @@
-/* Header — 내 피드백 탭과 마이페이지 진입점 */
+/* Header — 세 탭과 마이페이지 진입점. 내 피드백은 마이페이지에서 들어가요. */
 .site-header nav > .nav-mobile-only {
   display: none;
 }
@@ -30,48 +30,46 @@
   background: var(--yellow);
 }
 
-.site-header-home .nav-actions .button {
-  display: inline-flex;
-  min-height: 44px;
-  padding: 11px 20px;
-  font-size: 13px;
-}
-
 @media (min-width: 801px) {
-  .site-header nav {
-    position: relative;
-  }
-  .site-header-home .nav-wrap {
+  /* 모든 화면이 같은 헤더를 씁니다. 양쪽 칸 너비를 같게 두어 탭 묶음이 항상 정중앙에 와요. */
+  .site-header .nav-wrap {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 16px;
   }
 
-  .site-header-home .nav-wrap > .logo-button {
+  .site-header .nav-wrap > .logo-button {
     justify-self: start;
   }
 
-  .site-header-home .nav-wrap > nav {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: clamp(328px, 28vw, 376px);
-    gap: 8px;
-    margin: 0;
-  }
-
-  .site-header-home .nav-wrap > nav > button {
+  /* 탭은 글자 너비에 맞추고 사이 간격을 똑같이 둡니다. 숨긴 모바일 탭과 표시줄은 자리를 차지하지 않아요. */
+  .site-header .nav-wrap > nav {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    min-width: 0;
-    height: 44px;
-    padding: 0 4px;
-    text-align: center;
+    gap: 20px;
+    margin: 0;
   }
 
-  .site-header-home .nav-actions {
+  .site-header .nav-wrap > nav > button:not(.nav-mobile-only) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    height: 44px;
+    padding: 0 14px;
+    white-space: nowrap;
+  }
+
+  .site-header .nav-actions {
     justify-self: end;
+  }
+
+  .site-header .nav-actions .button {
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 13px;
   }
 }
 
@@ -81,8 +79,8 @@
   }
 }
 
-@media (max-width: 960px) {
-  /* 탭이 늘어난 만큼 좁은 데스크톱에서는 시작하기 버튼을 숨깁니다. 발표자료 피드백 탭과 같은 곳으로 이동해요. */
+@media (max-width: 1040px) {
+  /* 좁은 데스크톱에서는 시작하기 버튼을 숨겨 탭 자리를 지킵니다. 발표자료 피드백 탭과 같은 곳으로 이동해요. */
   .nav-actions .button {
     display: none;
   }
@@ -94,5 +92,12 @@
   }
   .site-header nav > .nav-mobile-only {
     display: block;
+  }
+  /* 홈에서는 모바일에서도 시작하기 버튼을 그대로 보여 줘요. */
+  .site-header-home .nav-actions .button {
+    display: inline-flex;
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 13px;
   }
 }

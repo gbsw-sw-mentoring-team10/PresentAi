@@ -19,11 +19,11 @@ export default function FeedbackFormGuide({ speech, onFillExample }) {
         <div className="tip-example">
           <small>이렇게 적어 보세요</small>
           <p>
-            “팀원 10명에게 신규 기능을
+            “기관 투자자에게 ESG 투자
             <br />
-            소개하고, 개발 우선순위에
+            전략을 제안하고, 수치 근거가
             <br />
-            대한 의견을 받고 싶어요.”
+            충분한지 점검받고 싶어요.”
           </p>
         </div>
         <div className="side-checks">

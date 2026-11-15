@@ -52,7 +52,6 @@ export default function SlideViewer({
         <span>
           <Icon name="file" size={14} />
           {slide.example ? '예시 슬라이드' : '원본 슬라이드'}
-          {slide.example && <small>· 수치는 설명용 예시</small>}
         </span>
         <button onClick={onOpenPreview} disabled={!slide.example && !pdf && !slide.imageUrl}>
           <Icon name="expand" size={16} />

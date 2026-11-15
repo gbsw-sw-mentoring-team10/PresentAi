@@ -12,22 +12,23 @@ export default function ExampleOverview({ resolved, toggle, openSlide, onShowSli
             전체 피드백
           </div>
           <h2>
-            흐름은 좋아요.
+            전략은 잘 보여요.
             <br />
-            <mark>핵심을 더 선명하게</mark> 만들어 봐요.
+            <mark>숫자에 근거를 더해</mark> 설득력을 높여 봐요.
           </h2>
           <p>
-            현황에서 계획, 실행으로 이어지는 구조가 자연스러워요. 신입 사원의 눈높이에 맞춰 전문
-            용어를 풀고, 핵심 지표를 강조하면 더 이해하기 쉬운 발표가 됩니다.
+            전략 개요에서 투자 전략, 기대 성과, 실행 로드맵으로 이어지는 구조가 자연스러워요. 기관
+            투자자가 판단할 수 있도록 성장률의 출처와 목표 시점을 분명히 하고, +Alpha처럼 모호한
+            지표를 숫자로 바꾸면 더 믿음이 가는 제안이 됩니다.
           </p>
           <div className="summary-chips">
             <span>
               <Icon name="check" size={14} />
-              명확한 발표 주제
+              명확한 투자 비전
             </span>
             <span>
               <Icon name="check" size={14} />
-              자연스러운 전개
+              수치 중심의 전개
             </span>
           </div>
         </section>
@@ -46,7 +47,7 @@ export default function ExampleOverview({ resolved, toggle, openSlide, onShowSli
                 key={s.id}
                 aria-label={`${s.id}번 슬라이드 ${s.time}`}
                 onClick={() => openSlide(s.id)}
-                style={{ height: [24, 46, 65, 83, 65, 46][i] }}
+                style={{ height: [24, 40, 55, 83, 68, 68][i] }}
               >
                 <span>{s.id}</span>
               </button>
@@ -84,7 +85,7 @@ export default function ExampleOverview({ resolved, toggle, openSlide, onShowSli
               </div>
               <button
                 className="icon-button"
-                aria-label={`${p.slide}번 슬라이드 피드백 보기`}
+                aria-label={`${p.slide}번 슬라이드 ${p.title} 보기`}
                 onClick={() => openSlide(p.slide, p.id)}
               >
                 <Icon name="arrow" />
@@ -103,7 +104,7 @@ export default function ExampleOverview({ resolved, toggle, openSlide, onShowSli
       <div className="slide-grid">
         {slides.slice(0, 3).map((s) => (
           <button className="slide-preview-card" key={s.id} onClick={() => openSlide(s.id)}>
-            <SampleSlideArtwork slide={s} small />
+            <SampleSlideArtwork slide={s} small decorative />
             <div>
               <span>
                 0{s.id} · {s.category}

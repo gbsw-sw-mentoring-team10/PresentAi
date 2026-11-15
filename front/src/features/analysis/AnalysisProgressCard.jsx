@@ -18,10 +18,10 @@ export default function AnalysisProgressCard({
           <small>
             {speech
               ? request.mock
-                ? '예시 음성 · 서버 샘플 분석'
+                ? '예시 음성 · 예시 결과 미리보기'
                 : '발표 음성 · 서버 분석'
               : request.mock
-                ? '예시 자료 · 서버 샘플 분석'
+                ? '예시 자료 · 예시 결과 미리보기'
                 : '발표자료 · 서버 분석'}
           </small>
         </div>

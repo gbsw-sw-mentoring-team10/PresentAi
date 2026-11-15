@@ -158,3 +158,33 @@ test('unfinished jobs show their status and retry can load the completed JSON', 
   await user.click(screen.getByRole('button', { name: '다시 불러오기' }))
   await waitFor(() => expect(screen.getByRole('heading', { name: item.title })).toBeTruthy())
 })
+
+test('deleting asks in a custom dialog instead of the browser confirm', async () => {
+  const fetch = stubServer((url, options) =>
+    options?.method === 'DELETE' ? Response.json({ message: '삭제' }) : listResponse(),
+  )
+  const confirm = vi.spyOn(window, 'confirm')
+  const user = userEvent.setup()
+  render(<HistoryPage navigate={() => {}} />)
+  await screen.findByRole('list', { name: '피드백 기록' })
+  const deleteButton = () => screen.getByRole('button', { name: `${records[0].title} 기록 삭제` })
+
+  // 취소하면 아무것도 지우지 않아요.
+  await user.click(deleteButton())
+  let dialog = screen.getByRole('dialog', { name: '피드백 삭제' })
+  expect(within(dialog).getByText(records[0].title)).toBeTruthy()
+  await user.click(within(dialog).getByRole('button', { name: '취소' }))
+  expect(screen.queryByRole('dialog', { name: '피드백 삭제' })).toBeNull()
+  expect(fetch).toHaveBeenCalledTimes(1)
+
+  await user.click(deleteButton())
+  dialog = screen.getByRole('dialog', { name: '피드백 삭제' })
+  await user.click(within(dialog).getByRole('button', { name: '삭제하기' }))
+  await waitFor(() => expect(listItems()).toHaveLength(records.length - 1))
+  expect(fetch).toHaveBeenLastCalledWith(
+    expect.stringMatching(new RegExp(`/feedback/${records[0].id}$`)),
+    expect.objectContaining({ method: 'DELETE' }),
+  )
+  expect(confirm).not.toHaveBeenCalled()
+  confirm.mockRestore()
+})

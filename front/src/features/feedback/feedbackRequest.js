@@ -1,4 +1,5 @@
 import { createFeedback, getPresentationTitle } from './feedbackApi.js'
+import { loadExampleFeedback } from './exampleFeedback.js'
 import { isExampleForm, withoutSampleFiles } from './exampleForm.js'
 
 export const EMPTY_REQUEST = {
@@ -11,11 +12,15 @@ export const EMPTY_REQUEST = {
 
 const TIMEOUT_MESSAGE = '분석 응답이 오래 걸리고 있어요. 잠시 후 다시 시도해 주세요.'
 
+// 예시 그대로면 서버 대신 준비된 예시 결과를 보여 주고, 그 밖에는 서버에 분석을 요청합니다.
+const sendFeedback = (form, options) =>
+  options.mock ? loadExampleFeedback(options) : createFeedback(form, options)
+
 // Keep request ownership outside rendering so double-clicks cannot submit twice.
 export function createFeedbackRequest(
   onChange,
   {
-    send = createFeedback,
+    send = sendFeedback,
     timeoutMs = 180000,
     schedule = setTimeout,
     unschedule = clearTimeout,
@@ -56,7 +61,7 @@ export function createFeedbackRequest(
 
   function run(form) {
     if (active) return active.promise
-    // 예시 그대로일 때만 샘플 API를 쓰고, 수정한 자료에서는 가상 파일을 뺍니다.
+    // 예시 그대로일 때만 준비된 예시 결과를 쓰고, 수정한 자료에서는 가상 파일을 뺍니다.
     const mock = isExampleForm(form, 'material')
     const sent = mock ? form : withoutSampleFiles(form)
     const submission = { ...sent, title: getPresentationTitle(sent) }

@@ -39,7 +39,10 @@ export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
       {mock && (
         <div className="example-banner">
           <span className="tag tag-yellow">예시 결과</span>
-          <p>예시 음성에 대한 서버 샘플 응답입니다. 실제로 올린 음성의 분석 결과가 아닙니다.</p>
+          <p>
+            ‘그린 호라이즌’ 투자 제안 리허설 예시 음성의 결과입니다. 실제로 올린 음성의 분석 결과가
+            아닙니다.
+          </p>
         </div>
       )}
       <div className="result-meta">

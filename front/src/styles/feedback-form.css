@@ -84,11 +84,6 @@
   color: var(--muted);
   margin-top: 12px;
 }
-.example-fill {
-  font-size: 11px;
-  padding-bottom: 5px;
-  white-space: nowrap;
-}
 .form-layout {
   display: grid;
   grid-template-columns: minmax(0, 760px) 300px;

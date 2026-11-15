@@ -121,15 +121,6 @@
   background: #fff1ec;
   border-color: #c65f43;
 }
-.button.button-danger {
-  background: #b2442a;
-  border-color: #b2442a;
-  color: #fff;
-}
-.button.button-danger:hover:not(:disabled) {
-  background: #9a3720;
-  box-shadow: 0 5px 14px #9a372020;
-}
 
 /* 기록 */
 .mypage-record {

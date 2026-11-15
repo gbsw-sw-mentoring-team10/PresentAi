@@ -1,11 +1,9 @@
-import { example } from '../../data/examplePresentation.js'
-
-const EXAMPLE_AUDIO = { name: '리허설_1차.m4a', size: 4823449, sample: true }
+import { example, exampleAudio } from '../../data/examplePresentation.js'
 
 const TEXT_FIELDS = ['title', 'purpose', 'description', 'script']
 
 export function createExampleForm(mode) {
-  return { ...example, audio: mode === 'speech' ? EXAMPLE_AUDIO : null }
+  return { ...example, audio: mode === 'speech' ? exampleAudio : null }
 }
 
 // 예시 채우기로 들어간 가상 파일입니다. 실제 바이트가 없어 서버로 보낼 수 없어요.
