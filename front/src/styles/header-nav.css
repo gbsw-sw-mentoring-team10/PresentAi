@@ -30,48 +30,9 @@
   background: var(--yellow);
 }
 
-.site-header-home .nav-actions .button {
-  display: inline-flex;
-  min-height: 44px;
-  padding: 11px 20px;
-  font-size: 13px;
-}
-
 @media (min-width: 801px) {
   .site-header nav {
     position: relative;
-  }
-  .site-header-home .nav-wrap {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .site-header-home .nav-wrap > .logo-button {
-    justify-self: start;
-  }
-
-  .site-header-home .nav-wrap > nav {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: clamp(328px, 28vw, 376px);
-    gap: 8px;
-    margin: 0;
-  }
-
-  .site-header-home .nav-wrap > nav > button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-width: 0;
-    height: 44px;
-    padding: 0 4px;
-    text-align: center;
-  }
-
-  .site-header-home .nav-actions {
-    justify-self: end;
   }
 }
 
@@ -81,12 +42,6 @@
   }
 }
 
-@media (max-width: 960px) {
-  /* 탭이 늘어난 만큼 좁은 데스크톱에서는 시작하기 버튼을 숨깁니다. 발표자료 피드백 탭과 같은 곳으로 이동해요. */
-  .nav-actions .button {
-    display: none;
-  }
-}
 @media (max-width: 800px) {
   /* 좁은 화면에서는 마이페이지를 메뉴 안으로 옮깁니다. */
   .mypage-button {

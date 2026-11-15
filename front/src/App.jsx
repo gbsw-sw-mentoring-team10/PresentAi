@@ -6,13 +6,9 @@ import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import Button from './components/ui/Button.jsx'
 import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
 import useSpeechRequest from './features/speech/useSpeechRequest.js'
-import {
-  hasLeftFormFlow,
-  prepareSubmission,
-  shouldResetForm,
-} from './features/feedback/exampleForm.js'
+import { prepareSubmission } from './features/feedback/exampleForm.js'
 import useAuth from './features/auth/useAuth.js'
-import { LoginRequiredModal, LoginRequiredPage } from './features/auth/LoginRequired.jsx'
+import { LoginRequiredPage } from './features/auth/LoginRequired.jsx'
 import useHashRoute, { historyRouteId } from './hooks/useHashRoute.js'
 import './styles/app.css'
 import './styles/responsive.css'
@@ -32,11 +28,18 @@ const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: 
 
 export default function App() {
   const { route, activeSection, navigate: changeRoute, scrollSection } = useHashRoute()
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [drafts, setDrafts] = useState({ material: EMPTY_FORM, speech: EMPTY_FORM })
   const [mode, setMode] = useState('material')
+  const formMode = route === '/materials' ? 'material' : route === '/speech' ? 'speech' : mode
+  const form = drafts[formMode]
+  function setForm(update) {
+    setDrafts((current) => ({
+      ...current,
+      [formMode]: typeof update === 'function' ? update(current[formMode]) : update,
+    }))
+  }
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
-  const [loginNotice, setLoginNotice] = useState(false)
   const [afterLogin, setAfterLogin] = useState(null)
   const account = useAuth()
   const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
@@ -44,17 +47,9 @@ export default function App() {
     speech: speechRequest,
     run: runSpeech,
     cancel: cancelSpeech,
+    reset: resetSpeech,
     retryReview,
   } = useSpeechRequest()
-  const [formRoute, setFormRoute] = useState(route)
-  const [leftFlow, setLeftFlow] = useState(false)
-
-  // 다른 화면을 거쳐 입력 화면에 들어오면 이전 입력을 비웁니다.
-  if (formRoute !== route) {
-    setFormRoute(route)
-    if (shouldResetForm(formRoute, route, mode, leftFlow)) setForm(EMPTY_FORM)
-    setLeftFlow(hasLeftFormFlow(route, leftFlow))
-  }
 
   useEffect(() => {
     if (route !== '/analysis') cancelFeedback()
@@ -65,42 +60,50 @@ export default function App() {
     setAuth(false)
     setAfterLogin(null)
   }, [])
-  const closeLoginNotice = useCallback(() => {
-    setLoginNotice(false)
-    setAfterLogin(null)
-  }, [])
   const navigate = useCallback(
-    (path) => {
+    (path, options) => {
       if (path !== '/analysis') cancelFeedback()
       if (path !== '/analysis' && path !== '/speech-results') cancelSpeech()
-      changeRoute(path)
+      changeRoute(path, options)
     },
     [changeRoute, cancelFeedback, cancelSpeech],
   )
+
+  useEffect(() => {
+    if (route !== '/analysis') return
+    const ready =
+      mode === 'speech' ? speechRequest.status === 'ready' : request.status === 'success'
+    if (ready) navigate(mode === 'speech' ? '/speech-results' : '/results', { replace: true })
+  }, [route, mode, request.status, speechRequest.status, navigate])
+
+  function startNewDraft(nextMode) {
+    setDrafts((current) => ({ ...current, [nextMode]: EMPTY_FORM }))
+    navigate(nextMode === 'speech' ? '/speech' : '/materials')
+  }
+
+  function recordAgain() {
+    setDrafts((current) => ({ ...current, speech: { ...current.speech, audio: null } }))
+    navigate('/speech')
+  }
 
   function start(nextMode) {
     // 수정한 자료에 남은 예시 파일은 분석 화면과 요청에서 뺍니다.
     const submitted = prepareSubmission(form, nextMode)
     if (submitted !== form) setForm(submitted)
     setMode(nextMode)
-    setResultKind(nextMode === 'speech' ? null : 'api')
+    if (nextMode !== 'speech') setResultKind('api')
     if (nextMode === 'speech') runSpeech(submitted)
     else runFeedback(submitted)
     navigate('/analysis')
   }
 
-  // 로그인이 필요한 화면은 로그인 전이면 이동하지 않고 안내 팝업을 띄웁니다.
+  // 로그인만 거치면 처음 누른 메뉴의 목적지로 바로 이동합니다.
   function openMember(path) {
     if (account.user || account.busy) {
       navigate(path)
       return
     }
     setAfterLogin(path)
-    setLoginNotice(true)
-  }
-
-  function loginFromNotice() {
-    setLoginNotice(false)
     setAuth(true)
   }
 
@@ -111,9 +114,9 @@ export default function App() {
 
   function resetSession() {
     cancelFeedback()
-    cancelSpeech()
+    resetSpeech()
     setResultKind(null)
-    setForm(EMPTY_FORM)
+    setDrafts({ material: EMPTY_FORM, speech: EMPTY_FORM })
     navigate('/')
   }
 
@@ -146,12 +149,13 @@ export default function App() {
           id={historyId}
           user={account.user}
           navigate={navigate}
+          onNew={startNewDraft}
           onLogin={() => setAuth(true)}
         />,
       )
     switch (route) {
       case '/':
-        return <HomePage navigate={navigate} scrollSection={scrollSection} />
+        return <HomePage navigate={navigate} />
       case '/materials':
       case '/speech':
         return (
@@ -182,6 +186,7 @@ export default function App() {
               key={request.submission.title + request.result.feedback}
               request={request}
               navigate={navigate}
+              onNew={() => startNewDraft('material')}
             />
           )
         }
@@ -198,6 +203,7 @@ export default function App() {
             speech={speechRequest}
             navigate={navigate}
             onRetryReview={retryReview}
+            onRecordAgain={recordAgain}
           />
         )
       case '/history':
@@ -276,7 +282,6 @@ export default function App() {
           </Suspense>
         </PageErrorBoundary>
       )}
-      {loginNotice && <LoginRequiredModal onClose={closeLoginNotice} onLogin={loginFromNotice} />}
     </>
   )
 }

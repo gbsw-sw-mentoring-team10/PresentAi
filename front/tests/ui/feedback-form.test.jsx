@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
 import FeedbackPage from '../../src/pages/FeedbackPage.jsx'
@@ -38,6 +38,9 @@ async function openExampleForm(mode) {
   const onStart = vi.fn()
   render(<FeedbackFormHarness onStart={onStart} mode={mode} />)
   await user.click(screen.getByRole('button', { name: '예시 자료로 채우기', exact: true }))
+  await user.click(
+    screen.getByText(mode === 'speech' ? '제목·설명·분석 설정 (선택)' : '제목·설명 추가 (선택)'),
+  )
   return { user, onStart }
 }
 
@@ -83,6 +86,8 @@ test('a TXT read failure can be recovered by typing a script', async () => {
   )
   expect((await screen.findByRole('alert')).textContent).toContain('파일을 읽지 못했어요')
   await user.click(screen.getByRole('button', { name: '직접 입력' }))
+  expect(screen.getByRole('textbox', { name: '발표 대본' }).value).not.toBe('')
+  await user.clear(screen.getByRole('textbox', { name: '발표 대본' }))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '직접 작성한 대본')
   await startWithSampleFile(user)
   expect(onStart.mock.calls[0][0].form.script).toBe('직접 작성한 대본')
@@ -99,10 +104,11 @@ test('switching to direct input cancels a pending TXT read and ignores its late 
     screen.getByLabelText('대본 파일 선택'),
     scriptFile('이전 파일', () => pendingText),
   )
-  expect(screen.getByRole('button', { name: '분석 시작', exact: true }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: /분석 시작$/ }).disabled).toBe(true)
 
   await user.click(screen.getByRole('button', { name: '직접 입력' }))
-  expect(screen.getByRole('button', { name: '분석 시작', exact: true }).disabled).toBe(false)
+  expect(screen.getByRole('button', { name: /분석 시작$/ }).disabled).toBe(false)
+  await user.clear(screen.getByRole('textbox', { name: '발표 대본' }))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '새 대본')
   await act(async () => finishReading('늦게 도착한 이전 파일 내용'))
   expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe('새 대본')
@@ -114,12 +120,15 @@ test('required field errors allow a successful retry after entering purpose and 
   const user = userEvent.setup()
   const onStart = vi.fn()
   render(<FeedbackFormHarness onStart={onStart} />)
-  await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  expect(screen.queryByLabelText('발표자료 파일 선택')).toBeNull()
+  await user.click(screen.getByRole('button', { name: '자료 입력으로' }))
   expect(document.activeElement).toBe(screen.getByRole('textbox', { name: /발표 목적/ }))
   expect(onStart).not.toHaveBeenCalled()
-  await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), '서비스 소개')
+  await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), '서비스 소개{Enter}')
+  expect(document.activeElement.classList.contains('upload-zone')).toBe(true)
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
   expect(screen.getByRole('alert').textContent).toContain('발표자료를 선택하거나 대본을 입력')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '서비스를 소개합니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
   expect(onStart).toHaveBeenCalledOnce()
@@ -188,13 +197,14 @@ test('the sample PDF does not count as a file for edited data without a script',
   expect(screen.getByRole('alert').textContent).toContain('예시 파일은 실제 파일이 아니라')
   expect(onStart).not.toHaveBeenCalled()
 
+  await user.clear(screen.getByRole('textbox', { name: '발표 대본' }))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '새 대본')
   expect(screen.queryByRole('alert')).toBeNull()
   await startWithSampleFile(user)
   expect(onStart).toHaveBeenCalledOnce()
 })
 
-test('speech mode warns about the sample audio before continuing to the preview', async () => {
+test('edited speech samples return to audio selection instead of starting without audio', async () => {
   const { user, onStart } = await openExampleForm('speech')
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   expect(screen.queryByRole('dialog')).toBeNull()
@@ -204,12 +214,15 @@ test('speech mode warns about the sample audio before continuing to the preview'
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   const dialog = screen.getByRole('dialog', { name: '예시 음성 안내' })
   expect(dialog.textContent).toContain('리허설_1차.m4a')
-  await user.click(within(dialog).getByRole('button', { name: '그대로 진행' }))
-  expect(onStart).toHaveBeenCalledTimes(2)
-  expect(onStart.mock.calls[1][0].mode).toBe('speech')
+  expect(within(dialog).queryByRole('button', { name: '그대로 진행' })).toBeNull()
+  await user.click(within(dialog).getByRole('button', { name: '음성 다시 선택' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.queryByText('리허설_1차.m4a')).toBeNull()
+  expect(screen.getByRole('textbox', { name: /발표 제목/ }).value).toContain('2차')
+  expect(onStart).toHaveBeenCalledOnce()
 })
 
-test('speech mode asks for real audio or a script when only the sample audio remains', async () => {
+test('speech mode requires real audio when only the sample audio remains', async () => {
   const { user, onStart } = await openExampleForm('speech')
   await user.clear(screen.getByRole('textbox', { name: '발표 대본' }))
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
@@ -220,4 +233,50 @@ test('speech mode asks for real audio or a script when only the sample audio rem
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   expect(screen.getByRole('dialog', { name: '예시 음성 안내' })).toBeTruthy()
   expect(onStart).not.toHaveBeenCalled()
+})
+
+test('Korean composition Enter does not advance, and empty purpose validates on blur', async () => {
+  const user = userEvent.setup()
+  const onStart = vi.fn()
+  render(<FeedbackFormHarness onStart={onStart} />)
+  const purpose = screen.getByRole('textbox', { name: /발표 목적/ })
+  await user.click(purpose)
+  await user.tab()
+  expect(screen.getByRole('alert').textContent).toContain('발표 목적을 입력')
+  await user.type(purpose, '교육')
+  fireEvent.keyDown(purpose, { key: 'Enter', isComposing: true, keyCode: 229 })
+  expect(screen.queryByLabelText('발표자료 파일 선택')).toBeNull()
+  await user.keyboard('{Enter}')
+  expect(screen.getByLabelText('발표자료 파일 선택')).toBeTruthy()
+  expect(screen.getByText('제목·설명 추가 (선택)').closest('details').open).toBe(false)
+  expect(screen.getByText('파일 없이 대본으로 입력하기').closest('details').open).toBe(false)
+  expect(onStart).not.toHaveBeenCalled()
+})
+
+test('Enter in an optional title focuses description instead of starting analysis', async () => {
+  const { user, onStart } = await openExampleForm()
+  await user.type(screen.getByRole('textbox', { name: /발표 제목/ }), '{Enter}')
+  expect(document.activeElement).toBe(screen.getByRole('textbox', { name: /추가 설명/ }))
+  expect(onStart).not.toHaveBeenCalled()
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test('a bad replacement TXT preserves the previous script and submission reveals its collapsed error', async () => {
+  const { user, onStart } = await openExampleForm()
+  const previous = screen.getByRole('textbox', { name: '발표 대본' }).value
+  await user.click(screen.getByRole('button', { name: 'TXT 업로드' }))
+  await user.upload(screen.getByLabelText('대본 파일 선택'), scriptFile('가'.repeat(50001)))
+  expect(screen.getByRole('alert').textContent).toContain('50,000자')
+  const disclosure = screen.getByText('대본 추가 (선택)').closest('details')
+  await user.click(screen.getByText('대본 추가 (선택)'))
+  expect(disclosure.open).toBe(false)
+  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await waitFor(() => expect(disclosure.open).toBe(true))
+  expect(document.activeElement).toBe(disclosure.querySelector('.upload-zone'))
+  expect(onStart).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: '직접 입력' }))
+  expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe(previous)
+  expect(screen.queryByRole('alert')).toBeNull()
+  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  expect(onStart).toHaveBeenCalledOnce()
 })

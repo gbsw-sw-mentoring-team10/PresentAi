@@ -46,11 +46,14 @@ export default function useHashRoute() {
     document.title = `${pageTitle(route) || '페이지를 찾을 수 없어요'} | PresentAi`
   }, [route])
 
-  const navigate = useCallback((path) => {
+  const navigate = useCallback((path, { replace = false } = {}) => {
     pendingSection.current = null
     setActiveSection(null)
     if (readRoute() === path) window.scrollTo({ top: 0, behavior: 'auto' })
-    else window.location.hash = path
+    else if (replace) {
+      window.history.replaceState(window.history.state, '', `#${path}`)
+      setRoute(path)
+    } else window.location.hash = path
   }, [])
 
   const scrollSection = useCallback(

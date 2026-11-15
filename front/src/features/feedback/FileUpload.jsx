@@ -6,12 +6,18 @@ import { UPLOAD_TYPES, validateUpload } from './uploadRules.js'
 export default function FileUpload({ file, onFile, kind = 'material', error, setError }) {
   const input = useRef(null)
   const [drag, setDrag] = useState(false)
+  const [removedFile, setRemovedFile] = useState(null)
+  const undoRef = useRef(null)
+  const selectedRef = useRef(null)
   const config = UPLOAD_TYPES[kind] || UPLOAD_TYPES.material
   function choose(file) {
     if (!file) return
     const message = validateUpload(file, kind)
     setError(message)
-    if (!message) onFile(file)
+    if (!message) {
+      setRemovedFile(null)
+      onFile(file)
+    }
   }
   return (
     <div>
@@ -19,6 +25,7 @@ export default function FileUpload({ file, onFile, kind = 'material', error, set
         ref={input}
         className="sr-only"
         type="file"
+        tabIndex={-1}
         aria-label={`${config.label} 파일 선택`}
         accept={config.extensions.map((x) => `.${x}`).join(',')}
         onChange={(e) => {
@@ -27,7 +34,7 @@ export default function FileUpload({ file, onFile, kind = 'material', error, set
         }}
       />
       {file ? (
-        <div className="selected-file">
+        <div className="selected-file" ref={selectedRef} tabIndex={-1}>
           <span className="file-icon">
             <Icon name={kind === 'audio' ? 'mic' : 'file'} size={24} />
           </span>
@@ -44,8 +51,13 @@ export default function FileUpload({ file, onFile, kind = 'material', error, set
           <button
             className="icon-button"
             type="button"
-            aria-label="선택한 파일 삭제"
-            onClick={() => onFile(null)}
+            aria-label="첨부 파일 빼기"
+            onClick={() => {
+              setRemovedFile(file)
+              setError('')
+              onFile(null)
+              requestAnimationFrame(() => undoRef.current?.focus())
+            }}
           >
             <Icon name="close" size={17} />
           </button>
@@ -79,6 +91,22 @@ export default function FileUpload({ file, onFile, kind = 'material', error, set
           </span>
           <small>{config.formats} · 최대 30MB</small>
         </button>
+      )}
+      {!file && removedFile && (
+        <div className="upload-undo">
+          <span role="status">첨부를 해제했어요.</span>
+          <button
+            ref={undoRef}
+            type="button"
+            className="text-button"
+            onClick={() => {
+              choose(removedFile)
+              requestAnimationFrame(() => selectedRef.current?.focus())
+            }}
+          >
+            실행 취소
+          </button>
+        </div>
       )}
       {error && (
         <p role="alert" className="field-error">

@@ -304,6 +304,18 @@
 .file-ok {
   color: #9c8b00;
 }
+.upload-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  color: #6e6e65;
+  font-size: 12px;
+}
+.upload-undo .text-button {
+  font-size: inherit;
+}
 .section-description {
   font-size: 13px;
   color: #6f6f66;
@@ -612,4 +624,52 @@
 }
 .mode-line.warn {
   color: #8a4a1f;
+}
+
+/* Reveal only the inputs needed for the next action. */
+.form-actions-end {
+  justify-content: flex-end;
+}
+.feedback-content-step {
+  animation: reveal-input 280ms ease-out;
+}
+.form-disclosure {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 14px;
+  background: #fff;
+}
+.form-disclosure > summary {
+  padding: 18px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.form-disclosure > summary:focus-visible {
+  outline: 2px solid #cfb900;
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.form-disclosure > .form-section {
+  border: 0;
+  margin: 0;
+  padding-top: 8px;
+}
+.presentation-details {
+  padding: 8px 22px 22px;
+}
+@keyframes reveal-input {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-content-step {
+    animation: none;
+  }
 }

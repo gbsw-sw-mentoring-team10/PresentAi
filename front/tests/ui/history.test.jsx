@@ -46,15 +46,12 @@ test('list loads server titles, scores and dates without invented file metadata'
   expect(fetch).toHaveBeenCalledTimes(1)
 })
 
-test('filter handles types with no saved records and restores the full list', async () => {
+test('one saved record type does not show duplicate or empty destination filters', async () => {
   stubServer()
-  const user = userEvent.setup()
   render(<HistoryPage navigate={() => {}} />)
   await screen.findByRole('list', { name: '피드백 기록' })
-  await user.click(screen.getByRole('button', { name: /^발표\s*0$/ }))
-  expect(screen.getByText('이 종류의 피드백 기록이 아직 없어요.')).toBeTruthy()
-  expect(screen.queryByRole('list')).toBeNull()
-  await user.click(screen.getByRole('button', { name: '전체 기록 보기' }))
+  expect(screen.queryByRole('group', { name: '피드백 종류 필터' })).toBeNull()
+  expect(screen.queryByRole('button', { name: '전체 기록 보기' })).toBeNull()
   expect(listItems()).toHaveLength(records.length)
 })
 

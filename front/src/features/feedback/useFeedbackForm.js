@@ -5,7 +5,7 @@ import { MAX_SCRIPT_BYTES, validateScriptText } from './uploadRules.js'
 export const SAMPLE_FILE_ONLY_ERROR =
   '예시 파일은 실제 파일이 아니라 분석에 쓸 수 없어요. 발표자료를 선택하거나 대본을 입력해 주세요.'
 export const SAMPLE_AUDIO_ONLY_ERROR =
-  '예시 음성은 실제 파일이 아니라 미리보기에 쓸 수 없어요. 음성을 선택하거나 대본을 입력해 주세요.'
+  '예시 음성은 실제 파일이 아니라 분석에 쓸 수 없어요. 직접 녹음하거나 음성 파일을 선택해 주세요.'
 
 // 입력 검증, TXT 읽기, 예시 채우기를 한곳에서 관리합니다.
 export default function useFeedbackForm({ mode, form, setForm, start }) {
@@ -15,8 +15,17 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
   const [errors, setErrors] = useState({})
   const [readingScript, setReadingScript] = useState(false)
   const [sampleWarning, setSampleWarning] = useState(false)
+  const [contentVisible, setContentVisible] = useState(() => !!form.purpose.trim())
+  const contentRef = useRef(null)
   const scriptReadVersion = useRef(0)
   const purposeRef = useRef(null)
+  useEffect(() => {
+    if (contentVisible) {
+      const target =
+        contentRef.current?.querySelector('.upload-zone') || contentRef.current?.querySelector('h2')
+      target?.focus()
+    }
+  }, [contentVisible])
   useEffect(
     () => () => {
       scriptReadVersion.current += 1
@@ -44,6 +53,29 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
   function setFieldError(field, message) {
     setErrors((current) => ({ ...current, [field]: message }))
   }
+  function focusInput(field) {
+    requestAnimationFrame(() => {
+      const section = contentRef.current?.querySelector(`#${field}-upload`)
+      const disclosure = section?.closest('details')
+      if (disclosure) disclosure.open = true
+      section?.querySelector('textarea, .upload-zone, .selected-file')?.focus()
+    })
+  }
+  function validatePurpose() {
+    const valid = !!form.purpose.trim()
+    setFieldError('purpose', valid ? '' : '발표 목적을 입력해 주세요.')
+    return valid
+  }
+  function continueToContent() {
+    if (!validatePurpose()) {
+      purposeRef.current?.focus()
+      return
+    }
+    setContentVisible(true)
+    const target =
+      contentRef.current?.querySelector('.upload-zone') || contentRef.current?.querySelector('h2')
+    target?.focus()
+  }
   function changeScriptMode(nextMode) {
     if (nextMode === scriptMode) return
     setScriptMode(nextMode)
@@ -57,11 +89,14 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     }
   }
   async function readScript(file) {
-    updateField('script', '')
+    if (!file) {
+      updateField('script', '')
+      return
+    }
     const version = ++scriptReadVersion.current
     setScriptFile(file)
-    setReadingScript(!!file)
-    if (!file) return
+    setReadingScript(true)
+    setFieldError('script', '')
     try {
       if (file.size > MAX_SCRIPT_BYTES) {
         setFieldError('script', '대본은 50,000자 이내로 입력해 주세요.')
@@ -91,6 +126,10 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
   }
   function handleSubmit(event) {
     event.preventDefault()
+    if (!contentVisible) {
+      continueToContent()
+      return
+    }
     if (readingScript) return
     if (!form.purpose.trim()) {
       setFieldError('purpose', '발표 목적을 입력해 주세요.')
@@ -99,6 +138,13 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     }
     if (speech && !form.audio) {
       setFieldError('audio', '분석할 리허설 음성을 선택해 주세요.')
+      contentRef.current?.querySelector('.upload-zone')?.focus()
+      return
+    }
+    const scriptError = (scriptMode === 'file' && errors.script) || validateScriptText(form.script)
+    if (scriptError) {
+      setFieldError('script', scriptError)
+      focusInput('script')
       return
     }
     const example = isExampleForm(form, mode)
@@ -111,19 +157,21 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
         'file',
         hasSample ? SAMPLE_FILE_ONLY_ERROR : '발표자료를 선택하거나 대본을 입력해 주세요.',
       )
+      contentRef.current?.querySelector('.upload-zone')?.focus()
       return
     }
     if (speech && hasSample && !hasScript) {
       setFieldError('audio', SAMPLE_AUDIO_ONLY_ERROR)
       return
     }
-    const scriptError = (scriptMode === 'file' && errors.script) || validateScriptText(form.script)
-    if (scriptError) {
-      setFieldError('script', scriptError)
+    if (errors.audio) {
+      focusInput('audio')
       return
     }
-    if (errors.audio) return
-    if (errors.file && form.file) return
+    if (errors.file && form.file) {
+      focusInput('file')
+      return
+    }
     if (hasSample) {
       setSampleWarning(true)
       return
@@ -151,9 +199,14 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     setErrors({})
     setScriptMode('text')
     setScriptFile(null)
+    setContentVisible(true)
   }
 
   return {
+    contentVisible,
+    contentRef,
+    validatePurpose,
+    continueToContent,
     errors,
     scriptMode,
     changeScriptMode,

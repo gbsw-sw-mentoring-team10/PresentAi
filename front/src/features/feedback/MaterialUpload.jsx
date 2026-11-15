@@ -7,7 +7,7 @@ export default function MaterialUpload({ file, error, onFile, onError }) {
     <section className="form-section" id="file-upload">
       <div className="form-section-title">
         <span>02</span>
-        <h2>발표자료</h2>
+        <h2 tabIndex={-1}>발표자료</h2>
       </div>
       <FileUpload file={file} onFile={onFile} error={error} setError={onError} />
       <p className="privacy-note">

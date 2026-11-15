@@ -30,7 +30,9 @@ export default function HistoryPage({ navigate, user, onLogin }) {
     return grouped
   }, [request.data, removed])
   const items = groups.all
-  const visible = groups[filter]
+  const hasMultipleTypes = groups.material.length > 0 && groups.speech.length > 0
+  const activeFilter = hasMultipleTypes ? filter : 'all'
+  const visible = groups[activeFilter]
 
   async function handleDelete(item) {
     if (
@@ -67,20 +69,22 @@ export default function HistoryPage({ navigate, user, onLogin }) {
         <>
           {items.length > 0 && (
             <div className="history-toolbar">
-              <div className="history-filters" role="group" aria-label="피드백 종류 필터">
-                {FILTERS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-pressed={filter === item.id}
-                    className={filter === item.id ? 'active' : ''}
-                    onClick={() => setFilter(item.id)}
-                  >
-                    {item.name}
-                    <span>{groups[item.id].length}</span>
-                  </button>
-                ))}
-              </div>
+              {hasMultipleTypes && (
+                <div className="history-filters" role="group" aria-label="피드백 종류 필터">
+                  {FILTERS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={activeFilter === item.id}
+                      className={activeFilter === item.id ? 'active' : ''}
+                      onClick={() => setFilter(item.id)}
+                    >
+                      {item.name}
+                      <span>{groups[item.id].length}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <p className="history-count" aria-live="polite">
                 {visible.length}개의 기록
               </p>

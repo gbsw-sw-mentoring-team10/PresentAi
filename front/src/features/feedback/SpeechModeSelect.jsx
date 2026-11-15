@@ -5,7 +5,7 @@ export default function SpeechModeSelect({ stepNumber, value, onChange }) {
   return (
     <section className="form-section">
       <div className="form-section-title">
-        <span>{stepNumber}</span>
+        {stepNumber && <span>{stepNumber}</span>}
         <h2>분석 방식</h2>
       </div>
       <p className="section-description">

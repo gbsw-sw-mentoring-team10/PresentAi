@@ -18,7 +18,7 @@ import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/
 import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 
-export default function FeedbackResultsPage({ request, navigate }) {
+export default function FeedbackResultsPage({ request, navigate, onNew }) {
   if (request.result.raw_only)
     return (
       <div className="results-page section-wrap">
@@ -26,13 +26,13 @@ export default function FeedbackResultsPage({ request, navigate }) {
         <p>화면 형식과 다른 응답이어서 원문을 그대로 표시합니다.</p>
         {!request.mock && <StorageNotice result={request.result} />}
         <ModelResponse value={request.result.raw_response} expanded />
-        <Button onClick={() => navigate('/materials')}>입력 화면으로 돌아가기</Button>
+        <Button onClick={() => navigate('/materials')}>입력 수정하기</Button>
       </div>
     )
-  return <StructuredResults request={request} navigate={navigate} />
+  return <StructuredResults request={request} navigate={navigate} onNew={onNew} />
 }
 
-function StructuredResults({ request, navigate }) {
+function StructuredResults({ request, navigate, onNew }) {
   const { result, submission, mock } = request
   const [resolved, setResolved] = useState([])
   const [tab, setTab] = useState('overview')
@@ -81,7 +81,7 @@ function StructuredResults({ request, navigate }) {
       <div className="result-topline">
         <button className="back-link" onClick={() => navigate('/materials')}>
           <Icon name="back" size={16} />
-          입력 화면으로
+          입력 수정하기
         </button>
         <FeedbackSteps current={3} />
       </div>
@@ -179,7 +179,7 @@ function StructuredResults({ request, navigate }) {
           <span>한 번의 점검, 더 나은 한 번의 발표.</span>
           <h3>다음 자료도 함께 다듬어 볼까요?</h3>
         </div>
-        <Button variant="yellow" onClick={() => navigate('/materials')}>
+        <Button variant="yellow" onClick={onNew}>
           다른 자료 점검하기
         </Button>
       </div>

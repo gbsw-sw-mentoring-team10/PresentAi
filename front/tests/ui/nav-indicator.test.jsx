@@ -76,11 +76,11 @@ test('usage navigation remains accessible while the home underline disappears on
   expect(line().style.opacity).toBe('0')
 })
 
-test('the hero guide button selects usage and actual route changes replace its selection', async () => {
+test('the footer guide button selects usage and actual route changes replace its selection', async () => {
   const user = await open('/')
   expect(line().style.opacity).toBe('0')
   await user.click(
-    within(screen.getByRole('main')).getByRole('button', { name: '이용 방법', exact: true }),
+    within(screen.getByRole('contentinfo')).getByRole('button', { name: '이용 방법', exact: true }),
   )
   expect(button('이용 방법').getAttribute('aria-current')).toBe('location')
   expect(line().style.opacity).toBe('0')

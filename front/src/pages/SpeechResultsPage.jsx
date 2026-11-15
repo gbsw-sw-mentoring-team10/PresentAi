@@ -9,7 +9,7 @@ import {
 } from '../features/speech/SpeechResult.jsx'
 import '../styles/speech-results.css'
 
-export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
+export default function SpeechResultsPage({ speech, navigate, onRetryReview, onRecordAgain }) {
   const { stt, mock, engine, audioName, script, pronunciation, review } = speech
   if (!stt) {
     return (
@@ -25,7 +25,7 @@ export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
       <div className="result-topline">
         <button className="back-link" onClick={() => navigate('/speech')}>
           <Icon name="back" size={16} />
-          입력 화면으로
+          입력 수정하기
         </button>
         <FeedbackSteps current={3} />
       </div>
@@ -75,8 +75,8 @@ export default function SpeechResultsPage({ speech, navigate, onRetryReview }) {
           <span>한 번의 점검, 더 나은 한 번의 발표.</span>
           <h3>다시 녹음해서 변화를 확인해 볼까요?</h3>
         </div>
-        <Button variant="yellow" onClick={() => navigate('/speech')}>
-          다시 연습하기
+        <Button variant="yellow" onClick={onRecordAgain}>
+          다시 녹음하기
         </Button>
       </div>
     </div>

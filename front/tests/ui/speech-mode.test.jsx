@@ -25,6 +25,9 @@ function Harness({ mode }) {
 test('speech form explains both modes, preselects the accurate one and lets users switch', async () => {
   const user = userEvent.setup()
   render(<Harness mode="speech" />)
+  await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), '교육{Enter}')
+  expect(screen.getByText('제목·설명·분석 설정 (선택)').closest('details').open).toBe(false)
+  await user.click(screen.getByText('제목·설명·분석 설정 (선택)'))
   const group = screen.getByRole('radiogroup', { name: '분석 방식' })
   const accurate = screen.getByRole('radio', { name: /정확한 분석/ })
   const fast = screen.getByRole('radio', { name: /빠른 분석/ })

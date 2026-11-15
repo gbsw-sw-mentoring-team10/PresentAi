@@ -95,7 +95,12 @@ export function feedbackFileMetadata(data) {
 }
 
 export function getPresentationTitle(form) {
-  return form.title.trim() || form.file?.name?.replace(/\.[^.]+$/, '') || '제목 없는 발표'
+  return (
+    form.title.trim() ||
+    form.file?.name?.replace(/\.[^.]+$/, '') ||
+    form.purpose?.trim().slice(0, 120) ||
+    '제목 없는 발표'
+  )
 }
 
 function waitForNextPoll(interval, signal) {

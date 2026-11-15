@@ -2,21 +2,13 @@ import GetStartedSection from '../features/home/GetStartedSection.jsx'
 import FrequentlyAskedQuestions from '../features/home/FrequentlyAskedQuestions.jsx'
 import HowItWorks from '../features/home/HowItWorks.jsx'
 import FeatureSection from '../features/home/FeatureSection.jsx'
-import SupportedFormats from '../features/home/SupportedFormats.jsx'
 import HeroSection from '../features/home/HeroSection.jsx'
-import FeedbackShowcase from '../features/home/FeedbackShowcase.jsx'
 import '../styles/home-scroll.css'
 
-export default function HomePage({ navigate, scrollSection }) {
+export default function HomePage({ navigate }) {
   return (
     <div className="home-page">
-      <HeroSection onShowHow={() => scrollSection('how')} />
-      <div className="home-showcase">
-        <div className="section-wrap">
-          <FeedbackShowcase />
-        </div>
-        <SupportedFormats />
-      </div>
+      <HeroSection onStart={() => navigate('/materials')} />
       <FeatureSection />
       <HowItWorks />
       <FrequentlyAskedQuestions />

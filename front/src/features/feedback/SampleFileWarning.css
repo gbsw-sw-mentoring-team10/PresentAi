@@ -71,6 +71,10 @@
   width: 100%;
   gap: 12px;
 }
+.sample-warning-actions.is-single {
+  grid-template-columns: 1fr;
+  margin-top: 20px;
+}
 
 @media (max-width: 600px) {
   .sample-warning-modal {

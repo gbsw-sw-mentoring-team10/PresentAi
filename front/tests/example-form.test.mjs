@@ -4,8 +4,6 @@ import {
   createExampleForm,
   isExampleForm,
   prepareSubmission,
-  hasLeftFormFlow,
-  shouldResetForm,
   withoutSampleFiles,
 } from '../src/features/feedback/exampleForm.js'
 import { createFeedbackRequest } from '../src/features/feedback/feedbackRequest.js'
@@ -50,19 +48,6 @@ test('user submissions drop only virtual sample files', () => {
   assert.equal(withoutSampleFiles(real), real)
 })
 
-test('the form survives only a return from the analysis page of the same flow', () => {
-  assert.equal(shouldResetForm('/analysis', '/materials', 'material'), false)
-  assert.equal(shouldResetForm('/analysis', '/speech', 'speech'), false)
-  assert.equal(shouldResetForm('/analysis', '/speech', 'material'), true)
-  assert.equal(shouldResetForm('/analysis', '/materials', 'speech'), true)
-  assert.equal(shouldResetForm('/materials', '/speech', 'material'), true)
-  assert.equal(shouldResetForm('/speech', '/materials', 'speech'), true)
-  for (const from of ['/', '/results', '/speech-results', '/unknown'])
-    assert.equal(shouldResetForm(from, '/materials', 'material'), true, from)
-  assert.equal(shouldResetForm('/materials', '/analysis', 'material'), false)
-  assert.equal(shouldResetForm('/', '/results', 'material'), false)
-})
-
 test('the request uses the sample API only for an untouched example', async () => {
   const sent = []
   const states = []
@@ -85,18 +70,5 @@ test('the request uses the sample API only for an untouched example', async () =
   assert.equal(states.at(-1).mock, false)
   assert.equal(states.at(-1).submission.file, null)
   // 예시 파일 이름을 제목으로 빌려 쓰지 않습니다.
-  assert.equal(states.at(-1).submission.title, '제목 없는 발표')
-})
-
-test('leaving the input flow clears the form even when coming back through analysis', () => {
-  let leftFlow = false
-  for (const route of ['/materials', '/analysis', '/history', '/analysis'])
-    leftFlow = hasLeftFormFlow(route, leftFlow)
-  assert.equal(leftFlow, true)
-  assert.equal(shouldResetForm('/analysis', '/materials', 'material', leftFlow), true)
-  assert.equal(hasLeftFormFlow('/materials', leftFlow), false)
-
-  leftFlow = false
-  for (const route of ['/speech', '/analysis']) leftFlow = hasLeftFormFlow(route, leftFlow)
-  assert.equal(shouldResetForm('/analysis', '/speech', 'speech', leftFlow), false)
+  assert.equal(states.at(-1).submission.title, sent[1].form.purpose)
 })

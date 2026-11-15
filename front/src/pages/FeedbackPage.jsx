@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import SubmissionNotice from '../features/feedback/SubmissionNotice.jsx'
 import FeedbackFormGuide from '../features/feedback/FeedbackFormGuide.jsx'
 import AudioUpload from '../features/feedback/AudioUpload.jsx'
@@ -5,7 +6,9 @@ import SpeechModeSelect from '../features/feedback/SpeechModeSelect.jsx'
 import { DEFAULT_SPEECH_MODE } from '../features/feedback/speechModes.js'
 import ScriptInput from '../features/feedback/ScriptInput.jsx'
 import MaterialUpload from '../features/feedback/MaterialUpload.jsx'
-import PresentationFields from '../features/feedback/PresentationFields.jsx'
+import PresentationFields, {
+  PresentationDetails,
+} from '../features/feedback/PresentationFields.jsx'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
@@ -16,7 +19,13 @@ import useFeedbackForm from '../features/feedback/useFeedbackForm.js'
 
 export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
   const speech = mode === 'speech'
+  const [scriptOpen, setScriptOpen] = useState(() => !!form.script)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const {
+    contentVisible,
+    contentRef,
+    validatePurpose,
+    continueToContent,
     errors,
     scriptMode,
     changeScriptMode,
@@ -34,6 +43,10 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
     reselectFile,
   } = useFeedbackForm({ mode, form, setForm, start })
   const example = isExampleForm(form, mode)
+  function useExample() {
+    fillExample()
+    setScriptOpen(true)
+  }
 
   return (
     <div className="workspace-page section-wrap">
@@ -54,7 +67,7 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
               : '발표의 목적을 알려 주시면, 자료를 바라보는 기준이 생겨요.'}
           </p>
         </div>
-        <button className="text-button example-fill" onClick={fillExample}>
+        <button className="text-button example-fill" onClick={useExample}>
           <Icon name="sparkle" size={16} />
           예시 자료로 채우기
         </button>
@@ -66,53 +79,76 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
             purposeError={errors.purpose}
             onChange={updateField}
             purposeRef={purposeRef}
+            onBlur={validatePurpose}
+            onNext={continueToContent}
           />
-          {!speech && (
-            <MaterialUpload
-              file={form.file}
-              error={errors.file}
-              onFile={(file) => updateField('file', file)}
-              onError={(message) => setFieldError('file', message)}
-            />
+          {!contentVisible ? (
+            <div className="form-actions form-actions-end">
+              <Button variant="yellow" type="submit" icon="arrow">
+                {speech ? '음성 입력으로' : '자료 입력으로'}
+              </Button>
+            </div>
+          ) : (
+            <div className="feedback-content-step" ref={contentRef}>
+              {speech ? (
+                <AudioUpload
+                  stepNumber="02"
+                  file={form.audio}
+                  error={errors.audio}
+                  onFile={(file) => updateField('audio', file)}
+                  onError={(message) => setFieldError('audio', message)}
+                />
+              ) : (
+                <MaterialUpload
+                  file={form.file}
+                  error={errors.file}
+                  onFile={(file) => updateField('file', file)}
+                  onError={(message) => setFieldError('file', message)}
+                />
+              )}
+              <details
+                className="form-disclosure"
+                open={scriptOpen || !!errors.script}
+                onToggle={(event) => setScriptOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  {speech || form.file ? '대본 추가 (선택)' : '파일 없이 대본으로 입력하기'}
+                </summary>
+                <ScriptInput
+                  scriptMode={scriptMode}
+                  onModeChange={changeScriptMode}
+                  script={form.script}
+                  onScriptChange={(script) => updateField('script', script)}
+                  scriptFile={scriptFile}
+                  onScriptFileChange={readScript}
+                  error={errors.script}
+                  onError={(message) => setFieldError('script', message)}
+                />
+              </details>
+              <details
+                className="form-disclosure"
+                open={detailsOpen}
+                onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+              >
+                <summary>{speech ? '제목·설명·분석 설정 (선택)' : '제목·설명 추가 (선택)'}</summary>
+                <PresentationDetails form={form} onChange={updateField} />
+                {speech && (
+                  <SpeechModeSelect
+                    value={form.engine || DEFAULT_SPEECH_MODE}
+                    onChange={(engine) => updateField('engine', engine)}
+                  />
+                )}
+              </details>
+              <SubmissionNotice speech={speech} isExample={example} />
+              <div className="form-actions form-actions-end">
+                <Button variant="yellow" type="submit" icon="sparkle" disabled={readingScript}>
+                  {speech ? '음성 분석 시작' : example ? '예시 분석 시작' : '분석 시작'}
+                </Button>
+              </div>
+            </div>
           )}
-          <ScriptInput
-            stepNumber={speech ? '02' : '03'}
-            scriptMode={scriptMode}
-            onModeChange={changeScriptMode}
-            script={form.script}
-            onScriptChange={(script) => updateField('script', script)}
-            scriptFile={scriptFile}
-            onScriptFileChange={readScript}
-            error={errors.script}
-            onError={(message) => setFieldError('script', message)}
-          />
-          {speech && (
-            <AudioUpload
-              stepNumber="03"
-              file={form.audio}
-              error={errors.audio}
-              onFile={(file) => updateField('audio', file)}
-              onError={(message) => setFieldError('audio', message)}
-            />
-          )}
-          {speech && (
-            <SpeechModeSelect
-              stepNumber="04"
-              value={form.engine || DEFAULT_SPEECH_MODE}
-              onChange={(engine) => updateField('engine', engine)}
-            />
-          )}
-          <SubmissionNotice speech={speech} isExample={example} />
-          <div className="form-actions">
-            <button type="button" className="text-button" onClick={() => navigate('/')}>
-              취소
-            </button>
-            <Button variant="yellow" type="submit" icon="sparkle" disabled={readingScript}>
-              {speech ? '음성 분석 시작' : example ? '예시 분석 시작' : '분석 시작'}
-            </Button>
-          </div>
         </form>
-        <FeedbackFormGuide speech={speech} onFillExample={fillExample} />
+        <FeedbackFormGuide speech={speech} />
       </div>
       {sampleWarning && (
         <SampleFileWarning

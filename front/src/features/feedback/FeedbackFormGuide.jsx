@@ -1,6 +1,6 @@
 import Icon from '../../components/ui/Icon.jsx'
 
-export default function FeedbackFormGuide({ speech, onFillExample }) {
+export default function FeedbackFormGuide({ speech }) {
   return (
     <aside className="form-sidebar">
       <div className="side-note">
@@ -43,16 +43,6 @@ export default function FeedbackFormGuide({ speech, onFillExample }) {
             </span>
           ))}
         </div>
-      </div>
-      <div className="side-bottom">
-        <Icon name="shield" size={19} />
-        <p>
-          부담 없이 먼저 둘러보세요.
-          <br />
-          <button onClick={onFillExample}>
-            예시 자료로 시작하기 <span>↗</span>
-          </button>
-        </p>
       </div>
     </aside>
   )

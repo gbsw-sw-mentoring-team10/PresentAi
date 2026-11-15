@@ -15,28 +15,6 @@
     scroll-snap-align: start;
   }
 
-  .home-page .hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding-block: 36px;
-  }
-
-  .home-showcase {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .home-showcase .showcase {
-    margin-top: 16px;
-  }
-
-  .home-showcase .format-strip {
-    margin-top: 10px;
-  }
-
   .home-page .features,
   .home-page .faq-section {
     padding-block: 32px 40px;
@@ -61,7 +39,6 @@
 /* 스크롤 위치에 따라 조금씩 떠오릅니다. 미지원 브라우저에서는 그대로 표시합니다. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .home-showcase .showcase,
     .home-page .section-heading,
     .home-page .feature-card,
     .home-page .how-grid article,

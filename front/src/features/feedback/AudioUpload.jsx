@@ -22,7 +22,7 @@ export default function AudioUpload({ stepNumber, file, error, onFile, onError }
     <section className="form-section" id="audio-upload">
       <div className="form-section-title">
         <span>{stepNumber}</span>
-        <h2>리허설 음성</h2>
+        <h2 tabIndex={-1}>리허설 음성</h2>
       </div>
       <p className="section-description">
         파일을 올리거나 바로 녹음할 수 있어요. 분석 시작 시 음성이 분석 서버로 전송돼 텍스트 변환과
