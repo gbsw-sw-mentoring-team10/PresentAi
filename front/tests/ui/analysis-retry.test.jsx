@@ -26,7 +26,8 @@ test('a server error can be retried from the UI without losing input, then opens
   const user = userEvent.setup()
   render(<App />)
   // 예시 자료는 서버를 거치지 않으므로 직접 입력한 자료로 서버 오류를 재현합니다.
-  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   const originalScript = screen.getByRole('textbox', { name: '발표 대본' }).value
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
@@ -38,7 +39,6 @@ test('a server error can be retried from the UI without losing input, then opens
   )
   expect((await screen.findByRole('alert')).textContent).toContain('(500)')
   await user.click(screen.getByRole('button', { name: '다시 시도' }))
-  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('재시도에 성공한 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
   expect(analysisFetch).toHaveBeenCalledTimes(2)
@@ -63,7 +63,8 @@ test('unexpected model output opens as raw text even when storage fails', async 
   window.history.replaceState(null, '', '/#/materials')
   const user = userEvent.setup()
   render(<App />)
-  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
   // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
@@ -72,7 +73,6 @@ test('unexpected model output opens as raw text even when storage fails', async 
       name: /그대로 진행/,
     }),
   )
-  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('모델이 생성한 원문 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
   expect(screen.getByRole('status').textContent).toContain('DB 저장 실패')

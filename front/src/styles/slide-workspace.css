@@ -777,29 +777,18 @@
   font-size: 20px;
   margin-top: 6px;
 }
-.deck-zoom {
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  flex-shrink: 0;
-}
-.deck-zoom button {
-  width: 38px;
-  height: 38px;
-  font-size: 20px;
-}
-.deck-zoom > span {
-  min-width: 50px;
-  text-align: center;
-  font-size: 12px;
-}
 .deck-modal-canvas {
   overflow: auto;
   max-height: 70dvh;
   background: #f4f4ee;
   border: 1px solid var(--line);
   border-radius: 7px;
+}
+/* 크게 보기는 화면에 맞춰 한 장 전체를 보여 줘요. */
+.deck-modal-slide {
+  width: 100%;
+  max-width: 110dvh;
+  margin-inline: auto;
 }
 .deck-modal-hint {
   font-size: 11px;
@@ -1052,10 +1041,6 @@
   }
   .deck-modal-heading h2 {
     font-size: 17px;
-  }
-  .deck-zoom button {
-    width: 44px;
-    height: 44px;
   }
   .deck-modal-hint {
     line-height: 1.8;

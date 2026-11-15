@@ -51,21 +51,25 @@ async function renderApp(path = '/materials', { strict = false } = {}) {
 
 const purpose = () => screen.getByRole('textbox', { name: /발표 목적/ })
 
-test('the example form is cleared after visiting another page and coming back', async () => {
+test('a draft survives reading the guide and returning with browser Back', async () => {
   stubServer()
   const user = await renderApp('/materials', { strict: true })
   await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
   expect(purpose().value).toBe(example.purpose)
 
-  await user.click(screen.getByRole('button', { name: '홈으로' }))
+  await user.click(
+    within(screen.getByRole('navigation', { name: '주 메뉴' })).getByRole('button', {
+      name: '이용 방법',
+    }),
+  )
   await waitFor(() => expect(window.location.hash).toBe('#/'))
-  await goTo('/materials')
-  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
-  expect(screen.queryByText('그린_호라이즌_투자제안서.pdf')).toBeNull()
-  expect(screen.getByRole('button', { name: '분석 시작', exact: true })).toBeTruthy()
+  await act(async () => window.history.back())
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(example.purpose)
+  expect(screen.getByText(example.file.name)).toBeTruthy()
+  expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe(example.script)
 })
 
-test('typed input is cleared when switching between material and speech pages', async () => {
+test('material and speech drafts stay separate when switching between them', async () => {
   stubServer()
   const user = await renderApp('/materials')
   await user.type(purpose(), '직접 입력한 목적')
@@ -73,15 +77,19 @@ test('typed input is cleared when switching between material and speech pages', 
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
   await user.type(purpose(), '음성 연습')
   await goTo('/materials')
-  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('직접 입력한 목적')
+  await goTo('/speech')
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('음성 연습')
 })
 
 test('returning from the analysis screen of the same flow keeps the input', async () => {
   stubServer(() => new Promise(() => {}))
   const user = await renderApp('/materials')
-  await user.type(purpose(), '교육')
+  await user.type(purpose(), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
   await user.click(
     within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
       name: /그대로 진행/,
@@ -92,35 +100,73 @@ test('returning from the analysis screen of the same flow keeps the input', asyn
   expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe('합성 대본입니다.')
 })
 
-test('a finished analysis waits on the analysis page until the result button is pressed', async () => {
+test.each(['/materials', '/speech'])(
+  'returning to a cancelled analysis from %s offers recovery instead of waiting forever',
+  async (path) => {
+    const analysisFetch = stubServer(() => new Promise(() => {}))
+    const user = await renderApp(path)
+    await user.type(purpose(), '교육{Enter}')
+    if (path === '/speech') {
+      await user.upload(
+        screen.getByLabelText('음성 파일 선택'),
+        new File(['synthetic audio'], 'rehearsal.wav', { type: 'audio/wav' }),
+      )
+      await user.click(screen.getByRole('button', { name: '음성 분석 시작', exact: true }))
+    } else {
+      await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
+      await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
+      await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+      await user.click(
+        within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole(
+          'button',
+          {
+            name: /그대로 진행/,
+          },
+        ),
+      )
+    }
+    await user.click(await screen.findByRole('button', { name: '입력 화면으로 돌아가기' }))
+    expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('교육')
+    expect(analysisFetch.mock.calls[0][1].signal.aborted).toBe(true)
+    await goTo('/analysis')
+    expect((await screen.findByRole('alert')).textContent).toContain('중단')
+    expect(analysisFetch).toHaveBeenCalledOnce()
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+    await waitFor(() => expect(analysisFetch).toHaveBeenCalledTimes(2))
+    await user.click(screen.getByRole('button', { name: '입력 화면으로 돌아가기' }))
+    expect(window.location.hash).toBe(`#${path}`)
+  },
+)
+
+test('a finished analysis automatically opens its result without adding a history step', async () => {
   const analysisFetch = stubServer()
   const user = await renderApp('/materials')
-  await user.type(purpose(), '교육')
+  await user.type(purpose(), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
   await user.click(
     within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
       name: /그대로 진행/,
     }),
   )
-  const resultButton = await screen.findByRole('button', { name: '피드백 결과 보기' })
-  expect(window.location.hash).toBe('#/analysis')
-  expect(screen.getByText('피드백을 만날 준비가 됐어요.')).toBeTruthy()
-  expect(analysisFetch).toHaveBeenCalledOnce()
-
-  await user.click(resultButton)
   expect(await screen.findByText(feedback.feedback)).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
 
-  // 결과 화면을 거쳐 돌아오면 입력은 비워집니다.
-  await goTo('/materials')
-  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  expect(analysisFetch).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('button', { name: '피드백 결과 보기' })).toBeNull()
+  // 브라우저 뒤로 가기도 완료한 분석을 거치지 않고 기존 입력으로 돌아갑니다.
+  await act(async () => window.history.back())
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('교육')
+  expect(analysisFetch).toHaveBeenCalledOnce()
 })
 
 test('logged-out material analysis warns that the feedback will not be saved', async () => {
   const analysisFetch = stubServer(() => new Promise(() => {}))
   const user = await renderApp('/materials')
-  await user.type(purpose(), '교육')
+  await user.type(purpose(), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
   const dialog = await screen.findByRole('dialog', { name: '피드백 저장 안내' })
@@ -134,6 +180,35 @@ test('logged-out material analysis warns that the feedback will not be saved', a
   expect(analysisFetch).not.toHaveBeenCalled()
   expect(window.location.hash).toBe('#/materials')
   expect(purpose().value).toBe('교육')
+})
+
+test('the guide example button starts the unchanged example without the storage warning', async () => {
+  const analysisFetch = stubServer(() => new Promise(() => {}))
+  const user = await renderApp('/materials')
+  await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
+  expect(purpose().value).toBe(example.purpose)
+  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  expect(await screen.findByText('예시 자료 · 예시 결과 미리보기')).toBeTruthy()
+  expect(analysisFetch).not.toHaveBeenCalled()
+  expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
+})
+
+test('the prepared example result shows the original example slides', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  try {
+    stubServer()
+    const user = await renderApp('/materials')
+    await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
+    await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+    await act(() => vi.advanceTimersByTimeAsync(3000))
+    await user.click(await screen.findByRole('tab', { name: /슬라이드별 피드백/ }))
+    expect(screen.queryByText('슬라이드별 결과가 아직 없어요.')).toBeNull()
+    expect(
+      (await screen.findAllByAltText(/번 예시 슬라이드: ESG 기반 부동산 투자 및 운영 전략/)).length,
+    ).toBeGreaterThan(0)
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 test('the unchanged example starts without the storage warning', async () => {
@@ -183,13 +258,12 @@ test('an unchanged example shows the prepared Green Horizon result without calli
   try {
     const analysisFetch = stubServer(() => new Promise(() => {}))
     const user = await renderApp('/materials')
-    // 상단의 중복 버튼은 없애고, 안내 영역의 버튼 하나만 둡니다.
-    expect(screen.queryByRole('button', { name: '예시 자료로 채우기', exact: true })).toBeNull()
+    // 넓은 화면의 안내 버튼과 좁은 화면의 상단 버튼은 같은 예시를 채웁니다.
     await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
     await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
     expect(await screen.findByText('예시 자료 · 예시 결과 미리보기')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(3000))
-    await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
+    await screen.findByRole('button', { name: '입력 수정하기' })
     expect(analysisFetch).not.toHaveBeenCalled()
 
     expect(await screen.findByText(`‘${example.title}’`)).toBeTruthy()
@@ -223,7 +297,7 @@ test('the example rehearsal shows the prepared speech result and AI review', asy
     await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
     expect(await screen.findByText('예시 음성 · 예시 결과 미리보기')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(2500))
-    await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
+    await screen.findByRole('button', { name: '입력 수정하기' })
     expect(await screen.findByText('분당 346자')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(2500))
     expect(

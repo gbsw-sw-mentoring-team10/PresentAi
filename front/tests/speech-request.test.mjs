@@ -204,3 +204,33 @@ test('API errors surface the server message', async (t) => {
   )
   await assert.rejects(analyzeSpeech(audio), /음성 파일을 읽을 수 없습니다/)
 })
+
+test('leaving ready results keeps the pending review, while a new analysis replaces it', async () => {
+  const { states, onChange } = collect()
+  let finishOldReview
+  let reviewCalls = 0
+  const manager = createSpeechRequest(onChange, {
+    analyze: async () => analysis,
+    review: async () => {
+      if (++reviewCalls === 1)
+        return new Promise((resolve) => {
+          finishOldReview = resolve
+        })
+      return { ...review, summary: '새 분석 리뷰' }
+    },
+  })
+  const first = manager.run({ audio, script: '첫 대본' })
+  await Promise.resolve()
+  assert.equal(states.at(-1).status, 'ready')
+  manager.cancel()
+  assert.equal(states.at(-1).status, 'ready')
+  assert.equal(states.at(-1).review.status, 'loading')
+  await manager.run({ audio, script: '새 대본' })
+  assert.equal(states.at(-1).script, '새 대본')
+  finishOldReview({ ...review, summary: '늦게 도착한 이전 리뷰' })
+  await first
+  assert.equal(states.at(-1).review.data.summary, '새 분석 리뷰')
+  manager.reset()
+  assert.equal(states.at(-1).status, 'idle')
+  assert.equal(states.at(-1).stt, null)
+})

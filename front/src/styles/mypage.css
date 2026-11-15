@@ -437,3 +437,15 @@
     animation: none;
   }
 }
+
+/* 프로필·기록 탭을 겹쳐 두어 탭을 바꿔도 페이지 높이가 그대로예요. */
+.mypage-panels {
+  display: grid;
+}
+.mypage-panels > .mypage-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.mypage-panel.is-inactive {
+  visibility: hidden;
+}

@@ -1,4 +1,3 @@
-import Button from '../ui/Button.jsx'
 import Icon from '../ui/Icon.jsx'
 import Logo from '../ui/Logo.jsx'
 import useMobileMenu from './useMobileMenu.js'
@@ -52,11 +51,7 @@ export default function AppHeader({
   }
 
   return (
-    <header
-      ref={headerRef}
-      className={`site-header${isHome ? ' site-header-home' : ''}`}
-      aria-busy={authBusy}
-    >
+    <header ref={headerRef} className="site-header" aria-busy={authBusy}>
       <div className="nav-wrap">
         <button
           className="logo-button"
@@ -130,7 +125,6 @@ export default function AppHeader({
           >
             {authBusy ? '계정 확인 중' : user ? '로그아웃' : '로그인'}
           </button>
-          <Button onClick={() => handleNavigate('/materials')}>시작하기</Button>
           <button
             ref={buttonRef}
             className="icon-button mobile-menu"

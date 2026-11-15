@@ -4,7 +4,7 @@ import Modal from './Modal.jsx'
 import '../../styles/confirm-dialog.css'
 
 // 브라우저 기본 confirm 대신 쓰는 확인 팝업입니다. 진행 버튼은 오른쪽(작은 화면에서는 위)에 두고,
-// 되돌릴 수 없는 작업은 작은 화면에서도 취소를 위에 둡니다.
+// 되돌릴 수 없는 작업은 작은 화면에서도 취소를 위에 둡니다. confirmLabel이 없으면 버튼 하나만 보여요.
 export default function ConfirmDialog({
   title,
   heading,
@@ -21,6 +21,13 @@ export default function ConfirmDialog({
   onConfirm,
   onClose,
 }) {
+  const actionsClass = [
+    'confirm-dialog-actions',
+    confirmVariant === 'danger' && 'is-danger',
+    !confirmLabel && 'is-single',
+  ]
+    .filter(Boolean)
+    .join(' ')
   return (
     <Modal onClose={onClose} title={title} className="confirm-dialog">
       <span className={`confirm-dialog-symbol confirm-dialog-symbol-${confirmVariant}`}>
@@ -30,13 +37,15 @@ export default function ConfirmDialog({
       <p>{children}</p>
       {detail}
       {question && <strong className="confirm-dialog-question">{question}</strong>}
-      <div className={`confirm-dialog-actions${confirmVariant === 'danger' ? ' is-danger' : ''}`}>
+      <div className={actionsClass}>
         <Button variant="outline" icon={cancelIcon} onClick={onCancel}>
           {cancelLabel}
         </Button>
-        <Button variant={confirmVariant} icon={confirmIcon} onClick={onConfirm}>
-          {confirmLabel}
-        </Button>
+        {confirmLabel && (
+          <Button variant={confirmVariant} icon={confirmIcon} onClick={onConfirm}>
+            {confirmLabel}
+          </Button>
+        )}
       </div>
     </Modal>
   )

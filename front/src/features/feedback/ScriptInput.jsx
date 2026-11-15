@@ -16,9 +16,9 @@ export default function ScriptInput({
   onError,
 }) {
   return (
-    <section className="form-section">
+    <section className="form-section" id="script-upload">
       <div className="form-section-title">
-        <span>{stepNumber}</span>
+        {stepNumber && <span>{stepNumber}</span>}
         <h2>발표 대본</h2>
         <small>선택</small>
       </div>

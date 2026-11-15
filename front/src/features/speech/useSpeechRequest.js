@@ -14,6 +14,7 @@ export default function useSpeechRequest() {
     speech,
     run: manager.run,
     cancel: manager.cancel,
+    reset: manager.reset,
     retryReview: manager.retryReview,
   }
 }

@@ -17,14 +17,15 @@ import usePdfDocument from '../features/slides/usePdfDocument.js'
 import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/slideFeedback.js'
 import { StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
+import { exampleSlides } from '../data/exampleSlides.js'
 
-export default function FeedbackResultsPage({ request, navigate }) {
-  if (request.result.raw_only) return <UnformattedResult request={request} navigate={navigate} />
-  return <StructuredResults request={request} navigate={navigate} />
+export default function FeedbackResultsPage({ request, onEdit, onNew }) {
+  if (request.result.raw_only) return <UnformattedResult request={request} onEdit={onEdit} />
+  return <StructuredResults request={request} onEdit={onEdit} onNew={onNew} />
 }
 
 // 화면 형식으로 정리하지 못한 응답: 읽을 수 있는 글이면 그대로 보여 주고, JSON 같은 데이터는 노출하지 않는다.
-function UnformattedResult({ request, navigate }) {
+function UnformattedResult({ request, onEdit }) {
   const raw = request.result.raw_response
   const text = typeof raw === 'string' && !/^\s*(```|[{[])/.test(raw) ? raw.trim() : ''
   return (
@@ -45,20 +46,25 @@ function UnformattedResult({ request, navigate }) {
           <p className="api-feedback-text">{text}</p>
         </section>
       )}
-      <Button onClick={() => navigate('/materials')}>입력 화면으로 돌아가기</Button>
+      <Button onClick={onEdit}>입력 수정하기</Button>
     </div>
   )
 }
 
-function StructuredResults({ request, navigate }) {
+function StructuredResults({ request, onEdit, onNew }) {
   const { result, submission, mock } = request
   const [resolved, setResolved] = useState([])
   const [tab, setTab] = useState('overview')
   const preview = usePdfDocument(submission.file)
   const pageCount = preview.document?.numPages
+  // 슬라이드가 빠진 예시 결과에도 원본 예시 자료와 슬라이드별 피드백을 보여 줍니다.
+  const resultSlides = useMemo(
+    () => (result.slides?.length ? result.slides : mock ? exampleSlides : []),
+    [result.slides, mock],
+  )
   const slides = useMemo(
-    () => mergeDocumentSlides(result.slides || [], pageCount),
-    [result.slides, pageCount],
+    () => mergeDocumentSlides(resultSlides, pageCount),
+    [resultSlides, pageCount],
   )
   const {
     navigation: slideNavigation,
@@ -66,10 +72,7 @@ function StructuredResults({ request, navigate }) {
     progress: slideProgress,
     showSlide,
   } = useSlideReview(slides)
-  const slidePriorities = useMemo(
-    () => getPrioritySlideIssues(result.slides || []),
-    [result.slides],
-  )
+  const slidePriorities = useMemo(() => getPrioritySlideIssues(resultSlides), [resultSlides])
   function openSlide(id, issueId) {
     showSlide(id, issueId)
     setTab('slides')
@@ -83,7 +86,7 @@ function StructuredResults({ request, navigate }) {
       })
     }
   }, [tab])
-  const hasSlides = !!submission.file || !!result.slides?.length
+  const hasSlides = !!submission.file || !!resultSlides.length
   const { message: toast, show: showToast } = useToastMessage()
   function toggle(index) {
     setResolved((items) =>
@@ -97,9 +100,9 @@ function StructuredResults({ request, navigate }) {
   return (
     <div className={`results-page section-wrap ${tab === 'slides' ? 'deck-results-page' : ''}`}>
       <div className="result-topline">
-        <button className="back-link" onClick={() => navigate('/materials')}>
+        <button className="back-link" onClick={onEdit}>
           <Icon name="back" size={16} />
-          입력 화면으로
+          입력 수정하기
         </button>
         <FeedbackSteps current={3} />
       </div>
@@ -197,7 +200,7 @@ function StructuredResults({ request, navigate }) {
           <span>한 번의 점검, 더 나은 한 번의 발표.</span>
           <h3>다음 자료도 함께 다듬어 볼까요?</h3>
         </div>
-        <Button variant="yellow" onClick={() => navigate('/materials')}>
+        <Button variant="yellow" onClick={onNew}>
           다른 자료 점검하기
         </Button>
       </div>

@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import Modal from '../../components/ui/Modal.jsx'
 
 import SlidePreview from './SlidePreview.jsx'
 
 export default function SlidePreviewDialog({ slide, pdf, closePreview }) {
-  const [zoom, setZoom] = useState(100)
   const pad = (value) => String(value).padStart(2, '0')
   return (
     <Modal
@@ -17,26 +15,9 @@ export default function SlidePreviewDialog({ slide, pdf, closePreview }) {
           <span>SLIDE {pad(slide.id)}</span>
           <h2>{slide.title}</h2>
         </div>
-        <div className="deck-zoom">
-          <button
-            aria-label="축소"
-            disabled={zoom <= 100}
-            onClick={() => setZoom((value) => value - 25)}
-          >
-            −
-          </button>
-          <span>{zoom}%</span>
-          <button
-            aria-label="확대"
-            disabled={zoom >= 200}
-            onClick={() => setZoom((value) => value + 25)}
-          >
-            +
-          </button>
-        </div>
       </div>
       <div className="deck-modal-canvas">
-        <div style={{ width: `${zoom}%`, maxWidth: `${zoom * 1.1}dvh` }}>
+        <div className="deck-modal-slide">
           <SlidePreview slide={slide} pdf={pdf} expanded />
         </div>
       </div>

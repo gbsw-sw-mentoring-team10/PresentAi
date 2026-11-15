@@ -22,6 +22,7 @@ const paths = {
   download: 'M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5',
   menu: 'M4 6h16M4 12h16M4 18h16',
   play: 'm8 4 12 8-12 8V4Z',
+  pause: 'M9 5v14M15 5v14',
   edit: 'm15 3 6 6-12 12H3v-6L15 3Zm-3 3 6 6',
   info: 'M12 11v6m0-10v.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
   plus: 'M12 4v16M4 12h16',

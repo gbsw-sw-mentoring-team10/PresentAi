@@ -136,18 +136,6 @@
 }
 
 @media (max-width: 600px) {
-  .hero h1 {
-    font-size: clamp(33px, 9.5vw, 44px);
-    letter-spacing: -1.8px;
-  }
-  .hero-star {
-    right: -8px;
-    top: -16px;
-    font-size: 29px;
-  }
-  .hero-description {
-    font-size: 13px;
-  }
   .hero-actions {
     gap: 8px;
   }
@@ -156,69 +144,6 @@
     font-size: 14px;
   }
   .hero-actions .text-button {
-    font-size: 12px;
-  }
-  .hero-small {
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    font-size: 12px;
-  }
-  .showcase {
-    height: 460px;
-    margin-top: 24px;
-  }
-  .showcase-main {
-    width: 96%;
-    left: 50%;
-  }
-  .feedback-float {
-    width: min(245px, 82%);
-    right: 3px;
-    top: 206px;
-    padding: 16px;
-    transform: rotate(2deg);
-  }
-  .feedback-float-heading strong {
-    font-size: 12px;
-  }
-  .feedback-float > p {
-    font-size: 12px;
-    margin: 12px 0;
-  }
-  .suggestion-mini {
-    font-size: 11px;
-    padding: 10px;
-  }
-  .suggestion-mini > span {
-    font-size: 11px;
-  }
-  .feedback-float > button {
-    font-size: 12px;
-    min-height: 44px;
-    margin-top: 4px;
-  }
-  .time-float {
-    left: 5px;
-    bottom: 0;
-    padding: 10px;
-  }
-  .time-float small {
-    font-size: 10px;
-  }
-  .time-float b {
-    font-size: 10px;
-  }
-  .time-float > strong {
-    font-size: 18px;
-  }
-  .format-strip {
-    margin-top: 30px;
-  }
-  .format-strip > .section-wrap > div {
-    gap: 14px 20px;
-  }
-  .format-strip b,
-  .format-strip > .section-wrap > span {
     font-size: 12px;
   }
   .section-heading > p,
@@ -231,7 +156,16 @@
     font-size: 12px;
   }
   .final-cta .button {
-    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    gap: 20px;
+    padding: 16px 24px;
+    font-size: 18px;
+  }
+  .final-cta .button svg {
+    width: 24px;
+    height: 24px;
   }
   .faq-list summary {
     min-height: 44px;
@@ -578,9 +512,6 @@
   }
   .stepper li > i {
     width: 10px;
-  }
-  .hero-description {
-    font-size: 12px;
   }
   .feature-card {
     padding: 22px;

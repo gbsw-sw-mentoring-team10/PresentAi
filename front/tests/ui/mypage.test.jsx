@@ -45,7 +45,8 @@ test('shows the email as the name and switches between profile and record tabs',
   const profileTab = screen.getByRole('tab', { name: '프로필' })
   expect(profileTab.getAttribute('aria-selected')).toBe('true')
   expect(screen.getByRole('tabpanel').textContent).toContain('계정 정보')
-  expect(await screen.findByText('2026년 3월 2일')).toBeTruthy()
+  // 숨긴 기록 탭에도 같은 가입일이 있어서, 보이는 탭 안에서만 찾아요.
+  expect(await within(screen.getByRole('tabpanel')).findByText('2026년 3월 2일')).toBeTruthy()
 
   await events.click(screen.getByRole('tab', { name: '기록' }))
   const panel = screen.getByRole('tabpanel', { name: '기록' })
@@ -61,8 +62,12 @@ test('shows the email as the name and switches between profile and record tabs',
     '2026년 3월 2일',
   )
 
+  // 두 탭을 겹쳐 두어 탭을 바꿔도 높이가 그대로예요. 숨긴 탭은 보조 기술에서도 빠져요.
+  expect(document.getElementById('mypage-panel-profile').getAttribute('aria-hidden')).toBe('true')
+
   await events.keyboard('{ArrowLeft}')
   expect(screen.getByRole('tab', { name: '프로필' }).getAttribute('aria-selected')).toBe('true')
+  expect(document.getElementById('mypage-panel-record').getAttribute('aria-hidden')).toBe('true')
   expect(fetch.mock.calls.some(([url]) => url.endsWith('/auth/me'))).toBe(true)
   expect(fetch.mock.calls.some(([url]) => url.includes('/feedback?'))).toBe(true)
 })
@@ -91,7 +96,7 @@ test('account deletion needs an explicit confirmation', async () => {
 
 test('password change validates the two fields before sending', async () => {
   const { events } = renderPage()
-  await screen.findByText('2026년 3월 2일')
+  await within(screen.getByRole('tabpanel')).findByText('2026년 3월 2일')
   await events.click(screen.getByRole('button', { name: '비밀번호 변경' }))
   const modal = await screen.findByRole('dialog', { name: '비밀번호 변경' })
   const current = within(modal).getByLabelText('기존 비밀번호')

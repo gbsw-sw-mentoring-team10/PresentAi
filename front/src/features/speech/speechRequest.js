@@ -49,10 +49,19 @@ export function createSpeechRequest(
   }
 
   function cancel() {
+    // 결과를 확인한 뒤 입력을 수정해도 이전 결과로 돌아갈 수 있습니다.
+    // 이미 시작한 AI 리뷰는 마저 채우고, 새 분석이나 로그아웃 때 중단합니다.
+    if (state.status === 'ready') return
     if (stop()) {
       state = EMPTY_SPEECH
       onChange(state)
     }
+  }
+
+  function reset() {
+    stop()
+    state = EMPTY_SPEECH
+    onChange(state)
   }
 
   const options = (task) => ({ signal: task.controller.signal, mock: task.mock })
@@ -103,7 +112,7 @@ export function createSpeechRequest(
 
   function run(form) {
     if (!form.audio) return Promise.resolve()
-    if (active && !active.finished) return active.promise
+    if (active && !active.finished && state.status !== 'ready') return active.promise
     stop()
     const mock = isSampleFile(form.audio)
     // 예시 음성은 실제 바이트가 없어 자리만 채우는 파일을 넘깁니다.
@@ -130,5 +139,5 @@ export function createSpeechRequest(
     return reviewStep(task)
   }
 
-  return { run, cancel, retryReview, dispose: stop }
+  return { run, cancel, reset, retryReview, dispose: stop }
 }

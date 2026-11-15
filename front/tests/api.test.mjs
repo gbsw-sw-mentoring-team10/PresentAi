@@ -207,7 +207,7 @@ test('built Worker serves the exact Vite HTML, stylesheet, script and transparen
     (match) => match[1],
   )
   const chunkAssets = (await readdir('dist/assets')).map((name) => `/assets/${name}`)
-  for (const url of new Set([...entryAssets, ...chunkAssets, '/brand/presentai-compact.png'])) {
+  for (const url of new Set([...entryAssets, ...chunkAssets, '/brand/presentai-logo.svg'])) {
     const response = await worker.fetch(new Request(`https://site.example${url}`))
     assert.equal(response.status, 200)
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(`dist${url}`))

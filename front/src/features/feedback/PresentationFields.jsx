@@ -1,9 +1,16 @@
-export default function PresentationFields({ form, purposeError, onChange, purposeRef }) {
+export default function PresentationFields({
+  form,
+  purposeError,
+  onChange,
+  purposeRef,
+  onBlur,
+  onNext,
+}) {
   return (
     <section className="form-section">
       <div className="form-section-title">
         <span>01</span>
-        <h2>발표 이야기</h2>
+        <h2>발표 목적</h2>
         <small>
           <i>*</i> 필수 입력
         </small>
@@ -18,6 +25,13 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           maxLength={300}
           value={form.purpose}
           onChange={(e) => onChange('purpose', e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || event.nativeEvent.isComposing || event.keyCode === 229)
+              return
+            event.preventDefault()
+            onNext()
+          }}
           placeholder="예: 기관 투자자에게 ESG 부동산 투자 전략을 10분 안에 제안"
           aria-required="true"
           aria-invalid={!!purposeError}
@@ -33,6 +47,13 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           </p>
         )}
       </div>
+    </section>
+  )
+}
+
+export function PresentationDetails({ form, onChange }) {
+  return (
+    <div className="presentation-details">
       <div className="field">
         <label htmlFor="title">
           발표 제목 <span>선택</span>
@@ -42,7 +63,13 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           maxLength={120}
           value={form.title}
           onChange={(e) => onChange('title', e.target.value)}
-          placeholder="예: 그린 호라이즌 투자 제안서"
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || event.nativeEvent.isComposing || event.keyCode === 229)
+              return
+            event.preventDefault()
+            event.currentTarget.form?.querySelector('#description')?.focus()
+          }}
+          placeholder="비워두면 파일명이나 발표 목적을 사용해요"
         />
       </div>
       <div className="field">
@@ -58,6 +85,6 @@ export default function PresentationFields({ form, purposeError, onChange, purpo
           placeholder="예: 투자 설명회에서 발표해요. 수치의 근거가 충분한지 봐 주세요."
         />
       </div>
-    </section>
+    </div>
   )
 }

@@ -29,19 +29,3 @@ export function withoutSampleFiles(form) {
 export function prepareSubmission(form, mode) {
   return isExampleForm(form, mode) ? form : withoutSampleFiles(form)
 }
-
-const INPUT_ROUTES = { '/materials': 'material', '/speech': 'speech' }
-
-// 같은 흐름의 분석 화면에서 입력 화면으로 돌아올 때만 입력을 유지합니다.
-// leftFlow는 입력·분석 화면 밖으로 한 번이라도 나갔는지예요. 뒤로 가기로 돌아와도 비웁니다.
-export function shouldResetForm(previousRoute, nextRoute, mode, leftFlow = false) {
-  const nextMode = INPUT_ROUTES[nextRoute]
-  if (!nextMode || previousRoute === nextRoute) return false
-  return leftFlow || !(previousRoute === '/analysis' && mode === nextMode)
-}
-
-// 입력 화면에 들어오면 새로 시작하고, 분석 화면은 이전 상태를 이어받아요.
-export function hasLeftFormFlow(route, leftFlow) {
-  if (INPUT_ROUTES[route]) return false
-  return route === '/analysis' ? leftFlow : true
-}

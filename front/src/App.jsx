@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/HomePage.jsx'
 import AppHeader from './components/layout/AppHeader.jsx'
 import AppFooter from './components/layout/AppFooter.jsx'
@@ -6,11 +6,7 @@ import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import Button from './components/ui/Button.jsx'
 import useFeedbackRequest from './features/feedback/useFeedbackRequest.js'
 import useSpeechRequest from './features/speech/useSpeechRequest.js'
-import {
-  hasLeftFormFlow,
-  prepareSubmission,
-  shouldResetForm,
-} from './features/feedback/exampleForm.js'
+import { prepareSubmission } from './features/feedback/exampleForm.js'
 import useAuth from './features/auth/useAuth.js'
 import { LoginRequiredPage } from './features/auth/LoginRequired.jsx'
 import useHashRoute, { historyRouteId } from './hooks/useHashRoute.js'
@@ -32,8 +28,17 @@ const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: 
 
 export default function App() {
   const { route, activeSection, navigate: changeRoute, scrollSection } = useHashRoute()
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [drafts, setDrafts] = useState({ material: EMPTY_FORM, speech: EMPTY_FORM })
+  const previousDrafts = useRef({})
   const [mode, setMode] = useState('material')
+  const formMode = route === '/materials' ? 'material' : route === '/speech' ? 'speech' : mode
+  const form = drafts[formMode]
+  function setForm(update) {
+    setDrafts((current) => ({
+      ...current,
+      [formMode]: typeof update === 'function' ? update(current[formMode]) : update,
+    }))
+  }
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
   const account = useAuth()
@@ -42,17 +47,9 @@ export default function App() {
     speech: speechRequest,
     run: runSpeech,
     cancel: cancelSpeech,
+    reset: resetSpeech,
     retryReview,
   } = useSpeechRequest()
-  const [formRoute, setFormRoute] = useState(route)
-  const [leftFlow, setLeftFlow] = useState(false)
-
-  // 다른 화면을 거쳐 입력 화면에 들어오면 이전 입력을 비웁니다.
-  if (formRoute !== route) {
-    setFormRoute(route)
-    if (shouldResetForm(formRoute, route, mode, leftFlow)) setForm(EMPTY_FORM)
-    setLeftFlow(hasLeftFormFlow(route, leftFlow))
-  }
 
   useEffect(() => {
     if (route !== '/analysis') cancelFeedback()
@@ -61,20 +58,47 @@ export default function App() {
 
   const closeAuth = useCallback(() => setAuth(false), [])
   const navigate = useCallback(
-    (path) => {
+    (path, options) => {
       if (path !== '/analysis') cancelFeedback()
       if (path !== '/analysis' && path !== '/speech-results') cancelSpeech()
-      changeRoute(path)
+      changeRoute(path, options)
     },
     [changeRoute, cancelFeedback, cancelSpeech],
   )
+
+  useEffect(() => {
+    if (route !== '/analysis') return
+    const ready =
+      mode === 'speech' ? speechRequest.status === 'ready' : request.status === 'success'
+    if (ready) navigate(mode === 'speech' ? '/speech-results' : '/results', { replace: true })
+  }, [route, mode, request.status, speechRequest.status, navigate])
+
+  function startNewDraft(nextMode) {
+    // 새 자료를 쓰다가 이전 결과로 돌아가도 그 자료의 입력을 수정할 수 있게 보관합니다.
+    previousDrafts.current[nextMode] ??= drafts[nextMode]
+    setDrafts((current) => ({ ...current, [nextMode]: EMPTY_FORM }))
+    navigate(nextMode === 'speech' ? '/speech' : '/materials')
+  }
+
+  function editResult(nextMode, clearAudio = false) {
+    const previous = previousDrafts.current[nextMode]
+    if (previous || clearAudio) {
+      setDrafts((current) => {
+        const draft = previous || current[nextMode]
+        return { ...current, [nextMode]: clearAudio ? { ...draft, audio: null } : draft }
+      })
+    }
+    delete previousDrafts.current[nextMode]
+    navigate(nextMode === 'speech' ? '/speech' : '/materials')
+  }
 
   function start(nextMode) {
     // 수정한 자료에 남은 예시 파일은 분석 화면과 요청에서 뺍니다.
     const submitted = prepareSubmission(form, nextMode)
     if (submitted !== form) setForm(submitted)
+    delete previousDrafts.current[nextMode]
     setMode(nextMode)
-    setResultKind(nextMode === 'speech' ? null : 'api')
+    if (nextMode !== 'speech') setResultKind('api')
     if (nextMode === 'speech') runSpeech(submitted)
     else runFeedback(submitted)
     navigate('/analysis')
@@ -82,9 +106,10 @@ export default function App() {
 
   function resetSession() {
     cancelFeedback()
-    cancelSpeech()
+    resetSpeech()
     setResultKind(null)
-    setForm(EMPTY_FORM)
+    previousDrafts.current = {}
+    setDrafts({ material: EMPTY_FORM, speech: EMPTY_FORM })
     navigate('/')
   }
 
@@ -117,12 +142,13 @@ export default function App() {
           id={historyId}
           user={account.user}
           navigate={navigate}
+          onNew={startNewDraft}
           onLogin={() => setAuth(true)}
         />,
       )
     switch (route) {
       case '/':
-        return <HomePage navigate={navigate} scrollSection={scrollSection} />
+        return <HomePage navigate={navigate} />
       case '/materials':
       case '/speech':
         return (
@@ -154,7 +180,8 @@ export default function App() {
             <FeedbackResultsPage
               key={request.submission.title + request.result.feedback}
               request={request}
-              navigate={navigate}
+              onEdit={() => editResult('material')}
+              onNew={() => startNewDraft('material')}
             />
           )
         }
@@ -170,7 +197,9 @@ export default function App() {
           <SpeechResultsPage
             speech={speechRequest}
             navigate={navigate}
+            onEdit={() => editResult('speech')}
             onRetryReview={retryReview}
+            onRecordAgain={() => editResult('speech', true)}
           />
         )
       case '/history':

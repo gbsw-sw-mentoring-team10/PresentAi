@@ -1,19 +1,4 @@
 /* Responsive */
-@media (min-width: 1600px) {
-  .hero {
-    padding-top: 75px;
-  }
-  .hero h1 {
-    font-size: 75px;
-  }
-  .showcase {
-    margin-top: 62px;
-    height: 480px;
-  }
-  .showcase-main {
-    width: 735px;
-  }
-}
 @media (max-width: 1100px) {
   .site-header nav {
     gap: 21px;
@@ -25,29 +10,6 @@
   .nav-actions {
     gap: 16px;
   }
-  .showcase-main {
-    width: 61%;
-  }
-  .showcase-left {
-    left: 1%;
-    width: 21%;
-  }
-  .feedback-float {
-    right: 0;
-    width: 25%;
-    padding: 17px;
-  }
-  .showcase-label {
-    left: 5px;
-  }
-  .showcase-sticker {
-    right: 60px;
-    bottom: 45px;
-  }
-  .time-float {
-    left: 30px;
-    bottom: 24px;
-  }
   .form-layout {
     grid-template-columns: minmax(0, 1fr) 270px;
     gap: 30px;
@@ -57,19 +19,6 @@
   }
   .form-section {
     padding: 25px;
-  }
-  .hero-star {
-    right: -58px;
-    font-size: 72px;
-  }
-  .hero h1 {
-    font-size: 60px;
-  }
-  .format-strip > .section-wrap > div {
-    gap: 25px;
-  }
-  .format-strip b {
-    font-size: 11px;
   }
   .feature-card {
     padding: 30px;
@@ -136,85 +85,6 @@
   }
   .nav-actions {
     gap: 12px;
-  }
-  .hero {
-    padding-top: 45px;
-  }
-  .hero h1 {
-    font-size: 52px;
-    letter-spacing: -2.5px;
-  }
-  .hero-star {
-    font-size: 55px;
-    right: -45px;
-    top: 45px;
-  }
-  .hero-description {
-    font-size: 14px;
-  }
-  .showcase {
-    height: 362px;
-    margin-top: 50px;
-  }
-  .showcase-main {
-    width: 72%;
-    left: 45%;
-    top: 25px;
-  }
-  .showcase-left,
-  .showcase-label,
-  .showcase-sticker {
-    display: none;
-  }
-  .feedback-float {
-    width: 225px;
-    top: 110px;
-    right: 0;
-    padding: 15px;
-  }
-  .feedback-float > p {
-    font-size: 11px;
-    margin: 10px 0;
-  }
-  .suggestion-mini {
-    padding: 8px;
-    font-size: 10px;
-  }
-  .feedback-float-heading strong {
-    font-size: 10px;
-  }
-  .float-number {
-    display: none;
-  }
-  .sparkle-box {
-    width: 26px;
-    height: 26px;
-  }
-  .time-float {
-    left: 12px;
-    bottom: -6px;
-    gap: 9px;
-    padding: 12px;
-  }
-  .time-float b {
-    font-size: 10px;
-  }
-  .time-float > strong {
-    font-size: 19px;
-  }
-  .time-float small {
-    font-size: 8px;
-  }
-  .format-strip {
-    margin-top: 38px;
-    padding: 22px 0;
-  }
-  .format-strip > .section-wrap {
-    flex-direction: column;
-    gap: 18px;
-  }
-  .format-strip > .section-wrap > div {
-    gap: 33px;
   }
   .features {
     padding-block: 70px;
@@ -486,36 +356,6 @@
   .mobile-menu {
     display: flex;
   }
-  .hero {
-    padding-top: 38px;
-  }
-  .eyebrow {
-    font-size: 7px;
-    letter-spacing: 1px;
-    padding: 7px 10px;
-    margin-bottom: 23px;
-  }
-  .hero h1 {
-    font-size: 40px;
-    line-height: 1.45;
-    letter-spacing: -2.1px;
-  }
-  .highlight-text:after {
-    height: 14px;
-    left: -3px;
-    right: -3px;
-    bottom: 3px;
-  }
-  .hero-star {
-    font-size: 34px;
-    top: 4px;
-    right: -18px;
-  }
-  .hero-description {
-    font-size: 12px;
-    line-height: 1.9;
-    margin: 20px auto 23px;
-  }
   .hero-actions {
     gap: 16px;
     flex-direction: column;
@@ -527,134 +367,6 @@
   }
   .hero-actions .text-button {
     font-size: 11px;
-  }
-  .play-circle {
-    width: 21px;
-    height: 21px;
-  }
-  .hero-small {
-    font-size: 8px;
-    gap: 12px;
-    margin-top: 18px;
-  }
-  .hero-small svg {
-    width: 11px;
-  }
-  .showcase {
-    height: 330px;
-    margin-top: 36px;
-  }
-  .showcase-main {
-    width: 94%;
-    left: 48%;
-    top: 8px;
-    border-radius: 9px;
-  }
-  .preview-toolbar {
-    height: 32px;
-    font-size: 7px;
-    padding: 0 12px;
-  }
-  .preview-toolbar svg {
-    width: 11px;
-  }
-  .example-label {
-    font-size: 7px;
-    padding: 2px 4px;
-  }
-  .preview-bottom {
-    height: 29px;
-    font-size: 6px;
-    padding: 0 12px;
-  }
-  .preview-bottom .status-dot {
-    width: 4px;
-    height: 4px;
-  }
-  .feedback-float {
-    width: 196px;
-    right: -1px;
-    top: 167px;
-    padding: 12px;
-    border-radius: 9px;
-    transform: rotate(3deg);
-  }
-  .feedback-float-heading strong {
-    font-size: 9px;
-  }
-  .sparkle-box {
-    width: 23px;
-    height: 23px;
-  }
-  .sparkle-box svg {
-    width: 14px;
-  }
-  .feedback-float > p {
-    font-size: 9px;
-    line-height: 1.65;
-    margin: 9px 0;
-  }
-  .suggestion-mini {
-    font-size: 8px;
-    line-height: 1.7;
-    padding: 7px;
-  }
-  .suggestion-mini > span {
-    font-size: 7px;
-    margin-bottom: 3px;
-  }
-  .feedback-float > button {
-    font-size: 8px;
-    margin-top: 9px;
-  }
-  .feedback-float > button svg {
-    width: 12px;
-  }
-  .time-float {
-    left: 0;
-    bottom: 17px;
-    padding: 9px;
-    gap: 6px;
-    border-radius: 8px;
-  }
-  .time-float > span {
-    width: 25px;
-    height: 25px;
-  }
-  .time-float svg {
-    width: 14px;
-  }
-  .time-float small {
-    font-size: 6px;
-    margin-bottom: 4px;
-  }
-  .time-float b {
-    font-size: 7px;
-  }
-  .time-float > strong {
-    font-size: 15px;
-    margin-left: 2px;
-  }
-  .format-strip {
-    margin-top: 25px;
-    padding: 23px 0;
-  }
-  .format-strip > .section-wrap > span {
-    font-size: 9px;
-  }
-  .format-strip > .section-wrap > div {
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .format-strip b {
-    font-size: 9px;
-    gap: 5px;
-  }
-  .format-icon {
-    width: 18px;
-    height: 21px;
-    font-size: 9px;
   }
   .section-kicker {
     font-size: 8px;
@@ -1309,27 +1021,6 @@
   }
 }
 @media (max-width: 360px) {
-  .hero h1 {
-    font-size: 35px;
-  }
-  .hero-star {
-    right: -14px;
-    font-size: 29px;
-  }
-  .hero-small {
-    font-size: 7px;
-    gap: 8px;
-  }
-  .format-strip > .section-wrap > div {
-    gap: 13px;
-  }
-  .feedback-float {
-    width: 178px;
-    top: 155px;
-  }
-  .time-float {
-    bottom: 27px;
-  }
   .feature-card {
     padding: 23px;
   }

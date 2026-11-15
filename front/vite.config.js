@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => {
       },
     ],
     server: {
+      host: '127.0.0.1',
+      port: 5173,
+      strictPort: true,
       proxy: {
         '/api/presentation': {
           target: env.PRESENTATION_API_ORIGIN || 'http://127.0.0.1:8000',

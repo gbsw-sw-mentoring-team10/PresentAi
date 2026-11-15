@@ -1,7 +1,6 @@
 import AnalysisError from '../features/analysis/AnalysisError.jsx'
 import MissingMaterials from '../features/analysis/MissingMaterials.jsx'
 import AnalysisProgressCard from '../features/analysis/AnalysisProgressCard.jsx'
-import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import useAnalysisProgress from '../features/analysis/useAnalysisProgress.js'
@@ -55,7 +54,8 @@ export default function AnalysisPage({
     enabled: !empty,
   })
   const step = REQUEST_STEPS[request.status] || 0
-  const failed = request.status === 'error'
+  const interrupted = request.status === 'idle'
+  const failed = request.status === 'error' || interrupted
   const audioSeconds = useAudioDuration(speech ? form.audio : null)
   const expectedSeconds =
     audioSeconds == null
@@ -75,7 +75,11 @@ export default function AnalysisPage({
   if (failed)
     return (
       <AnalysisError
-        message={request.error}
+        message={
+          interrupted
+            ? '화면을 이동하면서 분석이 중단됐어요. 다시 시도하거나 입력을 확인해 주세요.'
+            : request.error
+        }
         onRetry={onRetry}
         onBack={() => navigate(speech ? '/speech' : '/materials')}
       />
@@ -113,11 +117,7 @@ export default function AnalysisPage({
       <div aria-live="polite" className="sr-only">
         {step === 3 ? '피드백 준비가 완료되었습니다.' : labels[step]}
       </div>
-      {step === 3 ? (
-        <Button variant="yellow" onClick={() => navigate(speech ? '/speech-results' : '/results')}>
-          피드백 결과 보기
-        </Button>
-      ) : (
+      {step !== 3 && (
         <button className="text-button" onClick={() => navigate(speech ? '/speech' : '/materials')}>
           입력 화면으로 돌아가기
         </button>

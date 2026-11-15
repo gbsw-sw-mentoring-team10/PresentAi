@@ -13,7 +13,7 @@ import useToastMessage from '../hooks/useToastMessage.js'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 import '../styles/history.css'
 
-export default function HistoryDetailPage({ id, navigate, user, onLogin }) {
+export default function HistoryDetailPage({ id, navigate, user, onLogin, onNew }) {
   const load = useCallback((options) => loadSavedFeedback(id, options), [id])
   const request = useHistoryRequest(load, user)
   if (request.status !== 'success')
@@ -37,10 +37,10 @@ export default function HistoryDetailPage({ id, navigate, user, onLogin }) {
         </Button>
       </div>
     )
-  return <SavedDetail key={item.id} item={item} navigate={navigate} />
+  return <SavedDetail key={item.id} item={item} navigate={navigate} onNew={onNew} />
 }
 
-function SavedDetail({ item, navigate }) {
+function SavedDetail({ item, navigate, onNew }) {
   const result = item.result
   const [tab, setTab] = useState('overview')
   const { message: toast, show: showToast } = useToastMessage()
@@ -121,8 +121,8 @@ function SavedDetail({ item, navigate }) {
           <span>지난 피드백을 돌아보면, 다음 발표가 보여요.</span>
           <h3>{speech ? '다시 연습해 볼까요?' : '고친 자료를 다시 점검해 볼까요?'}</h3>
         </div>
-        <Button variant="yellow" onClick={() => navigate(speech ? '/speech' : '/materials')}>
-          {speech ? '다시 연습하기' : '다시 점검하기'}
+        <Button variant="yellow" onClick={() => onNew(speech ? 'speech' : 'material')}>
+          {speech ? '새 음성으로 연습하기' : '새 자료 점검하기'}
         </Button>
       </div>
       {toast && (

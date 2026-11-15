@@ -76,7 +76,6 @@ test.each([
   ['contentinfo', 'PresentAi', '/', /전하고 싶은 생각/],
   ['banner', '발표자료 피드백', '/materials', '어떤 발표를 준비하고 있나요?'],
   ['contentinfo', '자료 피드백', '/materials', '어떤 발표를 준비하고 있나요?'],
-  ['banner', '시작하기', '/materials', '어떤 발표를 준비하고 있나요?'],
   ['banner', '발표 피드백', '/speech', '말에 자신감을 더해 보세요.'],
   ['contentinfo', '발표 피드백', '/speech', '말에 자신감을 더해 보세요.'],
 ])('%s: %s opens its named destination from My Page', async (role, name, path, heading) => {
@@ -140,32 +139,37 @@ test('an unknown route recovers to home through its return button', async () => 
   expect(window.location.hash).toBe('#/')
 })
 
-test('logged-out header shows only public entries until the user logs in', async () => {
-  stubServer()
-  const user = await renderApp('/materials')
-  expect(
-    within(screen.getByRole('banner')).queryAllByRole('button', { name: '마이페이지' }),
-  ).toHaveLength(0)
-  // 내 피드백은 마이페이지에서 들어가므로 상단 메뉴에는 없습니다.
-  expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
+test.each(['/', '/materials'])(
+  'logged-out header has no login-gated entries and logging in keeps %s',
+  async (path) => {
+    stubServer()
+    const user = await renderApp(path)
+    expect(
+      within(screen.getByRole('banner')).queryAllByRole('button', { name: '마이페이지' }),
+    ).toHaveLength(0)
+    // 내 피드백은 마이페이지에서 들어가므로 헤더에 없고, 로그인 안내 팝업도 없어요.
+    expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: '로그인 안내' })).toBeNull()
 
-  await user.click(
-    within(screen.getByRole('banner')).getByRole('button', { name: '로그인', exact: true }),
-  )
-  const login = await screen.findByRole('dialog', { name: '로그인' })
-  await user.type(within(login).getByLabelText('이메일'), account.email)
-  await user.type(within(login).getByLabelText('비밀번호', { exact: true }), 'synthetic-password')
-  await user.click(within(login).getByRole('button', { name: '로그인', exact: true }))
+    await user.click(
+      within(screen.getByRole('banner')).getByRole('button', { name: '로그인', exact: true }),
+    )
+    const login = await screen.findByRole('dialog', { name: '로그인' })
+    await user.type(within(login).getByLabelText('이메일'), account.email)
+    await user.type(within(login).getByLabelText('비밀번호', { exact: true }), 'synthetic-password')
+    await user.click(within(login).getByRole('button', { name: '로그인', exact: true }))
 
-  // 로그인하면 데스크톱·모바일 마이페이지 진입점이 모두 생깁니다.
-  expect(
-    within(screen.getByRole('banner')).getAllByRole('button', { name: '마이페이지' }),
-  ).toHaveLength(2)
-  await user.click(myPageAction())
-  await waitFor(() => expect(window.location.hash).toBe('#/mypage'))
-  expect(await screen.findByRole('heading', { level: 1, name: account.email })).toBeTruthy()
-  expect(myPageAction().className).toContain('active')
-})
+    expect(window.location.hash).toBe(`#${path}`)
+    // 로그인하면 데스크톱·모바일 마이페이지 진입점이 모두 생깁니다.
+    expect(
+      within(screen.getByRole('banner')).getAllByRole('button', { name: '마이페이지' }),
+    ).toHaveLength(2)
+    await user.click(myPageAction())
+    await waitFor(() => expect(window.location.hash).toBe('#/mypage'))
+    expect(await screen.findByRole('heading', { level: 1, name: account.email })).toBeTruthy()
+    expect(myPageAction().className).toContain('active')
+  },
+)
 
 test('opening gated routes directly while logged out shows the gate page', async () => {
   stubServer()
@@ -186,29 +190,31 @@ test('opening gated routes directly while logged out shows the gate page', async
   expect(window.location.hash).toBe('#/mypage')
 })
 
-test('logged-in users browse history list and detail from My Page', async () => {
-  stubServer({ loggedIn: true })
-  const user = await renderApp('/materials')
-  expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
-  await user.click(myPageAction())
-  await user.click(await screen.findByRole('tab', { name: '기록' }))
-  await user.click(await screen.findByRole('button', { name: '내 피드백 보기' }))
-  await waitFor(() => expect(window.location.hash).toBe('#/history'))
-  expect(await screen.findByRole('heading', { level: 1, name: /내 피드백/ })).toBeTruthy()
-  expect(document.title).toBe('내 피드백 | PresentAi')
-  // 기록 화면은 상단 메뉴의 어떤 항목도 강조하지 않습니다.
-  expect(within(nav()).queryByRole('button', { current: 'page' })).toBeNull()
+test.each(['/', '/materials'])(
+  'logged-in users open history through My Page from %s',
+  async (path) => {
+    stubServer({ loggedIn: true })
+    const user = await renderApp(path)
+    await user.click(myPageAction())
+    await user.click(await screen.findByRole('tab', { name: '기록' }))
+    await user.click(await screen.findByRole('button', { name: '내 피드백 보기' }))
+    await waitFor(() => expect(window.location.hash).toBe('#/history'))
+    expect(await screen.findByRole('heading', { level: 1, name: /내 피드백/ })).toBeTruthy()
+    expect(document.title).toBe('내 피드백 | PresentAi')
+    expect(within(nav()).queryByRole('button', { name: '내 피드백' })).toBeNull()
+    expect(nav().querySelector('button.active')).toBeNull()
 
-  const first = feedbackHistory[0]
-  await user.click(await screen.findByText(first.title))
-  await waitFor(() => expect(window.location.hash).toBe(`#/history/${first.id}`))
-  expect(await screen.findByRole('heading', { level: 1, name: first.title })).toBeTruthy()
-  expect(document.title).toBe('피드백 상세 | PresentAi')
-  expect(within(nav()).queryByRole('button', { current: 'page' })).toBeNull()
-})
+    const first = feedbackHistory[0]
+    await user.click(await screen.findByText(first.title))
+    await waitFor(() => expect(window.location.hash).toBe(`#/history/${first.id}`))
+    expect(await screen.findByRole('heading', { level: 1, name: first.title })).toBeTruthy()
+    expect(document.title).toBe('피드백 상세 | PresentAi')
+    expect(nav().querySelector('button.active')).toBeNull()
+  },
+)
 
 test.each([false, true])(
-  'home shows three public menus and usage opens its guide (loggedIn=%s)',
+  'home keeps the same menus without a duplicate start action (loggedIn=%s)',
   async (loggedIn) => {
     stubServer({ loggedIn })
     const user = await renderApp('/')
@@ -221,7 +227,7 @@ test.each([false, true])(
         .filter((button) => !button.classList.contains('nav-mobile-only'))
         .map((button) => button.textContent),
     ).toEqual(['발표자료 피드백', '발표 피드백', '이용 방법'])
-    // 홈 헤더에도 로그인 상태에 맞는 계정 버튼과 모바일 메뉴의 마이페이지가 보입니다.
+    // 홈 헤더에도 로그인 상태에 맞는 계정 버튼이 보입니다.
     expect(within(header).queryAllByRole('button', { name: '마이페이지' })).toHaveLength(
       loggedIn ? 2 : 0,
     )
@@ -233,12 +239,10 @@ test.each([false, true])(
     guide.scrollIntoView = vi.fn()
     await user.click(within(menu).getByRole('button', { name: '이용 방법' }))
     expect(guide.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto' })
+    expect(within(header).queryByRole('button', { name: '시작하기' })).toBeNull()
     await user.click(
-      within(screen.getByRole('main')).getByRole('button', { name: '이용 방법', exact: true }),
+      within(screen.getByRole('main')).getByRole('button', { name: '자료 점검하기', exact: true }),
     )
-    expect(guide.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto' })
-    expect(window.location.hash).toBe('#/')
-    await user.click(within(header).getByRole('button', { name: '시작하기' }))
     await screen.findByRole('textbox', { name: /발표 목적/ })
     expect(window.location.hash).toBe('#/materials')
     expect(
@@ -247,7 +251,7 @@ test.each([false, true])(
   },
 )
 
-test('the example form is cleared after visiting history and coming back', async () => {
+test('the draft survives visiting history and coming back', async () => {
   stubServer({ loggedIn: true })
   const user = await renderApp('/materials')
   await user.click(await screen.findByRole('button', { name: /예시 자료로 시작하기/ }))
@@ -256,7 +260,7 @@ test('the example form is cleared after visiting history and coming back', async
   await goTo('/history')
   await screen.findByRole('heading', { level: 1, name: /내 피드백/ })
   await goTo('/materials')
-  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(example.purpose)
 })
 
 test('deleting the account clears the user locally even if logout fails', async () => {
@@ -277,4 +281,64 @@ test('deleting the account clears the user locally even if logout fails', async 
   expect(screen.queryByRole('alert')).toBeNull()
   await goTo('/mypage')
   expect(await screen.findByRole('heading', { level: 1, name: NOTICE })).toBeTruthy()
+})
+
+test.each(['/materials', '/speech'])(
+  'one home link returns from %s without a duplicate cancel action',
+  async (path) => {
+    stubServer()
+    const user = await renderApp(path)
+    await user.click(await screen.findByRole('button', { name: '홈으로', exact: true }))
+    expect(screen.queryByRole('button', { name: '취소', exact: true })).toBeNull()
+    await screen.findByRole('heading', { level: 1, name: /전하고 싶은 생각/ })
+    expect(window.location.hash).toBe('#/')
+  },
+)
+
+test.each([
+  ['/results', '자료 입력하기', '/materials'],
+  ['/speech-results', '음성 입력하기', '/speech'],
+  ['/analysis', '입력 화면으로 돌아가기', '/materials'],
+])('empty %s recovers through %s', async (path, button, destination) => {
+  stubServer()
+  const user = await renderApp(path)
+  await user.click(await screen.findByRole('button', { name: button, exact: true }))
+  await screen.findByRole('textbox', { name: /발표 목적/ })
+  expect(window.location.hash).toBe(`#${destination}`)
+})
+
+test('saved material feedback opens a fresh material form from its repeat action', async () => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp(`/history/${feedbackHistory[0].id}`)
+  await user.click(await screen.findByRole('button', { name: '새 자료 점검하기' }))
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  expect(window.location.hash).toBe('#/materials')
+})
+
+test('logout clears both material and speech drafts', async () => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp('/materials')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '자료 작성 중')
+  await goTo('/speech')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '음성 연습 중')
+  await user.click(screen.getByRole('button', { name: '로그아웃' }))
+  await waitFor(() => expect(window.location.hash).toBe('#/'))
+  for (const route of ['/materials', '/speech']) {
+    await goTo(route)
+    expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  }
+})
+
+test('starting a new material from saved feedback clears only that draft', async () => {
+  stubServer({ loggedIn: true })
+  const user = await renderApp('/speech')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '음성 연습 중')
+  await goTo('/materials')
+  await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '이전 자료')
+  await goTo('/history')
+  await user.click(await screen.findByRole('link', { name: /2027 신입 채용 설명회/ }))
+  await user.click(await screen.findByRole('button', { name: '새 자료 점검하기' }))
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')
+  await goTo('/speech')
+  expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('음성 연습 중')
 })
