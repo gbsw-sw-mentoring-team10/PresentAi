@@ -15,21 +15,40 @@ import SlideWorkspace from '../features/slides/SlideWorkspace.jsx'
 import useSlideReview from '../features/slides/useSlideReview.js'
 import usePdfDocument from '../features/slides/usePdfDocument.js'
 import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/slideFeedback.js'
-import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
+import { StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
+import { exampleSlides } from '../data/exampleSlides.js'
 
 export default function FeedbackResultsPage({ request, onEdit, onNew }) {
-  if (request.result.raw_only)
-    return (
-      <div className="results-page section-wrap">
-        <h1>모델이 반환한 피드백</h1>
-        <p>화면 형식과 다른 응답이어서 원문을 그대로 표시합니다.</p>
-        {!request.mock && <StorageNotice result={request.result} />}
-        <ModelResponse value={request.result.raw_response} expanded />
-        <Button onClick={onEdit}>입력 수정하기</Button>
-      </div>
-    )
+  if (request.result.raw_only) return <UnformattedResult request={request} onEdit={onEdit} />
   return <StructuredResults request={request} onEdit={onEdit} onNew={onNew} />
+}
+
+// 화면 형식으로 정리하지 못한 응답: 읽을 수 있는 글이면 그대로 보여 주고, JSON 같은 데이터는 노출하지 않는다.
+function UnformattedResult({ request, onEdit }) {
+  const raw = request.result.raw_response
+  const text = typeof raw === 'string' && !/^\s*(```|[{[])/.test(raw) ? raw.trim() : ''
+  return (
+    <div className="results-page section-wrap">
+      <div className="page-heading">
+        <div>
+          <h1>{text ? '모델이 정리한 피드백' : '피드백을 화면에 보여 드리지 못했어요'}</h1>
+          <p>
+            {text
+              ? '결과 화면 형식으로 정리하지 못해 받은 내용을 그대로 보여 드려요.'
+              : '분석은 끝났지만 응답 형식이 달라 결과를 정리하지 못했어요. 잠시 후 다시 시도해 주세요.'}
+          </p>
+        </div>
+      </div>
+      {!request.mock && <StorageNotice result={request.result} />}
+      {text && (
+        <section className="summary-card">
+          <p className="api-feedback-text">{text}</p>
+        </section>
+      )}
+      <Button onClick={onEdit}>입력 수정하기</Button>
+    </div>
+  )
 }
 
 function StructuredResults({ request, onEdit, onNew }) {
@@ -38,9 +57,15 @@ function StructuredResults({ request, onEdit, onNew }) {
   const [tab, setTab] = useState('overview')
   const preview = usePdfDocument(submission.file)
   const pageCount = preview.document?.numPages
+  // 예시 분석은 실제 파일 없이 대본만 보내 서버 샘플에 슬라이드별 결과가 없어요.
+  // 이때는 예시 자료의 슬라이드와 피드백을 대신 보여 줍니다.
+  const resultSlides = useMemo(
+    () => (result.slides?.length ? result.slides : mock ? exampleSlides : []),
+    [result.slides, mock],
+  )
   const slides = useMemo(
-    () => mergeDocumentSlides(result.slides || [], pageCount),
-    [result.slides, pageCount],
+    () => mergeDocumentSlides(resultSlides, pageCount),
+    [resultSlides, pageCount],
   )
   const {
     navigation: slideNavigation,
@@ -48,10 +73,7 @@ function StructuredResults({ request, onEdit, onNew }) {
     progress: slideProgress,
     showSlide,
   } = useSlideReview(slides)
-  const slidePriorities = useMemo(
-    () => getPrioritySlideIssues(result.slides || []),
-    [result.slides],
-  )
+  const slidePriorities = useMemo(() => getPrioritySlideIssues(resultSlides), [resultSlides])
   function openSlide(id, issueId) {
     showSlide(id, issueId)
     setTab('slides')
@@ -65,7 +87,7 @@ function StructuredResults({ request, onEdit, onNew }) {
       })
     }
   }, [tab])
-  const hasSlides = !!submission.file || !!result.slides?.length
+  const hasSlides = !!submission.file || !!resultSlides.length
   const { message: toast, show: showToast } = useToastMessage()
   function toggle(index) {
     setResolved((items) =>
@@ -173,7 +195,6 @@ function StructuredResults({ request, onEdit, onNew }) {
           />
         </div>
       )}
-      {result.raw_response !== undefined && <ModelResponse value={result.raw_response} />}
       <div className="result-bottom-cta">
         <div>
           <span>한 번의 점검, 더 나은 한 번의 발표.</span>

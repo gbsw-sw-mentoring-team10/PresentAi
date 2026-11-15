@@ -1,9 +1,9 @@
-/* Sample file warning — 로그인 팝업과 같은 시각 언어를 사용합니다. */
-.sample-warning-modal {
+/* Confirm dialog — 확인·안내 팝업이 함께 쓰는 시각 언어입니다. */
+.confirm-dialog {
   width: 460px;
   text-align: center;
 }
-.sample-warning-symbol {
+.confirm-dialog-symbol {
   display: flex;
   width: 53px;
   height: 53px;
@@ -14,18 +14,23 @@
   margin: 12px auto 19px;
   transform: rotate(-7deg);
 }
-.sample-warning-modal h2 {
+.confirm-dialog-symbol-danger {
+  background: #fff1ec;
+  color: #b2442a;
+}
+.confirm-dialog h2 {
   font-size: 23px;
   letter-spacing: -0.8px;
+  word-break: keep-all;
 }
-.sample-warning-modal > p {
+.confirm-dialog > p {
   font-size: 12px;
   line-height: 1.8;
   color: #8f8f7f;
   margin: 12px 0 22px;
   word-break: keep-all;
 }
-.sample-warning-file {
+.confirm-dialog-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -35,11 +40,11 @@
   background: var(--surface);
   text-align: left;
 }
-.sample-warning-file svg {
+.confirm-dialog-item svg {
   flex-shrink: 0;
   color: #8e8e81;
 }
-.sample-warning-file span {
+.confirm-dialog-item span {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -48,7 +53,7 @@
   font-size: 13px;
   font-weight: 600;
 }
-.sample-warning-file small {
+.confirm-dialog-item small {
   flex-shrink: 0;
   border-radius: 5px;
   padding: 4px 8px;
@@ -57,44 +62,44 @@
   font-size: 10px;
   font-weight: 700;
 }
-.sample-warning-question {
+.confirm-dialog-question {
   display: block;
   margin: 24px 0 14px;
   font-size: 14px;
 }
-.sample-warning-actions {
+.confirm-dialog > p + .confirm-dialog-actions {
+  margin-top: 4px;
+}
+.confirm-dialog-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.sample-warning-actions .button {
+.confirm-dialog-actions .button {
   width: 100%;
   gap: 12px;
 }
-.sample-warning-actions.is-single {
+.confirm-dialog-actions.is-single {
   grid-template-columns: 1fr;
   margin-top: 20px;
 }
 
 @media (max-width: 600px) {
-  .sample-warning-modal {
+  .confirm-dialog {
     padding: 28px 20px;
     border-radius: 16px;
   }
-  .sample-warning-modal h2 {
+  .confirm-dialog h2 {
     font-size: 20px;
   }
-  .sample-warning-modal > p {
-    font-size: 12px;
-  }
-  .sample-warning-actions {
+  .confirm-dialog-actions {
     grid-template-columns: 1fr;
   }
-  .sample-warning-actions .button {
+  .confirm-dialog-actions .button {
     font-size: 14px;
   }
-  /* 입력 화면 버튼처럼 진행 버튼을 위에 둡니다. */
-  .sample-warning-actions .button-outline {
+  /* 입력 화면 버튼처럼 진행 버튼을 위에 둡니다. 삭제처럼 되돌릴 수 없는 작업은 취소가 위에 와요. */
+  .confirm-dialog-actions:not(.is-danger) .button-outline {
     order: 1;
   }
 }

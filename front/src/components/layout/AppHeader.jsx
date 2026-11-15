@@ -9,7 +9,6 @@ export default function AppHeader({
   activeSection,
   mode,
   navigate,
-  openMember,
   scrollSection,
   onLogin,
   user,
@@ -24,7 +23,6 @@ export default function AppHeader({
     route === '/speech' ||
     route === '/speech-results' ||
     (route === '/analysis' && mode === 'speech')
-  const activeHistory = route === '/history' || route.startsWith('/history/')
   const activeMyPage = route === '/mypage'
   const activeHow = isHome && activeSection === 'how'
   const activeId = activeMaterial
@@ -33,11 +31,9 @@ export default function AppHeader({
       ? 'speech'
       : activeHow
         ? 'how'
-        : activeHistory
-          ? 'history'
-          : activeMyPage
-            ? 'mypage'
-            : null
+        : activeMyPage
+          ? 'mypage'
+          : null
   const { navRef, indicatorRef, bind } = useNavIndicator(
     activeId,
     `${route}:${isOpen}:${user?.user_id || ''}`,
@@ -47,12 +43,6 @@ export default function AppHeader({
   function handleNavigate(path) {
     close()
     navigate(path)
-  }
-
-  // 로그인이 필요한 화면은 App에서 이동 여부를 정합니다.
-  function handleMember(path) {
-    close()
-    openMember(path)
   }
 
   function showHow() {
@@ -100,21 +90,12 @@ export default function AppHeader({
           >
             이용 방법
           </button>
-          <button
-            {...bind('history')}
-            className={activeHistory ? 'active' : ''}
-            aria-current={activeHistory ? 'page' : undefined}
-            disabled={authBusy}
-            onClick={() => handleMember('/history')}
-          >
-            내 피드백
-          </button>
           {user && (
             <button
               {...bind('mypage')}
               className={`nav-mobile-only${activeMyPage ? ' active' : ''}`}
               aria-current={activeMyPage ? 'page' : undefined}
-              onClick={() => handleMember('/mypage')}
+              onClick={() => handleNavigate('/mypage')}
             >
               마이페이지
             </button>
@@ -126,7 +107,7 @@ export default function AppHeader({
             <button
               className={`login-button mypage-button${activeMyPage ? ' active' : ''}`}
               aria-current={activeMyPage ? 'page' : undefined}
-              onClick={() => handleMember('/mypage')}
+              onClick={() => handleNavigate('/mypage')}
             >
               마이페이지
             </button>

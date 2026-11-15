@@ -1,83 +1,104 @@
-.home-intro {
-  display: grid;
-  place-items: center;
-  padding-block: 36px 48px;
+/* 소개 슬라이드는 화면 양쪽 끝까지 꽉 채우고, 안쪽 내용은 다른 섹션과 같은 폭에 맞춥니다. */
+.section-wrap.home-intro {
+  width: 100%;
+  padding-block: 0 56px;
 }
 .hero-deck {
+  --deck-gutter: max(40px, calc((100% - 1180px) / 2));
   container-type: inline-size;
-  width: min(100%, 1040px);
-  border: 1px solid #deded5;
-  border-radius: 18px;
+  width: 100%;
+  border-bottom: 1px solid var(--line);
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 22px 60px #28280e0c;
-}
-.hero-deck-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding-inline: 24px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.hero-deck-toolbar > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-.hero-deck-count {
-  color: var(--muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.hero-deck-count i {
-  width: 22px;
-  height: 1px;
-  background: var(--line);
 }
 .hero-deck-viewport {
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  height: clamp(460px, calc(100svh - 84px - 66px), 760px);
 }
 .hero-deck-track {
   display: flex;
   height: 100%;
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* 큰 문구는 왼쪽, 번호를 붙인 부연 설명은 오른쪽에 둡니다. */
 .hero-deck-slide {
   position: relative;
   flex: 0 0 100%;
   min-width: 0;
   height: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   align-items: center;
-  padding: 7.2cqw;
+  gap: clamp(32px, 5cqw, 88px);
+  padding: 48px var(--deck-gutter);
   overflow: hidden;
   color: var(--ink);
   background: var(--yellow);
 }
-.hero-deck-slide::after {
-  content: '';
-  position: absolute;
-  width: 40%;
-  aspect-ratio: 1;
-  right: -22%;
-  top: -30%;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.15;
-  pointer-events: none;
-}
 .hero-deck-slide h2 {
   position: relative;
-  font-size: clamp(30px, 6.2cqw, 68px);
+  font-size: clamp(30px, 4.4cqw, 66px);
   font-weight: 800;
   letter-spacing: -0.055em;
-  line-height: 1.45;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 .hero-deck-slide h2 span {
   display: block;
+}
+.hero-deck-points {
+  display: grid;
+  gap: clamp(18px, 2.2cqw, 30px);
+  list-style: none;
+}
+.hero-deck-points li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding-bottom: clamp(18px, 2.2cqw, 30px);
+  border-bottom: 1px solid #20201e1f;
+}
+.hero-deck-points li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.hero-deck-points b {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 14px;
+  font-weight: 800;
+}
+.hero-deck-points div {
+  display: grid;
+  gap: 6px;
+  padding-top: 4px;
+}
+.hero-deck-points strong {
+  font-size: clamp(16px, 1.45cqw, 20px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hero-deck-points span {
+  font-size: clamp(13px, 1.05cqw, 15px);
+  line-height: 1.7;
+  color: #20201ebf;
+  word-break: keep-all;
+}
+.hero-deck-slide-dark .hero-deck-points li {
+  border-color: #ffe84a2e;
+}
+.hero-deck-slide-dark .hero-deck-points b {
+  background: #ffe84a;
+  color: #242620;
+}
+.hero-deck-slide-dark .hero-deck-points span {
+  color: #f5f3e8c7;
 }
 .hero-deck-slide-cream {
   background: #f5f3e8;
@@ -87,11 +108,9 @@
   color: #ffe84a;
 }
 .hero-deck-slide-image {
+  display: flex;
   padding: 0;
   background: #f7f7f4;
-}
-.hero-deck-slide-image::after {
-  display: none;
 }
 .hero-deck-slide-image img {
   width: 100%;
@@ -108,7 +127,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 66px;
-  padding: 8px 20px;
+  padding: 8px var(--deck-gutter);
 }
 .hero-deck-controls {
   gap: 8px;
@@ -162,38 +181,54 @@
 .hero-deck-guide:hover {
   background: var(--yellow-pale);
 }
-@media (min-width: 801px) and (min-height: 600px) {
+/* 좁은 화면에서는 큰 문구 아래로 설명을 내리고, 가장 긴 슬라이드에 높이를 맞춥니다. */
+@media (max-width: 860px) {
   .hero-deck {
-    max-width: calc((100svh - 270px) * 16 / 9);
+    --deck-gutter: 20px;
+  }
+  .hero-deck-viewport {
+    height: auto;
+  }
+  .hero-deck-slide {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 28px;
+    padding-block: 40px;
+  }
+  .hero-deck-slide h2 {
+    font-size: clamp(26px, 6.4cqw, 44px);
+  }
+  .hero-deck-points strong {
+    font-size: 16px;
+  }
+  .hero-deck-points span {
+    font-size: 13px;
   }
 }
 @media (max-width: 600px) {
-  .home-intro {
-    padding-block: 28px 40px;
+  .section-wrap.home-intro {
+    padding-block: 0 40px;
   }
   .hero-deck {
-    border-radius: 13px;
-  }
-  .hero-deck-toolbar {
-    min-height: 46px;
-    padding-inline: 16px;
-    font-size: 12px;
-  }
-  .hero-deck-viewport {
-    aspect-ratio: 4 / 3;
+    --deck-gutter: 18px;
   }
   .hero-deck-slide {
-    padding: 7cqw;
+    padding-block: 32px;
   }
   .hero-deck-slide h2 {
-    font-size: clamp(24px, 7.7cqw, 42px);
+    font-size: clamp(24px, 7.7cqw, 36px);
+  }
+  .hero-deck-points b {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
   }
   .hero-deck-slide-image {
     padding: 0;
   }
   .hero-deck-footer {
     min-height: 60px;
-    padding: 6px 12px;
+    padding-block: 6px;
     gap: 8px;
   }
   .hero-deck-controls {

@@ -11,7 +11,8 @@ const flows = [
 const destinations = [
   { button: 'PresentAi 홈', path: '/' },
   { button: '이용 방법', path: '/' },
-  { button: '내 피드백', path: '/history' },
+  // 내 피드백은 헤더에 없고 마이페이지에서 들어가요. 주소로 바로 이동해 같은 왕복을 확인합니다.
+  { button: '내 피드백', path: '/history', hash: true },
   { button: '마이페이지', path: '/mypage' },
   { button: 'other' },
 ]
@@ -58,6 +59,12 @@ async function renderResult(flow) {
   return user
 }
 
+async function openHistory() {
+  await act(async () => {
+    window.location.hash = '/history'
+  })
+}
+
 function headerButton(name) {
   return within(screen.getByRole('banner'))
     .getAllByRole('button', { name, exact: true })
@@ -72,7 +79,8 @@ test.each(flows.flatMap((flow) => destinations.map((destination) => ({ ...flow, 
     const button = flow.destination.button === 'other' ? flow.other : flow.destination.button
     const destination =
       flow.destination.path || (flow.path === '/speech' ? '/materials' : '/speech')
-    await user.click(headerButton(button))
+    if (flow.destination.hash) await openHistory()
+    else await user.click(headerButton(button))
     await waitFor(() => expect(window.location.hash).toBe(`#${destination}`))
     await act(async () => window.history.back())
     await user.click(await screen.findByRole('button', { name: '입력 수정하기' }))
@@ -93,7 +101,7 @@ test('starting new material twice through results and saved history still edits 
   const user = await renderResult(flows[0])
   await user.click(screen.getByRole('button', { name: '다른 자료 점검하기' }))
   await user.type(await screen.findByRole('textbox', { name: /발표 목적/ }), '두 번째 자료')
-  await user.click(headerButton('내 피드백'))
+  await openHistory()
   await user.click(await screen.findByRole('link', { name: /이전 자료 기록/ }))
   await user.click(await screen.findByRole('button', { name: '새 자료 점검하기' }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('')

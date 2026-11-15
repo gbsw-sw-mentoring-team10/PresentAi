@@ -11,16 +11,7 @@ export default function ExampleSlide({ slide }) {
       <div className="deck-example-body">
         <span className="deck-example-kicker">{slide.category}</span>
         <h3>{slide.title}</h3>
-        {slide.id === 1 && (
-          <>
-            <p>{slide.subtitle}</p>
-            <div className="deck-example-orbit" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </div>
-          </>
-        )}
+        {slide.id === 1 && <p>{slide.subtitle}</p>}
         {slide.id === 2 && (
           <div className="deck-metrics">
             {[

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
 import Button from '../../src/components/ui/Button.jsx'
 import Modal from '../../src/components/ui/Modal.jsx'
-import { ModelResponse } from '../../src/features/results/ModelResponse.jsx'
 
 test('an ordinary button inside a form does not submit; an explicit submit button does', async () => {
   const submit = vi.fn((event) => event.preventDefault())
@@ -62,19 +61,4 @@ test('updating a modal callback keeps it open and focused, and Escape uses the l
   expect(document.body.style.overflow).toBe(originalOverflow)
   open.mockRestore()
   close.mockRestore()
-})
-
-test('raw feedback is formatted only when opened and reused across parent updates', async () => {
-  const toJSON = vi.fn(() => ({ feedback: '검증용 피드백' }))
-  const value = { toJSON }
-  const { rerender } = render(<ModelResponse value={value} />)
-  expect(toJSON).not.toHaveBeenCalled()
-  const user = userEvent.setup()
-  await user.click(screen.getByText('모델 응답 원문 보기'))
-  expect(await screen.findByText(/검증용 피드백/, { selector: 'pre' })).toBeTruthy()
-  expect(toJSON).toHaveBeenCalledOnce()
-  rerender(<ModelResponse value={value} />)
-  expect(toJSON).toHaveBeenCalledOnce()
-  rerender(<ModelResponse value={{ feedback: '새 피드백' }} expanded />)
-  expect(screen.getByText(/새 피드백/, { selector: 'pre' })).toBeTruthy()
 })

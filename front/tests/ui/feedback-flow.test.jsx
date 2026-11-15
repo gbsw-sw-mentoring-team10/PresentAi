@@ -89,6 +89,12 @@ test('returning from the analysis screen of the same flow keeps the input', asyn
   await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
+  await user.click(
+    within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
+      name: /그대로 진행/,
+    }),
+  )
   await user.click(await screen.findByRole('button', { name: '입력 화면으로 돌아가기' }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('교육')
   expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe('합성 대본입니다.')
@@ -126,6 +132,12 @@ test('a finished analysis automatically opens its result without adding a histor
   await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
+  await user.click(
+    within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
+      name: /그대로 진행/,
+    }),
+  )
   expect(await screen.findByText(feedback.feedback)).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
 
@@ -135,6 +147,48 @@ test('a finished analysis automatically opens its result without adding a histor
   await act(async () => window.history.back())
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe('교육')
   expect(analysisFetch).toHaveBeenCalledOnce()
+})
+
+test('logged-out material analysis warns that the feedback will not be saved', async () => {
+  const analysisFetch = stubServer(() => new Promise(() => {}))
+  const user = await renderApp('/materials')
+  await user.type(purpose(), '교육{Enter}')
+  await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
+  await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
+  await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  const dialog = await screen.findByRole('dialog', { name: '피드백 저장 안내' })
+  expect(within(dialog).getByText('이 피드백은 저장되지 않아요.')).toBeTruthy()
+  expect(analysisFetch).not.toHaveBeenCalled()
+
+  // 로그인하기를 누르면 분석하지 않고 로그인 창을 열어요. 입력은 그대로 남아요.
+  await user.click(within(dialog).getByRole('button', { name: '로그인하기' }))
+  expect(await screen.findByRole('dialog', { name: '로그인' })).toBeTruthy()
+  expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
+  expect(analysisFetch).not.toHaveBeenCalled()
+  expect(window.location.hash).toBe('#/materials')
+  expect(purpose().value).toBe('교육')
+})
+
+test('the guide example button starts the unchanged example without the storage warning', async () => {
+  const analysisFetch = stubServer(() => new Promise(() => {}))
+  const user = await renderApp('/materials')
+  await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
+  expect(purpose().value).toBe(example.purpose)
+  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await waitFor(() => expect(analysisFetch).toHaveBeenCalledOnce())
+  expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
+})
+
+test('the example result shows the example slides when the server sample has none', async () => {
+  stubServer()
+  const user = await renderApp('/materials')
+  await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
+  await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await user.click(await screen.findByRole('tab', { name: /슬라이드별 피드백/ }))
+  expect(screen.queryByText('슬라이드별 결과가 아직 없어요.')).toBeNull()
+  expect(
+    (await screen.findAllByLabelText(/번 예시 슬라이드: 우리의 다음 챕터/)).length,
+  ).toBeGreaterThan(0)
 })
 
 test('edited example data skips the sample PDF and uses the real endpoint after confirming', async () => {
@@ -152,7 +206,9 @@ test('edited example data skips the sample PDF and uses the real endpoint after 
   expect(url).not.toContain('/mock/')
   expect(options.body.has('file')).toBe(false)
   expect(options.body.get('prompt')).toBe(example.script)
-  expect(screen.getByText('직접 입력한 대본')).toBeTruthy()
+  // 예시 파일 안내와 겹치지 않도록 저장 안내는 띄우지 않아요.
+  expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
+  expect(await screen.findByText('직접 입력한 대본')).toBeTruthy()
   expect(screen.getByText('발표자료 · 서버 분석')).toBeTruthy()
 
   // 같은 흐름으로 돌아오면 예시 파일 없이 수정한 입력이 남아 있습니다.

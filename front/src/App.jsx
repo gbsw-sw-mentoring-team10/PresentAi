@@ -41,7 +41,6 @@ export default function App() {
   }
   const [resultKind, setResultKind] = useState(null)
   const [auth, setAuth] = useState(false)
-  const [afterLogin, setAfterLogin] = useState(null)
   const account = useAuth()
   const { request, run: runFeedback, cancel: cancelFeedback } = useFeedbackRequest()
   const {
@@ -57,10 +56,7 @@ export default function App() {
     if (route !== '/analysis' && route !== '/speech-results') cancelSpeech()
   }, [route, cancelFeedback, cancelSpeech])
 
-  const closeAuth = useCallback(() => {
-    setAuth(false)
-    setAfterLogin(null)
-  }, [])
+  const closeAuth = useCallback(() => setAuth(false), [])
   const navigate = useCallback(
     (path, options) => {
       if (path !== '/analysis') cancelFeedback()
@@ -106,21 +102,6 @@ export default function App() {
     if (nextMode === 'speech') runSpeech(submitted)
     else runFeedback(submitted)
     navigate('/analysis')
-  }
-
-  // 로그인만 거치면 처음 누른 메뉴의 목적지로 바로 이동합니다.
-  function openMember(path) {
-    if (account.user || account.busy) {
-      navigate(path)
-      return
-    }
-    setAfterLogin(path)
-    setAuth(true)
-  }
-
-  async function authenticate(...credentials) {
-    await account.authenticate(...credentials)
-    if (afterLogin) navigate(afterLogin)
   }
 
   function resetSession() {
@@ -178,6 +159,8 @@ export default function App() {
             setForm={setForm}
             navigate={navigate}
             start={start}
+            signedOut={!account.user && !account.busy}
+            onLogin={() => setAuth(true)}
           />
         )
       case '/analysis':
@@ -262,7 +245,6 @@ export default function App() {
         activeSection={activeSection}
         mode={mode}
         navigate={navigate}
-        openMember={openMember}
         scrollSection={scrollSection}
         onLogin={() => setAuth(true)}
         user={account.user}
@@ -291,7 +273,7 @@ export default function App() {
       {auth && (
         <PageErrorBoundary key="auth">
           <Suspense fallback={null}>
-            <AuthModal onClose={closeAuth} onAuthenticate={authenticate} />
+            <AuthModal onClose={closeAuth} onAuthenticate={account.authenticate} />
           </Suspense>
         </PageErrorBoundary>
       )}

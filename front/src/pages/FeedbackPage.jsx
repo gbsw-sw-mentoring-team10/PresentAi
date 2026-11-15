@@ -13,11 +13,12 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import SampleFileWarning from '../features/feedback/SampleFileWarning.jsx'
+import UnsavedFeedbackWarning from '../features/feedback/UnsavedFeedbackWarning.jsx'
 import { isExampleForm } from '../features/feedback/exampleForm.js'
 
 import useFeedbackForm from '../features/feedback/useFeedbackForm.js'
 
-export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
+export default function FeedbackPage({ mode, form, setForm, navigate, start, signedOut, onLogin }) {
   const speech = mode === 'speech'
   const [scriptOpen, setScriptOpen] = useState(() => !!form.script)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -41,7 +42,10 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
     closeSampleWarning,
     continueWithoutSample,
     reselectFile,
-  } = useFeedbackForm({ mode, form, setForm, start })
+    unsavedWarning,
+    closeUnsavedWarning,
+    continueWithoutSaving,
+  } = useFeedbackForm({ mode, form, setForm, start, signedOut })
   const example = isExampleForm(form, mode)
   function useExample() {
     fillExample()
@@ -148,7 +152,7 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
             </div>
           )}
         </form>
-        <FeedbackFormGuide speech={speech} />
+        <FeedbackFormGuide speech={speech} onFillExample={useExample} />
       </div>
       {sampleWarning && (
         <SampleFileWarning
@@ -157,6 +161,16 @@ export default function FeedbackPage({ mode, form, setForm, navigate, start }) {
           onReselect={reselectFile}
           onContinue={continueWithoutSample}
           onClose={closeSampleWarning}
+        />
+      )}
+      {unsavedWarning && (
+        <UnsavedFeedbackWarning
+          onLogin={() => {
+            closeUnsavedWarning()
+            onLogin()
+          }}
+          onContinue={continueWithoutSaving}
+          onClose={closeUnsavedWarning}
         />
       )}
     </div>

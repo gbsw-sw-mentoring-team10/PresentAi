@@ -8,13 +8,14 @@ export const SAMPLE_AUDIO_ONLY_ERROR =
   '예시 음성은 실제 파일이 아니라 분석에 쓸 수 없어요. 직접 녹음하거나 음성 파일을 선택해 주세요.'
 
 // 입력 검증, TXT 읽기, 예시 채우기를 한곳에서 관리합니다.
-export default function useFeedbackForm({ mode, form, setForm, start }) {
+export default function useFeedbackForm({ mode, form, setForm, start, signedOut = false }) {
   const speech = mode === 'speech'
   const [scriptMode, setScriptMode] = useState('text')
   const [scriptFile, setScriptFile] = useState(null)
   const [errors, setErrors] = useState({})
   const [readingScript, setReadingScript] = useState(false)
   const [sampleWarning, setSampleWarning] = useState(false)
+  const [unsavedWarning, setUnsavedWarning] = useState(false)
   const [contentVisible, setContentVisible] = useState(() => !!form.purpose.trim())
   const contentRef = useRef(null)
   const scriptReadVersion = useRef(0)
@@ -172,13 +173,24 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
       focusInput('file')
       return
     }
+    // 예시 파일 안내가 뜨는 경우에는 그 안내만 보여 줘요. 팝업을 두 번 연달아 띄우지 않습니다.
     if (hasSample) {
       setSampleWarning(true)
+      return
+    }
+    // 로그인 전에 받은 실제 자료 피드백은 저장되지 않아요. 예시와 음성 결과는 원래 저장하지 않습니다.
+    if (signedOut && !speech && !example) {
+      setUnsavedWarning(true)
       return
     }
     start(mode)
   }
   const closeSampleWarning = useCallback(() => setSampleWarning(false), [])
+  const closeUnsavedWarning = useCallback(() => setUnsavedWarning(false), [])
+  function continueWithoutSaving() {
+    setUnsavedWarning(false)
+    start(mode)
+  }
   function continueWithoutSample() {
     setSampleWarning(false)
     start(mode)
@@ -222,5 +234,8 @@ export default function useFeedbackForm({ mode, form, setForm, start }) {
     closeSampleWarning,
     continueWithoutSample,
     reselectFile,
+    unsavedWarning,
+    closeUnsavedWarning,
+    continueWithoutSaving,
   }
 }

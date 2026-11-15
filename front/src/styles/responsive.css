@@ -160,7 +160,16 @@
     font-size: 12px;
   }
   .final-cta .button {
-    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    gap: 20px;
+    padding: 16px 24px;
+    font-size: 18px;
+  }
+  .final-cta .button svg {
+    width: 24px;
+    height: 24px;
   }
   .faq-list summary {
     min-height: 44px;

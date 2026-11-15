@@ -198,10 +198,34 @@
   line-height: 1.5;
   margin-bottom: 27px;
 }
+/* 마지막 행동을 분명히 보이도록 기본 버튼보다 약 1.7배 크게 둡니다. */
 .final-cta .button {
   background: #fff;
   border: 1px solid #ebd600;
-  min-width: 227px;
+  min-width: 386px;
+  min-height: 82px;
+  gap: 36px;
+  padding: 22px 38px;
+  border-radius: 15px;
+  font-size: 23px;
+}
+.final-cta .button svg {
+  width: 30px;
+  height: 30px;
+}
+@media (max-width: 1000px) {
+  /* 오른쪽 장식 화살표와 겹치지 않게 조금 줄여요. */
+  .final-cta .button {
+    min-width: 0;
+    min-height: 72px;
+    gap: 28px;
+    padding: 18px 30px;
+    font-size: 20px;
+  }
+  .final-cta .button svg {
+    width: 26px;
+    height: 26px;
+  }
 }
 .final-cta .button:hover:not(:disabled),
 .final-cta .button:focus-visible {

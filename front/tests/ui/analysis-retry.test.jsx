@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
 import App from '../../src/App.jsx'
@@ -58,6 +58,12 @@ test('unexpected model output opens as raw text even when storage fails', async 
   await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '합성 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  // 로그인하지 않았으므로 저장되지 않는다는 안내를 확인하고 진행합니다.
+  await user.click(
+    within(await screen.findByRole('dialog', { name: '피드백 저장 안내' })).getByRole('button', {
+      name: /그대로 진행/,
+    }),
+  )
   expect(await screen.findByText('모델이 생성한 원문 피드백입니다.')).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
   expect(screen.getByRole('status').textContent).toContain('DB 저장 실패')

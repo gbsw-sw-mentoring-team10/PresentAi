@@ -109,21 +109,24 @@ function AccountView({ user, navigate, onLogin, onAccountDeleted }) {
         </div>
       )}
       <AccountTabs tab={tab} onTabChange={setTab} />
-      <section
-        className="result-panel mypage-panel"
-        role="tabpanel"
-        id={`mypage-panel-${tab}`}
-        aria-labelledby={`mypage-tab-${tab}`}
-        tabIndex={0}
-      >
-        {tab === 'profile' ? (
+      {/* 두 탭을 같은 자리에 겹쳐 두고 보이는 탭만 바꿔요. 더 긴 탭에 높이가 맞춰져 푸터가 움직이지 않아요. */}
+      <div className="mypage-panels">
+        <AccountPanel id="profile" active={tab === 'profile'}>
           <ProfilePanel email={email} profile={profile} loading={loading} onOpen={setDialog} />
-        ) : history.status !== 'success' ? (
-          <HistoryLoadState request={history} onLogin={onLogin} />
-        ) : (
-          <RecordPanel summary={summary} profile={profile} loading={loading} navigate={navigate} />
-        )}
-      </section>
+        </AccountPanel>
+        <AccountPanel id="record" active={tab === 'record'}>
+          {history.status !== 'success' ? (
+            <HistoryLoadState request={history} onLogin={onLogin} />
+          ) : (
+            <RecordPanel
+              summary={summary}
+              profile={profile}
+              loading={loading}
+              navigate={navigate}
+            />
+          )}
+        </AccountPanel>
+      </div>
       {toast && (
         <div className="toast" role="status">
           <Icon name="check" size={17} />
@@ -154,5 +157,21 @@ function AccountView({ user, navigate, onLogin, onAccountDeleted }) {
         />
       )}
     </div>
+  )
+}
+
+function AccountPanel({ id, active, children }) {
+  return (
+    <section
+      className={`result-panel mypage-panel${active ? '' : ' is-inactive'}`}
+      role="tabpanel"
+      id={`mypage-panel-${id}`}
+      aria-labelledby={`mypage-tab-${id}`}
+      aria-hidden={active ? undefined : true}
+      inert={!active}
+      tabIndex={active ? 0 : -1}
+    >
+      {children}
+    </section>
   )
 }

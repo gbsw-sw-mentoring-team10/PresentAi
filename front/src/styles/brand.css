@@ -5,6 +5,7 @@
   flex-shrink: 0;
   vertical-align: middle;
   line-height: 0;
+  color: var(--ink);
   background: transparent;
 }
 .brand-logo svg {
@@ -15,8 +16,9 @@
 .brand-logo .brand-compact {
   display: none;
 }
+/* 작은 로고는 마이크만 보여 줘요. */
 .brand-logo.is-compact {
-  width: 92px;
+  width: 40px;
 }
 .brand-logo.is-compact .brand-full {
   display: none;
@@ -37,7 +39,7 @@
 }
 @media (max-width: 600px) {
   .brand-logo.is-responsive {
-    width: 92px;
+    width: 40px;
   }
   .brand-logo.is-responsive .brand-full {
     display: none;

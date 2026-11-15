@@ -28,7 +28,7 @@ export default function AccountTabs({ tab, onTabChange }) {
           key={item.id}
           role="tab"
           id={`mypage-tab-${item.id}`}
-          aria-controls={tab === item.id ? `mypage-panel-${item.id}` : undefined}
+          aria-controls={`mypage-panel-${item.id}`}
           aria-selected={tab === item.id}
           tabIndex={tab === item.id ? 0 : -1}
           className={tab === item.id ? 'active' : ''}

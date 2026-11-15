@@ -18,17 +18,6 @@ export default function FeedbackShowcase({ onStart, slides = homeSlides }) {
       aria-label="PresentAi 소개"
       aria-roledescription="캐러셀"
     >
-      <div className="hero-deck-toolbar">
-        <span>
-          <Icon name="slides" size={18} />
-          PresentAi
-        </span>
-        <span className="hero-deck-count" aria-hidden="true">
-          {String(activeIndex + 1).padStart(2, '0')}
-          <i />
-          {String(slides.length).padStart(2, '0')}
-        </span>
-      </div>
       <div ref={viewportRef} className="hero-deck-viewport" aria-live={playing ? 'off' : 'polite'}>
         <div
           className="hero-deck-track"
@@ -51,11 +40,26 @@ export default function FeedbackShowcase({ onStart, slides = homeSlides }) {
               {slide.image ? (
                 <img src={slide.image} alt={slide.title} draggable="false" decoding="async" />
               ) : (
-                <h2>
-                  {slide.lines.map((line, lineIndex) => (
-                    <span key={lineIndex}>{line}</span>
-                  ))}
-                </h2>
+                <>
+                  <h2>
+                    {slide.lines.map((line, lineIndex) => (
+                      <span key={lineIndex}>{line}</span>
+                    ))}
+                  </h2>
+                  {!!slide.points?.length && (
+                    <ol className="hero-deck-points">
+                      {slide.points.map(([name, description], pointIndex) => (
+                        <li key={name}>
+                          <b aria-hidden="true">{pointIndex + 1}</b>
+                          <div>
+                            <strong>{name}</strong>
+                            <span>{description}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </>
               )}
             </div>
           ))}
