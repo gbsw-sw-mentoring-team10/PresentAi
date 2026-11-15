@@ -18,7 +18,7 @@ import { getPrioritySlideIssues, mergeDocumentSlides } from '../features/slides/
 import { ModelResponse, StorageNotice } from '../features/results/ModelResponse.jsx'
 import OriginalFileDownload from '../features/results/OriginalFileDownload.jsx'
 
-export default function FeedbackResultsPage({ request, navigate, onNew }) {
+export default function FeedbackResultsPage({ request, onEdit, onNew }) {
   if (request.result.raw_only)
     return (
       <div className="results-page section-wrap">
@@ -26,13 +26,13 @@ export default function FeedbackResultsPage({ request, navigate, onNew }) {
         <p>화면 형식과 다른 응답이어서 원문을 그대로 표시합니다.</p>
         {!request.mock && <StorageNotice result={request.result} />}
         <ModelResponse value={request.result.raw_response} expanded />
-        <Button onClick={() => navigate('/materials')}>입력 수정하기</Button>
+        <Button onClick={onEdit}>입력 수정하기</Button>
       </div>
     )
-  return <StructuredResults request={request} navigate={navigate} onNew={onNew} />
+  return <StructuredResults request={request} onEdit={onEdit} onNew={onNew} />
 }
 
-function StructuredResults({ request, navigate, onNew }) {
+function StructuredResults({ request, onEdit, onNew }) {
   const { result, submission, mock } = request
   const [resolved, setResolved] = useState([])
   const [tab, setTab] = useState('overview')
@@ -79,7 +79,7 @@ function StructuredResults({ request, navigate, onNew }) {
   return (
     <div className={`results-page section-wrap ${tab === 'slides' ? 'deck-results-page' : ''}`}>
       <div className="result-topline">
-        <button className="back-link" onClick={() => navigate('/materials')}>
+        <button className="back-link" onClick={onEdit}>
           <Icon name="back" size={16} />
           입력 수정하기
         </button>

@@ -51,7 +51,7 @@ test('example overview and slide detail share review checks in both directions',
 
 test('real results use filtered order for buttons and keyboard, and overview links clear the filter', async () => {
   const user = userEvent.setup()
-  render(<FeedbackResultsPage request={request} navigate={() => {}} />)
+  render(<FeedbackResultsPage request={request} onEdit={() => {}} />)
   await user.click(screen.getByRole('tab', { name: '슬라이드별 피드백' }))
   expect(selectedSlide().getAttribute('aria-label')).toMatch(/^5번/)
   await user.selectOptions(screen.getByRole('combobox', { name: '슬라이드 필터' }), 'review')
@@ -79,7 +79,7 @@ test('real results use filtered order for buttons and keyboard, and overview lin
 
 test('reviewing the last unread issues shows the empty state and can return to all slides', async () => {
   const user = userEvent.setup()
-  render(<FeedbackResultsPage request={request} navigate={() => {}} />)
+  render(<FeedbackResultsPage request={request} onEdit={() => {}} />)
   await user.click(screen.getByRole('tab', { name: '슬라이드별 피드백' }))
   await user.selectOptions(screen.getByRole('combobox', { name: '슬라이드 필터' }), 'unread')
   await user.click(screen.getByRole('button', { name: '확인 완료로 표시' }))

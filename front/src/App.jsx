@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/HomePage.jsx'
 import AppHeader from './components/layout/AppHeader.jsx'
 import AppFooter from './components/layout/AppFooter.jsx'
@@ -29,6 +29,7 @@ const EMPTY_FORM = { title: '', purpose: '', description: '', script: '', file: 
 export default function App() {
   const { route, activeSection, navigate: changeRoute, scrollSection } = useHashRoute()
   const [drafts, setDrafts] = useState({ material: EMPTY_FORM, speech: EMPTY_FORM })
+  const previousDrafts = useRef({})
   const [mode, setMode] = useState('material')
   const formMode = route === '/materials' ? 'material' : route === '/speech' ? 'speech' : mode
   const form = drafts[formMode]
@@ -77,19 +78,29 @@ export default function App() {
   }, [route, mode, request.status, speechRequest.status, navigate])
 
   function startNewDraft(nextMode) {
+    // 새 자료를 쓰다가 이전 결과로 돌아가도 그 자료의 입력을 수정할 수 있게 보관합니다.
+    previousDrafts.current[nextMode] ??= drafts[nextMode]
     setDrafts((current) => ({ ...current, [nextMode]: EMPTY_FORM }))
     navigate(nextMode === 'speech' ? '/speech' : '/materials')
   }
 
-  function recordAgain() {
-    setDrafts((current) => ({ ...current, speech: { ...current.speech, audio: null } }))
-    navigate('/speech')
+  function editResult(nextMode, clearAudio = false) {
+    const previous = previousDrafts.current[nextMode]
+    if (previous || clearAudio) {
+      setDrafts((current) => {
+        const draft = previous || current[nextMode]
+        return { ...current, [nextMode]: clearAudio ? { ...draft, audio: null } : draft }
+      })
+    }
+    delete previousDrafts.current[nextMode]
+    navigate(nextMode === 'speech' ? '/speech' : '/materials')
   }
 
   function start(nextMode) {
     // 수정한 자료에 남은 예시 파일은 분석 화면과 요청에서 뺍니다.
     const submitted = prepareSubmission(form, nextMode)
     if (submitted !== form) setForm(submitted)
+    delete previousDrafts.current[nextMode]
     setMode(nextMode)
     if (nextMode !== 'speech') setResultKind('api')
     if (nextMode === 'speech') runSpeech(submitted)
@@ -116,6 +127,7 @@ export default function App() {
     cancelFeedback()
     resetSpeech()
     setResultKind(null)
+    previousDrafts.current = {}
     setDrafts({ material: EMPTY_FORM, speech: EMPTY_FORM })
     navigate('/')
   }
@@ -185,7 +197,7 @@ export default function App() {
             <FeedbackResultsPage
               key={request.submission.title + request.result.feedback}
               request={request}
-              navigate={navigate}
+              onEdit={() => editResult('material')}
               onNew={() => startNewDraft('material')}
             />
           )
@@ -202,8 +214,9 @@ export default function App() {
           <SpeechResultsPage
             speech={speechRequest}
             navigate={navigate}
+            onEdit={() => editResult('speech')}
             onRetryReview={retryReview}
-            onRecordAgain={recordAgain}
+            onRecordAgain={() => editResult('speech', true)}
           />
         )
       case '/history':

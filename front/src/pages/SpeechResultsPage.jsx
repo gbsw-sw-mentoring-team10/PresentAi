@@ -9,7 +9,13 @@ import {
 } from '../features/speech/SpeechResult.jsx'
 import '../styles/speech-results.css'
 
-export default function SpeechResultsPage({ speech, navigate, onRetryReview, onRecordAgain }) {
+export default function SpeechResultsPage({
+  speech,
+  navigate,
+  onEdit,
+  onRetryReview,
+  onRecordAgain,
+}) {
   const { stt, mock, engine, audioName, script, pronunciation, review } = speech
   if (!stt) {
     return (
@@ -23,7 +29,7 @@ export default function SpeechResultsPage({ speech, navigate, onRetryReview, onR
   return (
     <div className="results-page speech-results-page section-wrap">
       <div className="result-topline">
-        <button className="back-link" onClick={() => navigate('/speech')}>
+        <button className="back-link" onClick={onEdit}>
           <Icon name="back" size={16} />
           입력 수정하기
         </button>

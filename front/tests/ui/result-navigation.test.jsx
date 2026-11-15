@@ -43,6 +43,21 @@ test.each([
     back === '다른 자료 점검하기' ? '' : example.purpose,
   )
   expect(window.location.hash).toBe(`#${input}`)
+  if (back === '다른 자료 점검하기') {
+    await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), '새 자료 작성 중')
+    await act(async () => window.history.back())
+    await user.click(await screen.findByRole('button', { name: '입력 수정하기' }))
+    expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(example.purpose)
+    expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe(example.script)
+
+    // 같은 자료를 고치는 도중에는 제출 당시 값으로 덮어쓰지 않습니다.
+    await user.type(screen.getByRole('textbox', { name: /발표 목적/ }), ' 수정 중')
+    await act(async () => window.history.back())
+    await user.click(await screen.findByRole('button', { name: '입력 수정하기' }))
+    expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(
+      `${example.purpose} 수정 중`,
+    )
+  }
   if (back === '다시 녹음하기') {
     expect(screen.getByRole('textbox', { name: '발표 대본' }).value).toBe(example.script)
     expect(screen.queryByText('리허설_1차.m4a')).toBeNull()
