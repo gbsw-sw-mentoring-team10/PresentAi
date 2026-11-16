@@ -42,6 +42,7 @@ test.each([
   }
   await user.click(screen.getByRole('button', { name: start, exact: true }))
   await act(() => vi.advanceTimersByTimeAsync(input === '/speech' ? 5000 : 3000))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await waitFor(() => expect(window.location.hash).toBe(`#${result}`))
   await user.click(await screen.findByRole('button', { name: back, exact: true }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(
@@ -102,6 +103,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   await act(() => vi.advanceTimersByTimeAsync(5000))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await screen.findByText(exampleSpeechReview.summary)
   await user.click(screen.getByRole('button', { name: '입력 수정하기' }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(example.purpose)
@@ -111,6 +113,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
   await act(() => vi.advanceTimersByTimeAsync(3000))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText(exampleFeedbackResponse.feedback)).toBeTruthy()
   await act(async () => {
     window.location.hash = '/speech-results'
@@ -123,6 +126,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   await user.click(screen.getByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
   await act(() => vi.advanceTimersByTimeAsync(5000))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await screen.findByText(exampleSpeechReview.summary)
   await act(async () => {
     window.location.hash = '/results'

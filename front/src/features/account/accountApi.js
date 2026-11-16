@@ -27,13 +27,15 @@ export async function readAccountResponse(response) {
   return data
 }
 
-// 서버는 snake_case로 응답한다고 가정하고 화면에서 쓰는 모양으로 바꿉니다.
+// 서버의 UTC 시각을 화면에서 쓰는 사용자 시간대의 'YYYY-MM-DD'로 바꿉니다.
+// 가입 후 정보를 바꾼 적이 없으면 updated_at이 created_at과 같아서 infoUpdatedAt은 null 입니다.
 function normalizeAccountProfile(data) {
+  const createdAt = data?.created_at || null
+  const updatedAt = data?.updated_at || null
   return {
     email: data?.email || null,
-    createdAt: data?.created_at || null,
-    emailUpdatedAt: data?.email_updated_at || null,
-    passwordUpdatedAt: data?.password_updated_at || null,
+    createdAt: toLocalDate(createdAt),
+    infoUpdatedAt: updatedAt && updatedAt !== createdAt ? toLocalDate(updatedAt) : null,
   }
 }
 
@@ -48,7 +50,7 @@ export async function changeEmail({ email, password }, { signal } = {}) {
     buildAccountRequest('email', 'PATCH', { new_email: email, password }),
     signal,
   )
-  return { ...normalizeAccountProfile(data), emailUpdatedAt: today() }
+  return { email: data?.email || null, infoUpdatedAt: toLocalDate(new Date()) }
 }
 
 export async function changePassword({ currentPassword, newPassword }, { signal } = {}) {
@@ -59,7 +61,7 @@ export async function changePassword({ currentPassword, newPassword }, { signal 
     }),
     signal,
   )
-  return { passwordUpdatedAt: today() }
+  return { infoUpdatedAt: toLocalDate(new Date()) }
 }
 
 export async function deleteAccount({ signal } = {}) {
@@ -82,8 +84,9 @@ function withTimeout(signal) {
   return signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000)
 }
 
-function today() {
-  const now = new Date()
-  const pad = (value) => String(value).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+function toLocalDate(value) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (!value || Number.isNaN(date.getTime())) return null
+  const pad = (number) => String(number).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }

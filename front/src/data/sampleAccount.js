@@ -3,6 +3,5 @@
 export const sampleAccount = {
   email: 'presenter@example.com',
   createdAt: '2026-03-02',
-  emailUpdatedAt: null,
-  passwordUpdatedAt: '2026-08-19',
+  infoUpdatedAt: '2026-08-19',
 }

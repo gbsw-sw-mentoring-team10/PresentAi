@@ -58,6 +58,7 @@ async function renderResult(flow) {
   await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: flow.start }))
   await act(() => vi.advanceTimersByTimeAsync(flow.path === '/speech' ? 5000 : 3000))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await screen.findByRole('button', { name: '입력 수정하기' })
   await waitFor(() => expect(window.location.hash).toBe(`#${flow.result}`))
   return user
@@ -127,6 +128,7 @@ test('analysing a new material replaces the old result input before another new 
   await user.click(screen.getByText('파일 없이 대본으로 입력하기'))
   await user.type(screen.getByRole('textbox', { name: '발표 대본' }), '새 자료 전용 대본입니다.')
   await user.click(screen.getByRole('button', { name: '분석 시작', exact: true }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await user.click(await screen.findByRole('button', { name: '다른 자료 점검하기' }))
   await screen.findByRole('textbox', { name: /발표 목적/ })
   await act(async () => window.history.back())

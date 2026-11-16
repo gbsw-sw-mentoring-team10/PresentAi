@@ -5,7 +5,7 @@ from pymysql.connections import Connection
 
 import config
 from database import get_db
-from schemas.auth import Credentials, EmailChange, PasswordChange, PublicUser
+from schemas.auth import AccountProfile, Credentials, EmailChange, PasswordChange, PublicUser
 from services import auth_service, file_storage
 from services.auth_security import AuthRateLimiter
 
@@ -124,9 +124,12 @@ def login(
     return user
 
 
-@router.get("/me", response_model=PublicUser)
-def me(current_user: Annotated[PublicUser, Depends(get_current_user)]):
-    return current_user
+@router.get("/me", response_model=AccountProfile)
+def me(
+    db: DatabaseConnection,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+):
+    return auth_service.get_account_profile(db, current_user.user_id)
 
 
 @router.get("/admin/me", response_model=PublicUser)

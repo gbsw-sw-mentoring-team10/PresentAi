@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+from datetime import timezone
 from typing import TypeGuard
 
 import pymysql
@@ -7,7 +8,7 @@ from fastapi import HTTPException
 from pymysql.connections import Connection
 
 from config import SESSION_TTL_SECONDS
-from schemas.auth import PublicUser
+from schemas.auth import AccountProfile, PublicUser
 from services.auth_security import (
     DUMMY_PASSWORD_HASH,
     MAX_PASSWORD_LENGTH,
@@ -91,6 +92,23 @@ def find_session_user(
         user = cursor.fetchone()
 
     return PublicUser(**user) if user else None
+
+
+def get_account_profile(connection: Connection, user_id: int) -> AccountProfile:
+    # 가입 시각(created_at)과 마지막 정보 수정 시각(updated_at)을 함께 돌려준다.
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT user_id, email, role, created_at, updated_at FROM users WHERE user_id = %s",
+            (user_id,),
+        )
+        user = cursor.fetchone()
+    if user is None:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    # MySQL 연결의 time_zone은 UTC이며, PyMySQL은 timezone 없는 datetime을 반환한다.
+    for key in ("created_at", "updated_at"):
+        user[key] = user[key].replace(tzinfo=timezone.utc)
+    return AccountProfile(**user)
 
 
 def create_session(

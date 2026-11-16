@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { getAccountProfile } from '../src/features/account/accountApi.js'
 import { accountRequest } from '../src/features/auth/authApi.js'
 import { normalizeFeedback, createFeedback } from '../src/features/feedback/feedbackApi.js'
 import { normalizeSlides } from '../src/features/slides/slideFeedback.js'
@@ -29,6 +30,26 @@ test('account requests use server sessions and handle missing or invalid logins'
       user,
     )
   await accountRequest('logout')
+})
+
+test('account profile shows signup and last info update as dates only', async (t) => {
+  // 정오(UTC)로 두어 어느 시간대에서 실행해도 같은 날짜가 나오게 합니다.
+  const signup = { ...user, created_at: '2026-03-02T12:00:00Z', updated_at: '2026-03-02T12:00:00Z' }
+  const changed = { ...signup, updated_at: '2026-08-19T12:30:00Z' }
+  let response = signup
+  t.mock.method(globalThis, 'fetch', async () => Response.json(response))
+
+  assert.deepEqual(await getAccountProfile(), {
+    email: user.email,
+    createdAt: '2026-03-02',
+    infoUpdatedAt: null,
+  })
+  response = changed
+  assert.deepEqual(await getAccountProfile(), {
+    email: user.email,
+    createdAt: '2026-03-02',
+    infoUpdatedAt: '2026-08-19',
+  })
 })
 
 test('session proxy forwards only the service cookie and preserves login/logout Set-Cookie', async (t) => {

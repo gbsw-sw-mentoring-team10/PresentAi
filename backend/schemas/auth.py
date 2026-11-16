@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, SecretStr, field_validator
@@ -23,6 +24,13 @@ class PublicUser(BaseModel):
     user_id: int
     email: str
     role: Literal["user", "admin"]
+
+
+class AccountProfile(PublicUser):
+    # 마이페이지용 사용자 정보. 두 시각은 DB가 자동으로 기록한 값(UTC)이다.
+
+    created_at: datetime
+    updated_at: datetime
 
 
 class EmailChange(BaseModel):

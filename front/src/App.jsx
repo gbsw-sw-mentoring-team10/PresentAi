@@ -66,13 +66,6 @@ export default function App() {
     [changeRoute, cancelFeedback, cancelSpeech],
   )
 
-  useEffect(() => {
-    if (route !== '/analysis') return
-    const ready =
-      mode === 'speech' ? speechRequest.status === 'ready' : request.status === 'success'
-    if (ready) navigate(mode === 'speech' ? '/speech-results' : '/results', { replace: true })
-  }, [route, mode, request.status, speechRequest.status, navigate])
-
   function startNewDraft(nextMode) {
     // 새 자료를 쓰다가 이전 결과로 돌아가도 그 자료의 입력을 수정할 수 있게 보관합니다.
     previousDrafts.current[nextMode] ??= drafts[nextMode]

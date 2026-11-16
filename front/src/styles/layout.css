@@ -1,3 +1,20 @@
+/* 짧은 페이지는 화면을 채우고, 긴 페이지의 푸터는 본문 끝에 배치합니다. */
+@media screen {
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #root > #main-content {
+    flex: 1 0 auto;
+  }
+  #root > .site-header,
+  #root > .site-footer {
+    flex-shrink: 0;
+  }
+}
+
 .section-wrap {
   width: min(1180px, calc(100% - 80px));
   margin-inline: auto;

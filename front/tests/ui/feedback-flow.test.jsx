@@ -138,7 +138,7 @@ test.each(['/materials', '/speech'])(
   },
 )
 
-test('a finished analysis automatically opens its result without adding a history step', async () => {
+test('a finished analysis opens its result from the result button without adding a history step', async () => {
   const analysisFetch = stubServer()
   const user = await renderApp('/materials')
   await user.type(purpose(), '교육{Enter}')
@@ -151,6 +151,7 @@ test('a finished analysis automatically opens its result without adding a histor
       name: /그대로 진행/,
     }),
   )
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText(feedback.feedback)).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
 
@@ -193,7 +194,7 @@ test('the guide example button starts the unchanged example without the storage 
   expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
 })
 
-test('the prepared example result shows the original example slides', async () => {
+test('the example result shows the prepared slides after opening the result', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   try {
     stubServer()
@@ -201,25 +202,12 @@ test('the prepared example result shows the original example slides', async () =
     await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
     await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
     await act(() => vi.advanceTimersByTimeAsync(3000))
+    await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
     await user.click(await screen.findByRole('tab', { name: /슬라이드별 피드백/ }))
     expect(screen.queryByText('슬라이드별 결과가 아직 없어요.')).toBeNull()
     expect(
       (await screen.findAllByAltText(/번 예시 슬라이드: ESG 기반 부동산 투자 및 운영 전략/)).length,
     ).toBeGreaterThan(0)
-  } finally {
-    vi.useRealTimers()
-  }
-})
-
-test('the unchanged example starts without the storage warning', async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-  try {
-    stubServer(() => new Promise(() => {}))
-    const user = await renderApp('/materials')
-    await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
-    await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
-    expect(await screen.findByText('예시 자료 · 예시 결과 미리보기')).toBeTruthy()
-    expect(screen.queryByRole('dialog', { name: '피드백 저장 안내' })).toBeNull()
   } finally {
     vi.useRealTimers()
   }
@@ -263,6 +251,7 @@ test('an unchanged example shows the prepared Green Horizon result without calli
     await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
     expect(await screen.findByText('예시 자료 · 예시 결과 미리보기')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(3000))
+    await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
     await screen.findByRole('button', { name: '입력 수정하기' })
     expect(analysisFetch).not.toHaveBeenCalled()
 
@@ -297,6 +286,7 @@ test('the example rehearsal shows the prepared speech result and AI review', asy
     await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
     expect(await screen.findByText('예시 음성 · 예시 결과 미리보기')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(2500))
+    await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
     await screen.findByRole('button', { name: '입력 수정하기' })
     expect(await screen.findByText('분당 346자')).toBeTruthy()
     await act(() => vi.advanceTimersByTimeAsync(2500))
