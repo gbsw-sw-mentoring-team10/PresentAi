@@ -128,7 +128,7 @@ def test_login_cookie_and_current_user(client, db):
     assert "max-age=86400" in cookie_header
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == user
-    assert client.get("/auth/me").json() == user
+    assert client.get("/auth/me").json().items() >= user.items()
     token = client.cookies.get(config.AUTH_COOKIE_NAME)
     with db.cursor() as cursor:
         cursor.execute("SELECT token_hash FROM auth_sessions")
@@ -160,7 +160,29 @@ def test_unauthenticated_and_forged_sessions_are_rejected(client):
 
 def test_query_parameter_cannot_impersonate_another_user(client):
     user, _ = register_and_login(client)
-    assert client.get("/auth/me?user_id=999999").json() == user
+    assert client.get("/auth/me?user_id=999999").json().items() >= user.items()
+
+
+def test_me_returns_signup_and_last_update_dates(client, db):
+    user, _ = register_and_login(client)
+    with db.cursor() as cursor:
+        cursor.execute(
+            "UPDATE users SET created_at = '2026-03-02 00:00:00', "
+            "updated_at = '2026-03-02 00:00:00' WHERE user_id = %s",
+            (user["user_id"],),
+        )
+    db.commit()
+    profile = client.get("/auth/me").json()
+    assert profile["created_at"] == profile["updated_at"] == "2026-03-02T00:00:00Z"
+
+    changed = client.patch(
+        "/auth/email",
+        json={"new_email": "new@example.com", "password": CREDENTIALS["password"]},
+    )
+    assert changed.status_code == 200
+    profile = client.get("/auth/me").json()
+    assert profile["created_at"] == "2026-03-02T00:00:00Z"
+    assert profile["updated_at"] > profile["created_at"]
 
 
 def test_expired_session_is_rejected(client, db):
