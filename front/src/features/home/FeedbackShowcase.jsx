@@ -1,4 +1,5 @@
 import Icon from '../../components/ui/Icon.jsx'
+import HeroSlideArtwork from './HeroSlideArtwork.jsx'
 import { homeSlides } from './homeSlides.js'
 import useHeroCarousel from './useHeroCarousel.js'
 import '../../styles/home-carousel.css'
@@ -30,7 +31,7 @@ export default function FeedbackShowcase({ onStart, slides = homeSlides }) {
           {frames.map((slide, index) => (
             <div
               key={`${slide.id}-${index}`}
-              className={`hero-deck-slide hero-deck-slide-${slide.tone || 'yellow'}${slide.image ? ' hero-deck-slide-image' : ''}`}
+              className={`hero-deck-slide hero-deck-slide-${slide.tone || 'yellow'}${slide.cards?.length ? ' hero-deck-slide-with-cards' : ''}${slide.image ? ' hero-deck-slide-image' : ''}`}
               role="group"
               aria-roledescription="슬라이드"
               aria-label={`${index + 1} / ${slides.length}`}
@@ -41,23 +42,34 @@ export default function FeedbackShowcase({ onStart, slides = homeSlides }) {
                 <img src={slide.image} alt={slide.title} draggable="false" decoding="async" />
               ) : (
                 <>
-                  <h2>
-                    {slide.lines.map((line, lineIndex) => (
-                      <span key={lineIndex}>{line}</span>
-                    ))}
-                  </h2>
-                  {!!slide.points?.length && (
-                    <ol className="hero-deck-points">
-                      {slide.points.map(([name, description], pointIndex) => (
+                  <div className="hero-slide-topline">
+                    <span>{slide.label || 'PresentAI'}</span>
+                    <span aria-hidden="true">
+                      {String((index % slides.length) + 1).padStart(2, '0')} /{' '}
+                      {String(slides.length).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="hero-slide-main">
+                    <div className="hero-slide-copy">
+                      <h2>
+                        {slide.lines.map((line, lineIndex) => (
+                          <span key={lineIndex}>{line}</span>
+                        ))}
+                      </h2>
+                      {slide.description && <p>{slide.description}</p>}
+                    </div>
+                    <HeroSlideArtwork variant={slide.id} />
+                  </div>
+                  {!!slide.cards?.length && (
+                    <ul className="hero-slide-cards">
+                      {slide.cards.map(([label, name, description]) => (
                         <li key={name}>
-                          <b aria-hidden="true">{pointIndex + 1}</b>
-                          <div>
-                            <strong>{name}</strong>
-                            <span>{description}</span>
-                          </div>
+                          <span className="hero-slide-card-label">{label}</span>
+                          <strong>{name}</strong>
+                          <span>{description}</span>
                         </li>
                       ))}
-                    </ol>
+                    </ul>
                   )}
                 </>
               )}

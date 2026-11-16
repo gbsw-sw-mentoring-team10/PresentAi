@@ -1,10 +1,12 @@
-/* 소개 슬라이드는 화면 양쪽 끝까지 꽉 채우고, 안쪽 내용은 다른 섹션과 같은 폭에 맞춥니다. */
+/* 레퍼런스의 큰 타이포그래피와 도형을 한 장의 발표 슬라이드처럼 배치합니다. */
 .section-wrap.home-intro {
   width: 100%;
   padding-block: 0 56px;
 }
 .hero-deck {
-  --deck-gutter: max(40px, calc((100% - 1180px) / 2));
+  --deck-gutter: max(48px, calc((100% - 1280px) / 2));
+  --deck-yellow: #ffe34d;
+  --deck-ink: #191919;
   container-type: inline-size;
   width: 100%;
   border-bottom: 1px solid var(--line);
@@ -13,99 +15,132 @@
 }
 .hero-deck-viewport {
   overflow: hidden;
-  height: clamp(460px, calc(100svh - 84px - 66px), 760px);
+  height: clamp(560px, calc(100svh - 150px), 720px);
 }
 .hero-deck-track {
   display: flex;
   height: 100%;
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* 큰 문구는 왼쪽, 번호를 붙인 부연 설명은 오른쪽에 둡니다. */
 .hero-deck-slide {
+  --deck-border: #19191960;
   position: relative;
   flex: 0 0 100%;
   min-width: 0;
   height: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(32px, 5cqw, 88px);
-  padding: 48px var(--deck-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px var(--deck-gutter) 36px;
   overflow: hidden;
-  color: var(--ink);
-  background: var(--yellow);
+  color: var(--deck-ink);
+  background: var(--deck-yellow);
+}
+.hero-slide-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.hero-slide-topline > :last-child {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+.hero-slide-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 0;
+  flex: 1;
+}
+.hero-slide-copy {
+  position: relative;
+  z-index: 1;
 }
 .hero-deck-slide h2 {
-  position: relative;
-  font-size: clamp(30px, 4.4cqw, 66px);
+  font-size: clamp(38px, 4.5cqw, 70px);
   font-weight: 800;
   letter-spacing: -0.055em;
-  line-height: 1.4;
+  line-height: 1.2;
+  text-wrap: initial;
   word-break: keep-all;
 }
 .hero-deck-slide h2 span {
   display: block;
 }
-.hero-deck-points {
-  display: grid;
-  gap: clamp(18px, 2.2cqw, 30px);
-  list-style: none;
-}
-.hero-deck-points li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 16px;
-  padding-bottom: clamp(18px, 2.2cqw, 30px);
-  border-bottom: 1px solid #20201e1f;
-}
-.hero-deck-points li:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-.hero-deck-points b {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--yellow);
-  font-size: 14px;
-  font-weight: 800;
-}
-.hero-deck-points div {
-  display: grid;
-  gap: 6px;
-  padding-top: 4px;
-}
-.hero-deck-points strong {
-  font-size: clamp(16px, 1.45cqw, 20px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.hero-deck-points span {
-  font-size: clamp(13px, 1.05cqw, 15px);
+.hero-slide-copy > p {
+  margin-top: 26px;
+  font-size: clamp(15px, 1.5cqw, 21px);
   line-height: 1.7;
-  color: #20201ebf;
+  letter-spacing: -0.035em;
+  white-space: pre-line;
   word-break: keep-all;
 }
-.hero-deck-slide-dark .hero-deck-points li {
-  border-color: #ffe84a2e;
+.hero-slide-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 440px;
+  min-height: 0;
+  overflow: visible;
 }
-.hero-deck-slide-dark .hero-deck-points b {
-  background: #ffe84a;
-  color: #242620;
+.hero-deck-slide-with-cards .hero-slide-art {
+  max-height: 310px;
 }
-.hero-deck-slide-dark .hero-deck-points span {
-  color: #f5f3e8c7;
+.hero-deck-slide-with-cards h2 {
+  font-size: clamp(36px, 3.9cqw, 60px);
+}
+.hero-slide-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hero-slide-cards li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 20px 24px;
+  border: 1px solid var(--deck-border);
+}
+.hero-slide-card-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.hero-slide-cards strong {
+  font-size: clamp(17px, 1.7cqw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  word-break: keep-all;
+}
+.hero-slide-cards li > :last-child {
+  font-size: clamp(12px, 1.05cqw, 15px);
+  line-height: 1.6;
+  letter-spacing: -0.025em;
+  word-break: keep-all;
+}
+.hero-deck-slide-white {
+  --deck-border: #dcc000;
+  background: #fff;
 }
 .hero-deck-slide-cream {
   background: #f5f3e8;
 }
 .hero-deck-slide-dark {
-  background: #242620;
-  color: #ffe84a;
+  --deck-border: #ffe34d80;
+  background: var(--deck-ink);
+  color: var(--deck-yellow);
 }
 .hero-deck-slide-image {
   display: flex;
@@ -181,47 +216,89 @@
 .hero-deck-guide:hover {
   background: var(--yellow-pale);
 }
-/* 좁은 화면에서는 큰 문구 아래로 설명을 내리고, 가장 긴 슬라이드에 높이를 맞춥니다. */
 @media (max-width: 860px) {
   .hero-deck {
-    --deck-gutter: 20px;
-  }
-  .hero-deck-viewport {
-    height: auto;
-  }
-  .hero-deck-slide {
-    grid-template-columns: minmax(0, 1fr);
-    align-content: center;
-    gap: 28px;
-    padding-block: 40px;
+    --deck-gutter: 30px;
   }
   .hero-deck-slide h2 {
-    font-size: clamp(26px, 6.4cqw, 44px);
+    font-size: clamp(32px, 5.3cqw, 46px);
   }
-  .hero-deck-points strong {
-    font-size: 16px;
+  .hero-deck-slide-with-cards h2 {
+    font-size: clamp(30px, 4.8cqw, 42px);
   }
-  .hero-deck-points span {
-    font-size: 13px;
+  .hero-slide-copy > p {
+    font-size: 15px;
+  }
+  .hero-slide-cards {
+    gap: 12px;
+  }
+  .hero-slide-cards li {
+    padding: 18px 16px;
   }
 }
+/* 글과 장식을 위아래로 재배치해 도형이 내용을 가리지 않도록 합니다. */
 @media (max-width: 600px) {
   .section-wrap.home-intro {
     padding-block: 0 40px;
   }
   .hero-deck {
-    --deck-gutter: 18px;
+    --deck-gutter: 24px;
+  }
+  .hero-deck-viewport {
+    height: clamp(570px, calc(100svh - 150px), 680px);
   }
   .hero-deck-slide {
-    padding-block: 32px;
+    gap: 20px;
+    padding-block: 25px 28px;
   }
-  .hero-deck-slide h2 {
-    font-size: clamp(24px, 7.7cqw, 36px);
+  .hero-slide-topline {
+    font-size: 10px;
   }
-  .hero-deck-points b {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+  .hero-slide-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+  .hero-slide-copy {
+    padding-top: 20px;
+  }
+  .hero-deck-slide h2,
+  .hero-deck-slide-with-cards h2 {
+    font-size: clamp(27px, 7.5cqw, 44px);
+    letter-spacing: -0.06em;
+    line-height: 1.25;
+  }
+  .hero-slide-copy > p {
+    margin-top: 20px;
+    font-size: clamp(13px, 3.35cqw, 16px);
+    line-height: 1.7;
+  }
+  .hero-slide-art,
+  .hero-deck-slide-with-cards .hero-slide-art {
+    width: min(100%, 360px);
+    height: 100%;
+    max-height: 300px;
+    justify-self: end;
+  }
+  .hero-slide-cards {
+    gap: 8px;
+  }
+  .hero-slide-cards li {
+    padding: 12px 9px;
+    gap: 7px;
+  }
+  .hero-slide-card-label {
+    font-size: 9px;
+    margin: 0;
+  }
+  .hero-slide-cards strong {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .hero-slide-cards li > :last-child {
+    font-size: 11px;
+    line-height: 1.6;
   }
   .hero-deck-slide-image {
     padding: 0;
