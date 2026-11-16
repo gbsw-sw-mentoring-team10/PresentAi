@@ -15,8 +15,6 @@ export default function ProfilePanel({ email, profile, loading, onOpen }) {
             <dt>이메일</dt>
             <dd>
               <strong className="mypage-email">{email}</strong>
-              <small>마지막 변경: {describeDate(profile?.emailUpdatedAt, loading)}</small>
-              <small>따로 아이디가 없어서 이메일이 이름으로 쓰여요.</small>
             </dd>
             <dd className="mypage-info-action">
               <Button
@@ -36,7 +34,6 @@ export default function ProfilePanel({ email, profile, loading, onOpen }) {
                 <span aria-hidden="true">••••••••</span>
                 <span className="sr-only">보안을 위해 가려 두었어요</span>
               </strong>
-              <small>마지막 변경: {describeDate(profile?.passwordUpdatedAt, loading)}</small>
             </dd>
             <dd className="mypage-info-action">
               <Button

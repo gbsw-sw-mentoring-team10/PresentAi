@@ -69,12 +69,8 @@ export default function RecordPanel({ summary, profile, loading, navigate }) {
             <dd>{describeDate(profile?.createdAt, loading, '정보 없음')}</dd>
           </div>
           <div>
-            <dt>마지막 비밀번호 변경</dt>
-            <dd>{describeDate(profile?.passwordUpdatedAt, loading)}</dd>
-          </div>
-          <div>
-            <dt>마지막 이메일 변경</dt>
-            <dd>{describeDate(profile?.emailUpdatedAt, loading)}</dd>
+            <dt>마지막 정보 수정</dt>
+            <dd>{describeDate(profile?.infoUpdatedAt, loading)}</dd>
           </div>
         </dl>
       </section>
