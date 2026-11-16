@@ -1,19 +1,21 @@
+import { useEffect, useState } from 'react'
 import AnalysisError from '../features/analysis/AnalysisError.jsx'
 import MissingMaterials from '../features/analysis/MissingMaterials.jsx'
 import AnalysisProgressCard from '../features/analysis/AnalysisProgressCard.jsx'
+import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import FeedbackSteps from '../features/feedback/FeedbackSteps.jsx'
 import useAnalysisProgress from '../features/analysis/useAnalysisProgress.js'
+import { RESULT_REVEAL_DELAY } from '../features/analysis/analysisTiming.js'
 import useAudioDuration from '../features/analysis/useAudioDuration.js'
 
 const WAIT_MESSAGES = [
-  '분석 서버의 응답을 기다리고 있어요. 잠시만 기다려 주세요.',
-  '발표자료를 꼼꼼히 읽고 있어요.',
-  '슬라이드별 핵심 내용을 살펴보고 있어요.',
-  '발표 흐름이 자연스러운지 확인하고 있어요.',
-  '고칠 부분과 잘한 부분을 정리하고 있어요.',
-  '피드백을 읽기 쉽게 다듬는 중이에요. 거의 다 왔어요.',
-  '서버가 깨어나는 중이라 시간이 조금 걸릴 수 있어요.',
+  '발표자료를 한 장씩 꼼꼼히 읽고 있어요.',
+  '청중에게 꼭 전하고 싶은 핵심이 잘 보이는지 살펴보고 있어요.',
+  '발표 목적에 맞게 이야기가 자연스럽게 이어지는지 확인하고 있어요.',
+  '발표의 흐름과 전달력을 높일 수 있는 개선점을 찾고 있어요.',
+  '바로 볼 수 있는 피드백을 골라 정리하고 있어요.',
+  '조금만 기다려 주세요. 더 나은 발표가 가까워지고 있어요.',
 ]
 
 const REQUEST_STEPS = { success: 3, loading: 1 }
@@ -54,6 +56,16 @@ export default function AnalysisPage({
     enabled: !empty,
   })
   const step = REQUEST_STEPS[request.status] || 0
+  const received = step === 3
+  const [resultReady, setResultReady] = useState(false)
+  // 결과를 받아도 100%에서 잠시 로딩을 이어 가다가, 버튼과 함께 완료 화면으로 바꿔요.
+  useEffect(() => {
+    if (!received) return
+    const timer = setTimeout(() => setResultReady(true), RESULT_REVEAL_DELAY)
+    return () => clearTimeout(timer)
+  }, [received])
+  const finished = received && resultReady
+  const shownStep = finished ? 3 : received ? 2 : step
   const interrupted = request.status === 'idle'
   const failed = request.status === 'error' || interrupted
   const audioSeconds = useAudioDuration(speech ? form.audio : null)
@@ -69,8 +81,8 @@ export default function AnalysisPage({
   const messageIndex = Math.floor(elapsed / 3.5) % WAIT_MESSAGES.length
   const waitMessage = WAIT_MESSAGES[messageIndex]
   const labels = speech
-    ? ['음성 전송 준비', '음성 인식 · 발음 평가', '분석 완료']
-    : ['분석 요청 준비', '자료 전송 및 서버 분석', '피드백 수신 완료']
+    ? ['음성 전송 준비', '음성 인식 · 발음 평가', '음성 분석 완료']
+    : ['자료 전송 준비', '자료 전송 및 AI 피드백 생성', '피드백 수신 완료']
   if (empty) return <MissingMaterials speech={speech} navigate={navigate} />
   if (failed)
     return (
@@ -86,38 +98,50 @@ export default function AnalysisPage({
     )
   return (
     <div className="analysis-page section-wrap">
-      <FeedbackSteps current={step === 3 ? 3 : 2} />
-      <div className={`analysis-symbol ${step === 3 ? 'finished' : ''}`}>
-        <Icon name={step === 3 ? 'check' : 'sparkle'} size={45} />
+      <FeedbackSteps current={finished ? 3 : 2} />
+      <div className={`analysis-symbol ${finished ? 'finished' : ''}`}>
+        <Icon name={finished ? 'check' : 'sparkle'} size={45} />
         <i />
         <i />
       </div>
       <span className="section-kicker">
-        {step === 3 ? 'READY FOR YOUR NEXT STEP.' : 'A LITTLE CLARITY IS ON THE WAY.'}
+        {finished ? 'READY FOR YOUR NEXT STEP.' : 'A LITTLE CLARITY IS ON THE WAY.'}
       </span>
-      <h1>{step === 3 ? '피드백을 만날 준비가 됐어요.' : '더 나은 발표를 위한 준비 중.'}</h1>
-      <p key={step === 3 ? 'done' : messageIndex} className="fade-text">
-        {step === 3
+      <h1>{finished ? '피드백을 만날 준비가 됐어요.' : '더 나은 발표를 위한 준비 중.'}</h1>
+      <p key={finished ? 'done' : received ? 'received' : messageIndex} className="fade-text">
+        {finished
           ? speech
-            ? '말한 내용과 발음 평가를 함께 보여 드릴게요. AI 리뷰는 결과 화면에서 이어서 채워져요.'
-            : '어디부터 다듬으면 좋을지, 함께 확인해 보세요.'
-          : speech
-            ? '음성을 텍스트로 바꾸고 발음을 평가하고 있어요. 길이에 따라 몇십 초 걸릴 수 있어요.'
-            : waitMessage}
+            ? '분석이 끝났어요! 이제 말한 내용과 발음 평가를 확인해 보세요. AI 리뷰는 결과 화면에서 이어서 채워져요.'
+            : '분석이 끝났어요! 이제 맞춤 피드백을 확인해 보세요.'
+          : received
+            ? '거의 다 됐어요. 피드백을 보기 좋게 정리하고 있어요.'
+            : speech
+              ? '음성을 텍스트로 바꾸고 발음을 평가하고 있어요. 길이에 따라 몇십 초 걸릴 수 있어요.'
+              : waitMessage}
       </p>
       <AnalysisProgressCard
         speech={speech}
         form={form}
         request={request}
-        waiting={waiting}
+        waiting={waiting || (received && !finished)}
         percent={percent}
-        step={step}
+        step={shownStep}
         labels={labels}
       />
       <div aria-live="polite" className="sr-only">
-        {step === 3 ? '피드백 준비가 완료되었습니다.' : labels[step]}
+        {finished ? '피드백 준비가 완료되었습니다.' : labels[shownStep]}
       </div>
-      {step !== 3 && (
+      {received ? (
+        finished && (
+          <Button
+            variant="yellow"
+            className="fade-text"
+            onClick={() => navigate(speech ? '/speech-results' : '/results', { replace: true })}
+          >
+            피드백 결과 보기
+          </Button>
+        )
+      ) : (
         <button className="text-button" onClick={() => navigate(speech ? '/speech' : '/materials')}>
           입력 화면으로 돌아가기
         </button>

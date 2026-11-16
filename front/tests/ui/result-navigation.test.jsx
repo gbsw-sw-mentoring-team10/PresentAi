@@ -37,6 +37,7 @@ test.each([
     await user.click(screen.getByRole('radio', { name: /빠른 분석/ }))
   }
   await user.click(screen.getByRole('button', { name: start, exact: true }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await waitFor(() => expect(window.location.hash).toBe(`#${result}`))
   await user.click(await screen.findByRole('button', { name: back, exact: true }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(
@@ -96,6 +97,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   render(<App />)
   await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await screen.findByText('완료한 음성 리뷰')
   await user.click(screen.getByRole('button', { name: '입력 수정하기' }))
   expect((await screen.findByRole('textbox', { name: /발표 목적/ })).value).toBe(example.purpose)
@@ -104,6 +106,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   await user.click(screen.getByRole('button', { name: '발표자료 피드백' }))
   await user.click(await screen.findByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText('자료 결과 유지')).toBeTruthy()
   await act(async () => {
     window.location.hash = '/speech-results'
@@ -115,6 +118,7 @@ test('speech result survives editing, browser Back and leaving for another feedb
   expect(screen.queryByText('리허설_1차.m4a')).toBeNull()
   await user.click(screen.getByRole('button', { name: '예시 자료로 채우기' }))
   await user.click(screen.getByRole('button', { name: '음성 분석 시작' }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await screen.findByText('완료한 음성 리뷰')
   await act(async () => {
     window.location.hash = '/results'

@@ -125,7 +125,7 @@ test.each(['/materials', '/speech'])(
   },
 )
 
-test('a finished analysis automatically opens its result without adding a history step', async () => {
+test('a finished analysis opens its result from the result button without adding a history step', async () => {
   const analysisFetch = stubServer()
   const user = await renderApp('/materials')
   await user.type(purpose(), '교육{Enter}')
@@ -138,6 +138,7 @@ test('a finished analysis automatically opens its result without adding a histor
       name: /그대로 진행/,
     }),
   )
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   expect(await screen.findByText(feedback.feedback)).toBeTruthy()
   expect(window.location.hash).toBe('#/results')
 
@@ -184,6 +185,7 @@ test('the example result shows the example slides when the server sample has non
   const user = await renderApp('/materials')
   await user.click(screen.getByRole('button', { name: /예시 자료로 시작하기/ }))
   await user.click(screen.getByRole('button', { name: '예시 분석 시작' }))
+  await user.click(await screen.findByRole('button', { name: '피드백 결과 보기' }))
   await user.click(await screen.findByRole('tab', { name: /슬라이드별 피드백/ }))
   expect(screen.queryByText('슬라이드별 결과가 아직 없어요.')).toBeNull()
   expect(
