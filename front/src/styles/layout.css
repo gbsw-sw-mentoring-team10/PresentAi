@@ -1,10 +1,14 @@
-/* 짧은 페이지는 화면을 채우고, 긴 페이지의 푸터는 본문 뒤에 둡니다. */
+/* 고정 푸터의 실제 높이만큼 본문 아래 공간을 확보합니다. */
 @media screen {
+  html {
+    scroll-padding-bottom: calc(var(--site-footer-height, 0px) + 16px);
+  }
   #root {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     min-height: 100dvh;
+    padding-bottom: var(--site-footer-height, 0px);
   }
   #root > #main-content {
     flex: 1 0 auto;
@@ -12,6 +16,11 @@
   #root > .site-header,
   #root > .site-footer {
     flex-shrink: 0;
+  }
+  .site-footer {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
   }
 }
 
